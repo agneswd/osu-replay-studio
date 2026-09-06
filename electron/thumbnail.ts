@@ -1,4 +1,5 @@
-import { BrowserWindow } from "electron";
+import { BrowserWindow, type NativeImage } from "electron";
+import { once } from "node:events";
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { Timeline } from "../core/types.js";
@@ -14,10 +15,11 @@ export async function captureThumbnail(root: string, timeline: Timeline, file: s
     win.setContentSize(1280, 720);
     await win.webContents.executeJavaScript(`window.renderThumbnail(${JSON.stringify(timeline)},${JSON.stringify(normalizeOverlayAccent(accent))})`);
     signal.throwIfAborted();
-    // Flush the initial window frame before saving the rendered thumbnail.
-    await win.webContents.capturePage();
     await win.webContents.executeJavaScript("new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
-    const image = await win.webContents.capturePage();
+    // Use the completed offscreen frame. Windows can reject capturePage before its surface is ready.
+    const painted = once(win.webContents, "paint", { signal: AbortSignal.any([signal, AbortSignal.timeout(10_000)]) });
+    win.webContents.invalidate();
+    const image: NativeImage = (await painted)[2];
     if (image.getSize().width !== 1280 || image.getSize().height !== 720) throw new Error("Thumbnail size does not match.");
     signal.throwIfAborted();
     await writeFile(file, image.toPNG(), { flag: "wx" });
