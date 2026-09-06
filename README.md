@@ -22,7 +22,7 @@ An OpenGL 3.3 graphics driver is required.
 5. Select **Render video**.
 
 Videos go to your Videos folder by default. Change the folder in **Settings**.
-Enable **Export thumbnail** to save a PNG beside the video.
+Select **Export thumbnail** to save a PNG to your output folder. This does not render a video.
 The outro includes short entrance sounds. Preview volume affects only the app. Export audio uses a fixed loudness target.
 Video defaults are 1920 × 1080 at 60 FPS. Existing files are kept. Space plays or pauses. Arrow keys seek five seconds. Ctrl+plus and Ctrl+minus change app scale. Ctrl+0 resets it.
 
