@@ -1,0 +1,47 @@
+# osu! Replay Studio
+
+Turn osu!standard stable and lazer replays into MP4 videos on Linux and Windows.
+Preview gameplay with skins, music, and hit sounds. Add overlays, an intro, an outro, and a CPOLesque thumbnail.
+
+![Replay workspace](docs/images/workspace.png)
+
+## Install
+
+Download the Linux AppImage or Windows installer from [Releases](https://github.com/agneswd/osu-replay-studio/releases/latest).
+On Linux, allow the AppImage to run as a program, then open it.
+The app includes Danser, FFmpeg, and the osu! PP calculator.
+Release builds download updates from GitHub. Updates install when you close the app.
+An OpenGL 3.3 graphics driver is required.
+
+## Make a video
+
+1. Select **Open replay** and choose an `.osr` file.
+2. Select your osu! **Songs folder** if the app cannot find it.
+3. Use the timeline to preview the replay.
+4. Set the skin, background dim, cursor size, and video options beside the preview.
+5. Select **Render video**.
+
+Videos go to your Videos folder by default. Change the folder in **Settings**.
+Enable **Export thumbnail** to save a PNG beside the video.
+The outro includes short entrance sounds. Preview volume affects only the app. Export audio uses a fixed loudness target.
+Video defaults are 1920 × 1080 at 60 FPS. Existing files are kept. Space plays or pauses. Arrow keys seek five seconds. Ctrl+plus and Ctrl+minus change app scale. Ctrl+0 resets it.
+
+Connect an osu! API client in **Settings** for player history, mapper portraits, and leaderboards.
+Use **Create osu! client**, then enter the Client ID and Client Secret.
+The app stores the secret through your system keyring.
+
+## Supported replays
+
+- osu!standard stable replays with common mods, including DT, NC, HT, HD, and HR.
+- Lazer supports NM, NF, EZ, TD, HD, HR, SD, PF, DT, NC, HT, DC, FL, CL, and DA.
+- Custom speed and difficulty settings are supported within the app's checked ranges. Unsupported mod settings show an error.
+- Other game modes, Relax, Autopilot, and ScoreV2 are not supported.
+- Export the matching beatmap from lazer if it is not in a stable Songs folder.
+- The preview uses replayviewer-js. Danser renders video. Their judgement simulation can differ.
+- Live score and PP use replay simulation. Hit error and UR include circles only.
+- PP uses the bundled official osu! calculator. New app builds include calculator updates.
+- Online score summaries use the submitted score's current PP when available.
+- Leaderboards show nearby entries from the map's top 50 or 100 scores, sorted by PP or score.
+- Online statistics reflect the current data, not the replay date.
+
+See [build instructions](docs/build.md), [CLI use](docs/cli.md), and [third-party software](THIRD-PARTY.md).
