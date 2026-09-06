@@ -47,6 +47,13 @@ app.whenReady().then(async () => {
     assert.deepEqual(image.getSize(), { width: 1280, height: 720 });
     const pixel = image.toBitmap().subarray((490 * 1280 + 640) * 4, (490 * 1280 + 640) * 4 + 4);
     assert.ok(pixel[2] > 240 && pixel[1] < 10 && pixel[0] < 10, "The first thumbnail contains the rendered avatar.");
+    const bitmap = image.toBitmap();
+    const colors = new Set();
+    for (let y = 530; y < 565; y++) for (let x = 766; x < 801; x++) {
+      const at = (y * 1280 + x) * 4;
+      colors.add(bitmap.subarray(at, at + 3).toString("hex"));
+    }
+    assert.ok(colors.size > 10, "The thumbnail contains the mod icon, not only its background.");
     console.log("Thumbnail capture contains loaded replay assets.");
   } finally { await fs.rm(work, { recursive: true, force: true }); }
 

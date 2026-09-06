@@ -1,4 +1,4 @@
-import { BrowserWindow, type NativeImage } from "electron";
+import { BrowserWindow } from "electron";
 import { once } from "node:events";
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -16,10 +16,12 @@ export async function captureThumbnail(root: string, timeline: Timeline, file: s
     await win.webContents.executeJavaScript(`window.renderThumbnail(${JSON.stringify(timeline)},${JSON.stringify(normalizeOverlayAccent(accent))})`);
     signal.throwIfAborted();
     await win.webContents.executeJavaScript("new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
-    // Use the completed offscreen frame. Windows can reject capturePage before its surface is ready.
+    // Wait for the offscreen surface before capturing all composited image layers.
     const painted = once(win.webContents, "paint", { signal: AbortSignal.any([signal, AbortSignal.timeout(10_000)]) });
     win.webContents.invalidate();
-    const image: NativeImage = (await painted)[2];
+    await painted;
+    await win.webContents.executeJavaScript("new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+    const image = await win.webContents.capturePage();
     if (image.getSize().width !== 1280 || image.getSize().height !== 720) throw new Error("Thumbnail size does not match.");
     signal.throwIfAborted();
     await writeFile(file, image.toPNG(), { flag: "wx" });
