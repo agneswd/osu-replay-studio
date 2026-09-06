@@ -57,7 +57,7 @@ small { font-size: 15px; }
 .player-rank, .player-country, .player-global-rank { position: absolute; top: 6px; font-size: 24px; line-height: 30px; }
 .player-rank { right: 230px; }
 .player-global-rank { left: 198px; display: flex; align-items: center; gap: 10px; white-space: nowrap; }
-.player-global-rank svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 1.5; flex-shrink: 0; }
+.player-global-rank svg { width: 26px; height: 26px; transform: translateY(2px); fill: none; stroke: currentColor; stroke-width: 1.5; flex-shrink: 0; }
 .player-global-rank svg circle:last-child { fill: #fff; stroke: none; }
 .player-country { right: 198px; font-size: 22px; }
 .player > .score { position: absolute; left: 676px; top: 33px; width: 172px; white-space: nowrap; font-size: 25px; line-height: 34px; }
