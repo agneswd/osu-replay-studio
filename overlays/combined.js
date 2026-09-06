@@ -1,14 +1,14 @@
 const layout = {
-  "health-bar": [460, 16, 1000, 72],
-  "player-info": [460, 14, 1000, 120],
+  "health-bar": [400, 15.75, 1280, 72, .875],
+  "player-info": [400, 14, 1280, 120, .875],
   "pp-counter": [1166, 1008, 380, 60],
-  "accuracy-counter": [1260, 47, 180, 38],
+  "accuracy-counter": [1362.5, 42.875, 180, 38, .875],
   "combo-counter": [404, 1008, 350, 60],
   "hit-counts": [768, 976, 384, 52],
   "hit-error-bar": [768, 976, 384, 98],
-  leaderboard: [20, 434, 365, 414],
+  leaderboard: [4, 434, 365, 414],
   "key-overlay": [1694, 394, 226, 110],
-  "progress-graph": [24, 214, 300, 206],
+  "progress-graph": [8, 214, 300, 206],
 };
 const stage = document.getElementById("stage");
 const frames = new Map();
@@ -25,7 +25,7 @@ window.overlayReady = Promise.all(
       new Promise((resolve) => {
         const iframe = document.createElement("iframe");
         iframe.title = id;
-        iframe.style.cssText = `left:${x}px;top:${y}px;width:${w}px;height:${h}px`;
+        iframe.style.cssText = `left:${x}px;top:${y}px;width:${w}px;height:${h}px;transform-origin:top left`;
         iframe.onload = async () => {
           await iframe.contentDocument.fonts.ready;
           resolve();
@@ -89,8 +89,8 @@ window.setReplayFrame = async (data, enabled, theme) => {
   for (const [id, iframe] of frames) {
     iframe.style.display = enabled.includes(id) && hide < 1 ? "block" : "none";
     iframe.style.opacity = String(1 - hideEase);
-    const [x, y] = layout[id];
-    iframe.style.transform = `translate(${x < 460 ? -hideEase * 35 : 0}px,${y > 900 ? hideEase * 25 : x >= 460 ? -hideEase * 25 : 0}px)`;
+    const [x, y, , , scale = 1] = layout[id];
+    iframe.style.transform = `translate(${x < 320 ? -hideEase * 35 : 0}px,${y > 900 ? hideEase * 25 : x >= 320 ? -hideEase * 25 : 0}px) scale(${scale})`;
     iframe.style.filter = `blur(${strength * 2.5}px) brightness(${1 - strength * .75})`;
     if (enabled.includes(id) && hide < 1) iframe.contentWindow.renderReplayFrame(data);
   }

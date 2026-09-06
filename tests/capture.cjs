@@ -45,6 +45,15 @@ app.whenReady().then(async () => {
   }
   assert.equal(count, 2);
   console.log("First captured frame contains loaded replay assets.");
+  for (const value of [0, 1]) {
+    const healthTimeline = { ...timeline, health: [{ time: 0, value }] };
+    for await (const png of captureOverlay(root)({ width: 1920, height: 1080, fps: 60, overlays: ["health-bar"] }, healthTimeline, 1, new AbortController().signal)) {
+      const bitmap = nativeImage.createFromBuffer(png).toBitmap();
+      const pixel = (x, y) => bitmap.subarray((y * 1920 + x) * 4, (y * 1920 + x) * 4 + 4);
+      if (value === 0) assert.deepEqual(pixel(426, 26), pixel(426, 22), "Empty HP has the same solid color as its outline.");
+      else assert.ok(pixel(426, 26)[2] < pixel(426, 22)[2] / 2, "Full HP has a dark center.");
+    }
+  }
   const { frameAt } = await import(pathToFileURL(path.join(root, "dist/core/timeline.js")).href);
   const tickWindow = new BrowserWindow({ show: false, webPreferences: { offscreen: true } });
   try {
