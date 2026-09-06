@@ -7,7 +7,7 @@ export interface UpdateStatus { state: "disabled" | "idle" | "checking" | "downl
 export function startUpdates() {
   const enabled = app.isPackaged && existsSync(path.join(process.resourcesPath, "app-update.yml")) &&
     (process.platform !== "linux" || !!process.env.APPIMAGE);
-  const version = app.isPackaged ? app.getVersion() : JSON.parse(readFileSync(new URL("../../../package.json", import.meta.url), "utf8")).version as string;
+  const version = app.isPackaged ? app.getVersion() : JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf8")).version as string;
   let status: UpdateStatus = { state: enabled ? "idle" : "disabled", version };
   const { autoUpdater } = updater;
   if (enabled) {
