@@ -310,10 +310,9 @@ export async function analyze(
     "Score and PP are re-simulated estimates. Timing error and UR include circles and slider heads.",
   );
 
-  const end = Math.max(
-    last.time,
-    ...map.hitObjects.map((o) => ("endTime" in o ? o.endTime : o.time)),
-  );
+  const end = Math.max(...map.hitObjects.map((o) => ("endTime" in o ? o.endTime : o.time)));
+  // Danser finishes the last judgement window, the one-second fade, and its 100 ms tail.
+  const gameplayFadeStart = (end + Math.trunc(200 - 10 * parsed.modDiff.od)) / 1000 / parsed.modDiff.speed;
 
   let health = replay.lifebarGraph
     .split(",")
@@ -405,7 +404,8 @@ export async function analyze(
     replayFormat: format.lazer ? "lazer" : "stable",
       speed: parsed.modDiff.speed,
       preempt: Math.min(1800, parsed.modDiff.preemptMs),
-      duration: (end + 1000) / 1000 / parsed.modDiff.speed,
+      duration: gameplayFadeStart + 1.1 / parsed.modDiff.speed,
+      gameplayFadeStart,
       stars,
       bpm,
       od: parsed.modDiff.od,

@@ -168,6 +168,7 @@ export interface Timeline {
   speed: number;
   preempt: number;
   duration: number;
+  gameplayFadeStart?: number;
   stars: number;
   bpm: number;
   od: number;

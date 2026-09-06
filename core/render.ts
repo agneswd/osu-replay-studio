@@ -19,7 +19,7 @@ import type { OsuClient } from "./online.js";
 import { analyze } from "./analyze.js";
 import { compositeArgs, presentationTiming, firstNoteSeconds } from "./presentation.js";
 import { runtimeTool } from "./runtime.js";
-import { exportLoudness, measuredAudioFilter, outroWave } from "./audio.js";
+import { exportLoudness, measuredAudioFilter, outroWave, outroMusicArgs } from "./audio.js";
 import {
   overlayIds,
   type Timeline,
@@ -268,7 +268,7 @@ export async function render(
           IgnoreFailsInReplays: true,
           Boundaries: { Enabled: false },
         },
-        Audio: { Offset: 0, OnlineOffset: false },
+        Audio: { GeneralVolume: .5, MusicVolume: .5, SampleVolume: .5, Offset: 0, OnlineOffset: false },
       }),
     );
     const danserEnv: NodeJS.ProcessEnv = {
@@ -323,9 +323,13 @@ export async function render(
     progress({ stage: "Audio", message: "Normalize video audio" });
     const gameplay = path.join(work, "gameplay.mp4");
     const leadIn = 1 + timeline.preempt / 1000 / timeline.speed;
+    const musicAudio = o.introOutro && timeline.audioPath ? path.join(work, "music.wav") : undefined;
+    if (musicAudio) await run(runtimeTool("ffmpeg"), outroMusicArgs(gameplay, timeline.audioPath!, musicAudio,
+      timing.startFrame / o.fps, leadIn, Math.min(duration, timeline.gameplayFadeStart ?? duration),
+      timing.duration - timing.introFrames / o.fps, timeline.speed, timeline.preservesPitch), signal, line => log.write(line));
     let audioLog = "";
-    await run(runtimeTool("ffmpeg"), ["-ss", String(Math.max(0, leadIn + timing.startFrame / o.fps)), "-i", gameplay,
-      "-t", String(timing.gameplayFrames / o.fps), "-vn", "-af", `${exportLoudness}:print_format=json`, "-f", "null", "-"],
+    await run(runtimeTool("ffmpeg"), [...(musicAudio ? [] : ["-ss", String(Math.max(0, leadIn + timing.startFrame / o.fps))]), "-i", musicAudio ?? gameplay,
+      "-t", String(musicAudio ? timing.duration - timing.introFrames / o.fps : timing.gameplayFrames / o.fps), "-vn", "-af", `${exportLoudness}:print_format=json`, "-f", "null", "-"],
       signal, line => { audioLog = (audioLog + line).slice(-8000); });
     const audioFilter = measuredAudioFilter(audioLog);
     const outroAudio = o.introOutro ? path.join(work, "outro.wav") : undefined;
@@ -355,7 +359,7 @@ export async function render(
     });
     await run(
       runtimeTool("ffmpeg"),
-      compositeArgs(gameplay, o.output, duration, o.fps, o.introOutro, leadIn, firstNoteSeconds(timeline), audioFilter, outroAudio),
+      compositeArgs(gameplay, o.output, duration, o.fps, o.introOutro, leadIn, firstNoteSeconds(timeline), audioFilter, outroAudio, musicAudio),
       signal,
       (line) => log.write(line),
       work,

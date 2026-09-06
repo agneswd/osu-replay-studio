@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { outroSampleRate, outroSamples } from "../shared/outro-audio.js";
-import { presentationTiming, firstNoteSeconds } from "../core/presentation.js";
+import { presentationTiming, firstNoteSeconds, endFadeStart, endFadeDuration, outroMusicGain } from "../core/presentation.js";
 import type { Timeline } from "../core/types.js";
 import type { PreviewEngine } from "./preview-engine.js";
 
@@ -8,6 +8,7 @@ export function usePlayback(timeline: Timeline | undefined, time: number, setTim
   duration: number, fps: number, introOutro: boolean, engine?: PreviewEngine) {
   const [playing, setPlaying] = useState(false);
   const [volume, setVolume] = useState(.1);
+  const currentVolume = useRef(volume); currentVolume.current = volume;
   const [audioError, setAudioError] = useState("");
   const [command, setCommand] = useState(0);
   const clock = useRef({ seconds: time, started: performance.now() });
@@ -41,7 +42,7 @@ export function usePlayback(timeline: Timeline | undefined, time: number, setTim
     const timing = presentationTiming(timeline.duration, fps, introOutro, firstNoteSeconds(timeline));
     const audioOrigin = (timing.introFrames - timing.startFrame) / fps;
     const start = Math.max(timing.introFrames / fps, audioOrigin);
-    const end = (timing.introFrames + timing.gameplayFrames) / fps;
+    const end = introOutro ? duration : (timing.introFrames + timing.gameplayFrames) / fps;
     let phase = "";
     let stopped = false;
     let raf = 0;
@@ -60,6 +61,10 @@ export function usePlayback(timeline: Timeline | undefined, time: number, setTim
         });
         else engine.audio.pause();
       }
+      const fade = introOutro ? Math.max(0, Math.min(1, 1 - (seconds - timing.outroStartFrame / fps - endFadeStart) / endFadeDuration)) : 1;
+      const musicGain = introOutro ? outroMusicGain(seconds - timing.outroStartFrame / fps) : 1;
+      engine.audio.setSongVolume(currentVolume.current * .5 * musicGain * fade);
+      if (sceneGain.current) sceneGain.current.gain.value = currentVolume.current * .5 * fade;
       currentTime.current = seconds;
       // Audio runs on its own clock. Hidden windows do not need visual updates.
       if (!document.hidden || seconds >= duration) setTime(seconds);
