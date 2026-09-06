@@ -24,9 +24,9 @@ Local Linux x64 results with Node.js 26.4 and Electron 44:
 | JavaScript time during five seconds of playback | 1.09 s | 0.25 s |
 | App process memory | 1,429 MiB | 1,035 MiB |
 | Software overlay capture at 720p | 45 frames/s | 54 frames/s |
-| Linux AppImage | 367 MiB | 227 MiB |
-| Unpacked Linux app | 779 MiB | 547 MiB |
-| Windows installer | 372 MiB | 230 MiB |
+| Linux AppImage | 367 MiB | 218 MiB |
+| Unpacked Linux app | 779 MiB | 521 MiB |
+| Windows installer | 372 MiB | 218 MiB |
 
 The sampled replay has 574 score snapshots. These results are not hardware guarantees.
 App memory sums process working sets and can count shared pages more than once.
@@ -43,3 +43,5 @@ Raw frame transfer took 2.18 s versus 2.78 s for PNG in a 120-frame test.
 It changed decoded frame hashes and increased capture-process memory, so it was not retained.
 Alternative RLE and Huffman compression also increased gameplay capture time.
 Encoder cancellation now closes capture resources even when the input pipe is full.
+The headless calculator excludes unused game resources and native graphics, audio, and video libraries.
+Its published Linux runtime is 128 MiB. Calculator tests run against that reduced runtime.
