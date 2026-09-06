@@ -1,7 +1,7 @@
 import type { UpdateStatus } from "../electron/updates.js";
 import { defaultVideo } from "../core/video-options.js";
 import type { PreviewData } from "../core/preview.js";
-import { defaultOverlayAccent, overlayIds, type AnalyzeInput, type Progress, type RenderOptions, type SavedSettings, type StudioDefaults, type Timeline } from "../core/types.js";
+import { defaultOverlayAccent, overlayIds, type AnalyzeInput, type Progress, type RenderOptions, type SavedSettings, type StudioDefaults, type ThumbnailOptions, type Timeline } from "../core/types.js";
 import type { SkinChoice } from "../core/skins.js";
 import type { PpEngineStatus } from "../core/pp.js";
 
@@ -29,6 +29,7 @@ declare global {
         title: string;
       }): Promise<string>;
       analyze(input: AnalyzeInput): Promise<Timeline>;
+      exportThumbnail(input: ThumbnailOptions): Promise<string>;
       render(input: RenderOptions): Promise<string>;
       cancel(): Promise<void>;
       reveal(): Promise<void>;
@@ -59,7 +60,6 @@ export function installBrowserStudio() {
       overlays: [...overlayIds],
       overlayAccent: defaultOverlayAccent,
       introOutro: false,
-      thumbnail: false,
       leaderboardSize: 50,
       leaderboardSort: "pp",
     }),
@@ -74,6 +74,7 @@ export function installBrowserStudio() {
     analyze: async () => {
       throw new Error("Inspect and render need the Electron app.");
     },
+    exportThumbnail: async () => { throw new Error("Export thumbnails in the desktop app."); },
     render: async () => {
       throw new Error("Inspect and render need the Electron app.");
     },

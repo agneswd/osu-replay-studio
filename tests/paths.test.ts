@@ -48,6 +48,10 @@ test("output names strip unsafe characters and add a number when the file exists
     const second = await uniqueOutputPath(dir, "player - song");
     assert.equal(second, path.join(dir, "player - song 1.mp4"));
     await writeFile(second, "");
+    const thumbnail = await uniqueOutputPath(dir, "player - song", "png");
+    assert.equal(thumbnail, path.join(dir, "player - song.png"));
+    await writeFile(thumbnail, "");
+    assert.equal(await uniqueOutputPath(dir, "player - song", "png"), path.join(dir, "player - song 1.png"));
     const third = await uniqueOutputPath(dir, "player - song");
     assert.equal(third, path.join(dir, "player - song 2.mp4"));
   } finally {

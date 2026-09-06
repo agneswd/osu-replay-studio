@@ -87,6 +87,7 @@ export function outputStem(player: string, title: string): string {
 export async function uniqueOutputPath(
   dir: string,
   stem: string,
+  extension: "mp4" | "png" = "mp4",
 ): Promise<string> {
   const free = async (file: string) => {
     try {
@@ -96,11 +97,9 @@ export async function uniqueOutputPath(
       return true;
     }
   };
-  const first = path.join(dir, `${stem}.mp4`);
-  if (await free(first) && await free(first.replace(/\.mp4$/i, ".png"))) return first;
-  for (let n = 1; n < 10000; n++) {
-    const next = path.join(dir, `${stem} ${n}.mp4`);
-    if (await free(next) && await free(next.replace(/\.mp4$/i, ".png"))) return next;
+  for (let n = 0; n < 10000; n++) {
+    const file = path.join(dir, `${stem}${n ? ` ${n}` : ""}.${extension}`);
+    if (await free(file) && (extension === "png" || await free(file.replace(/\.mp4$/i, ".png")))) return file;
   }
   throw new Error("Could not find a free output filename.");
 }

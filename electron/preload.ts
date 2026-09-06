@@ -4,6 +4,7 @@ import type {
   Progress,
   RenderOptions,
   SavedSettings,
+  ThumbnailOptions,
 } from "../core/types.js";
 contextBridge.exposeInMainWorld("studio", {
   osuStatus: () => ipcRenderer.invoke("osuStatus"),
@@ -23,6 +24,7 @@ contextBridge.exposeInMainWorld("studio", {
   uniqueOutput: (input: { dir: string; player: string; title: string }) =>
     ipcRenderer.invoke("uniqueOutput", input),
   analyze: (input: AnalyzeInput) => ipcRenderer.invoke("analyze", input),
+  exportThumbnail: (input: ThumbnailOptions) => ipcRenderer.invoke("exportThumbnail", input),
   render: (input: RenderOptions) => ipcRenderer.invoke("render", input),
   cancel: () => ipcRenderer.invoke("cancel"),
   reveal: () => ipcRenderer.invoke("reveal"),

@@ -23,6 +23,7 @@ import {
   type RenderOptions,
   type SavedSettings,
   type StudioDefaults,
+  type ThumbnailOptions,
 } from "../core/types.js";
 import { Credentials } from "./credentials.js";
 import { registerMedia } from "./media.js";
@@ -190,7 +191,6 @@ app
             : [...overlayIds],
           overlayAccent: normalizeOverlayAccent(saved.overlayAccent),
           introOutro: saved.introOutro === true,
-          thumbnail: saved.thumbnail === true,
           leaderboardSort: saved.leaderboardSort === "score" ? "score" : "pp",
           leaderboardSize: saved.leaderboardSize === 100 ? 100 : 50,
         };
@@ -279,6 +279,17 @@ app
           previewFiles = { beatmap: timeline.beatmap, replay: timeline.replay };
           if (timeline.audioPath) timeline.audioUrl = mediaUrl(timeline.audioPath);
           return timeline;
+        });
+      });
+      ipcMain.handle("exportThumbnail", (event, input: ThumbnailOptions) => {
+        trusted(event);
+        return job(async signal => {
+          if (!input?.dir) throw new Error("Missing output folder.");
+          await mkdir(input.dir, { recursive: true });
+          const file = await uniqueOutputPath(input.dir, outputStem(input.timeline.player, input.timeline.title), "png");
+          await captureThumbnail(root, input.timeline, file, input.accent, signal);
+          completed = file;
+          return file;
         });
       });
       ipcMain.handle("render", (event, input: RenderOptions) => {

@@ -34,7 +34,7 @@ import { ModBadgeList } from "./mod-badges.js";
 import { usePlayback } from "./use-playback.js";
 import type { PreviewEngine } from "./preview-engine.js";
 import appLogo from "../build/icon.svg";
-import { Play, Pause, RotateCcw, Volume2, X, Settings, FolderOpen } from "lucide-react";
+import { Play, Pause, RotateCcw, Volume2, X, Settings, FolderOpen, ImageDown } from "lucide-react";
 import { resolutions, frameRates } from "../core/video-options.js";
 import type { SkinChoice } from "../core/skins.js";
 import { installBrowserStudio, type ChooseKind } from "./studio-api.js";
@@ -147,7 +147,7 @@ export function App() {
   const [options, setOptions] = useState<StudioDefaults>();
   const [timeline, setTimeline] = useState<Timeline>();
   const [busy, setBusy] = useState(false);
-  const [busyAction, setBusyAction] = useState<"import" | "render">("import");
+  const [busyAction, setBusyAction] = useState<"import" | "render" | "thumbnail">("import");
   const [error, setError] = useState("");
   const cancelRequested = useRef(false);
   const [notice, setNotice] = useState("");
@@ -297,7 +297,6 @@ export function App() {
     if (next.fps !== undefined) saved.fps = next.fps;
     if (next.leaderboardSort !== undefined) saved.leaderboardSort = next.leaderboardSort;
     if (next.leaderboardSize !== undefined) saved.leaderboardSize = next.leaderboardSize;
-    if (next.thumbnail !== undefined) saved.thumbnail = next.thumbnail;
     if (next.introOutro !== undefined) saved.introOutro = next.introOutro;
     if (next.overlays !== undefined) saved.overlays = next.overlays;
     if (next.overlayAccent !== undefined) saved.overlayAccent = next.overlayAccent;
@@ -381,6 +380,23 @@ export function App() {
     }
   }
 
+  async function exportThumbnail() {
+    if (!options || !timeline) return;
+    cancelRequested.current = false;
+    setBusyAction("thumbnail");
+    setProgress({ stage: "Exporting thumbnail", message: "Save thumbnail" });
+    setBusy(true); setNotice(""); setError(""); setOutput("");
+    try {
+      setOutput(await window.studio.exportThumbnail({ timeline, dir: options.outputDir, accent: options.overlayAccent }));
+    } catch (e) {
+      if (cancelRequested.current) setNotice("Thumbnail export cancelled");
+      else setError((e instanceof Error ? e.message : String(e)).replace(/^Error invoking remote method '[^']+': (?:Error: )?/, ""));
+    } finally {
+      setBusy(false);
+      cancelRequested.current = false;
+    }
+  }
+
   async function startRender(current = options) {
     if (!current || !timeline) return;
     if (!current.danser) {
@@ -418,7 +434,6 @@ export function App() {
         overlays: current.overlays,
         overlayAccent: current.overlayAccent,
         introOutro: current.introOutro,
-        thumbnail: current.thumbnail,
         leaderboardSort: current.leaderboardSort,
         leaderboardSize: current.leaderboardSize,
       });
@@ -530,10 +545,7 @@ export function App() {
                   </Select.Popover>
                 </Select></Hint>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <Hint text="Save a CPOL-style PNG beside the video."><Checkbox isSelected={options.thumbnail} isDisabled={busy} onChange={thumbnail => void persist({ thumbnail })}>
-                    <Checkbox.Content><Checkbox.Control><Checkbox.Indicator /></Checkbox.Control>Export thumbnail</Checkbox.Content>
-                  </Checkbox></Hint>
+                <div>
                   <Hint text="Add score animations before and after gameplay."><Checkbox isSelected={options.introOutro} isDisabled={busy}
                     onChange={(introOutro) => void persist({ introOutro })}>
                     <Checkbox.Content>
@@ -740,12 +752,17 @@ export function App() {
             Show in folder
           </Button>
         )}
+        <Hint text="Save a CPOL-style PNG to your output folder without rendering a video.">
+          <Button variant="secondary" isDisabled={busy || !timeline} isPending={busy && busyAction === "thumbnail"} onPress={exportThumbnail}>
+            <ImageDown size={18} />Export thumbnail
+          </Button>
+        </Hint>
         <Button
           isDisabled={busy || !timeline}
-          isPending={busy}
+          isPending={busy && busyAction === "render"}
           onPress={() => startRender()}
         >
-          {busy ? busyAction === "import" ? "Importing..." : "Rendering" : "Render video"}
+          {busy && busyAction !== "thumbnail" ? busyAction === "import" ? "Importing..." : "Rendering" : "Render video"}
         </Button>
       </footer>
 

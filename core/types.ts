@@ -45,6 +45,11 @@ export interface RenderOptions extends AnalyzeInput {
   leaderboardSort?: "pp" | "score";
   duration?: number;
 }
+export interface ThumbnailOptions {
+  timeline: Timeline;
+  dir: string;
+  accent: string;
+}
 export interface SavedSettings {
   backgroundDim?: number;
   cursorSize?: number;
@@ -57,7 +62,6 @@ export interface SavedSettings {
   fps?: number;
   overlays?: OverlayId[];
   overlayAccent?: string;
-  thumbnail?: boolean;
   introOutro?: boolean;
   leaderboardSize?: 50 | 100;
   leaderboardSort?: "pp" | "score";
@@ -78,7 +82,6 @@ export interface StudioDefaults {
   fps: number;
   overlays: OverlayId[];
   overlayAccent: string;
-  thumbnail: boolean;
   introOutro: boolean;
   leaderboardSize: 50 | 100;
   leaderboardSort: "pp" | "score";
