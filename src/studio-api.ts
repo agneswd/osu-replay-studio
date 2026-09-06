@@ -45,8 +45,8 @@ export function installBrowserStudio() {
     saveOsuCredentials: async () => { throw new Error("Connect osu! in the desktop app."); },
     clearOsuCredentials: async () => ({ clientId: "", configured: false }),
     openOsuSettings: async () => { window.open("https://osu.ppy.sh/home/account/edit#oauth", "_blank", "noopener"); },
-    updateStatus: async () => ({ state: "disabled", version: "0.1.0" }),
-    checkUpdates: async () => ({ state: "disabled", version: "0.1.0" }),
+    updateStatus: async () => ({ state: "disabled", version: "0.1.1" }),
+    checkUpdates: async () => ({ state: "disabled", version: "0.1.1" }),
     defaults: async () => ({
       skinPath: "",
       replay: "",
