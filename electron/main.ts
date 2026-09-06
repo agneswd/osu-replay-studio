@@ -288,7 +288,7 @@ app
           if (!input?.dir) throw new Error("Missing output folder.");
           await mkdir(input.dir, { recursive: true });
           const file = await uniqueOutputPath(input.dir, outputStem(input.timeline.player, input.timeline.title), "png");
-          await captureThumbnail(root, input.timeline, file, input.accent, signal);
+          await captureThumbnail(root, input.timeline, file, input.accent, signal, { bottomText: input.bottomText, accentRange: input.accentRange });
           completed = file;
           return file;
         });

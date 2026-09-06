@@ -1,7 +1,7 @@
 import { leaderboardAt } from "../../core/leaderboard.js";
 import { createRoot } from "react-dom/client";
 import { flushSync } from "react-dom";
-import type { Timeline } from "../../core/types.js";
+import type { Timeline, ThumbnailTextOptions } from "../../core/types.js";
 import type { ThumbnailData } from "./shared/types/thumbnail.js";
 import { referenceTemplate } from "./thumbnail/templates/reference/template.js";
 import { computeTexts } from "./thumbnail/texts.js";
@@ -14,7 +14,7 @@ import { BottomMessage } from "./thumbnail/components/Branding/Branding.js";
 
 import "./style.css";
 
-function Thumbnail({ timeline, accent }: { timeline: Timeline; accent: string }) {
+function Thumbnail({ timeline, accent, customization }: { timeline: Timeline; accent: string; customization: ThumbnailTextOptions }) {
   const score = timeline.sceneInfo!.score;
   const info = timeline.sceneInfo!;
   const difficulty = timeline.title.match(/\[([^\]]+)\]$/)?.[1] ?? "";
@@ -59,13 +59,13 @@ function Thumbnail({ timeline, accent }: { timeline: Timeline; accent: string })
     <TextLayer config={{ ...c.leaderboard, color: rank === 1 ? "#E7CE56" : rank === 2 ? "#A5A4A6" : rank === 3 ? "#CD7F32" : "#63E564" }}>{text.leaderboard}</TextLayer>
     <Avatar url={data.avatarUrl} config={c.avatar} /><CountryFlag countryCode={data.countryCode} config={c.countryFlag} />
     <UsernamePanel username={data.username} config={c.usernamePanel} /><ModList mods={data.mods} config={c.modList} />
-    <BottomMessage text={text["bottom-text"]} config={c.bottomMessage} />
+    <BottomMessage text={customization.bottomText ?? text["bottom-text"]} accentRange={customization.accentRange} config={c.bottomMessage} />
   </div>;
 }
 const root = createRoot(document.getElementById("root")!);
-Object.assign(window, { async renderThumbnail(timeline: Timeline, accent: string) {
+Object.assign(window, { async renderThumbnail(timeline: Timeline, accent: string, customization: ThumbnailTextOptions = {}) {
   await document.fonts.load('700 72px "Baloo 2"');
-  flushSync(() => root.render(<Thumbnail timeline={timeline} accent={accent} />));
+  flushSync(() => root.render(<Thumbnail timeline={timeline} accent={accent} customization={customization} />));
   await Promise.all(Array.from(document.images).map(image => image.decode().catch(() => {})));
   await document.fonts.ready;
   await new Promise(requestAnimationFrame);

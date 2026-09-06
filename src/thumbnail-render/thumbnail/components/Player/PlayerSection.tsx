@@ -27,7 +27,8 @@ export function CountryFlag({ countryCode, config, }: {
     countryCode?: string;
     config: CountryFlagConfig;
 }) {
-    if (!config.visible || !countryCode)
+    const code = countryCode?.toUpperCase();
+    if (!config.visible || !code || !/^[A-Z]{2}$/.test(code))
         return null;
     return (<div style={layerStyle(config, {
             width: config.width,
@@ -37,7 +38,7 @@ export function CountryFlag({ countryCode, config, }: {
             overflow: "hidden",
             boxShadow: "0 2px 6px rgba(0,0,0,0.5)",
         })} data-layer="country-flag">
-      <span style={{ display: "block", textAlign: "center", fontSize: 36 }}>{countryCode.toUpperCase().replace(/./g, c => String.fromCodePoint(127397 + c.charCodeAt(0)))}</span>
+      <img src={`../../shared/assets/flags/${code}.svg`} alt={code} onError={event => { event.currentTarget.style.visibility = "hidden"; }} style={{ display: "block", width: "100%", height: "100%", objectFit: "cover" }} />
     </div>);
 }
 export function UsernamePanel({ username, config, }: {

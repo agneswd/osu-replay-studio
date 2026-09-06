@@ -46,7 +46,11 @@ export interface RenderOptions extends AnalyzeInput {
   leaderboardSort?: "pp" | "score";
   duration?: number;
 }
-export interface ThumbnailOptions {
+export interface ThumbnailTextOptions {
+  bottomText?: string;
+  accentRange?: { start: number; end: number };
+}
+export interface ThumbnailOptions extends ThumbnailTextOptions {
   timeline: Timeline;
   dir: string;
   accent: string;

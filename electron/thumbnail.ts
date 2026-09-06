@@ -1,11 +1,13 @@
+import { validateThumbnailText } from "../core/thumbnail.js";
 import { BrowserWindow } from "electron";
 import { once } from "node:events";
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
-import type { Timeline } from "../core/types.js";
+import type { Timeline, ThumbnailTextOptions } from "../core/types.js";
 import { normalizeOverlayAccent } from "../core/types.js";
 
-export async function captureThumbnail(root: string, timeline: Timeline, file: string, accent: string, signal: AbortSignal) {
+export async function captureThumbnail(root: string, timeline: Timeline, file: string, accent: string, signal: AbortSignal, text: ThumbnailTextOptions = {}) {
+  validateThumbnailText(text);
   const win = new BrowserWindow({ show: false, width: 1280, height: 720, useContentSize: true, frame: false,
     webPreferences: { offscreen: true, backgroundThrottling: false, sandbox: true, contextIsolation: true, nodeIntegration: false } });
   win.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
@@ -13,7 +15,7 @@ export async function captureThumbnail(root: string, timeline: Timeline, file: s
     signal.throwIfAborted();
     await win.loadFile(path.join(root, "overlays/thumbnail/index.html"));
     win.setContentSize(1280, 720);
-    await win.webContents.executeJavaScript(`window.renderThumbnail(${JSON.stringify(timeline)},${JSON.stringify(normalizeOverlayAccent(accent))})`);
+    await win.webContents.executeJavaScript(`window.renderThumbnail(${JSON.stringify(timeline)},${JSON.stringify(normalizeOverlayAccent(accent))},${JSON.stringify(text)})`);
     signal.throwIfAborted();
     await win.webContents.executeJavaScript("new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
     // Wait for the offscreen surface before capturing all composited image layers.

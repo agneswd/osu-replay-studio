@@ -1,3 +1,5 @@
+import { ThumbnailDialog } from "./ThumbnailDialog.js";
+import type { ThumbnailTextOptions } from "../core/types.js";
 import type { UpdateStatus } from "../electron/updates.js";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -163,6 +165,7 @@ export function App() {
   const [connecting, setConnecting] = useState(false);
   const [connectionMessage, setConnectionMessage] = useState("");
   const [update, setUpdate] = useState<UpdateStatus>();
+  const [thumbnailOpen, setThumbnailOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [connectionPromptOpen, setConnectionPromptOpen] = useState(false);
   const [skins, setSkins] = useState<SkinChoice[]>([]);
@@ -385,14 +388,15 @@ export function App() {
     }
   }
 
-  async function exportThumbnail() {
+  async function exportThumbnail(customization: ThumbnailTextOptions & { accent: string }) {
     if (!options || !timeline) return;
     cancelRequested.current = false;
+    setThumbnailOpen(false);
     setBusyAction("thumbnail");
     setProgress({ stage: "Exporting thumbnail", message: "Save thumbnail" });
     setBusy(true); setNotice(""); setError(""); setOutput("");
     try {
-      setOutput(await window.studio.exportThumbnail({ timeline, dir: options.outputDir, accent: options.overlayAccent }));
+      setOutput(await window.studio.exportThumbnail({ timeline, dir: options.outputDir, ...customization }));
     } catch (e) {
       if (cancelRequested.current) setNotice("Thumbnail export cancelled");
       else setError((e instanceof Error ? e.message : String(e)).replace(/^Error invoking remote method '[^']+': (?:Error: )?/, ""));
@@ -561,7 +565,7 @@ export function App() {
                 </div>
                 <div className="flex items-center gap-3">
                   <p className="text-sm font-medium">Overlay accent</p>
-                  <Hint text="Set the accent color for overlays, score animations, and the thumbnail."><ColorPicker value={options.overlayAccent || defaultOverlayAccent} onChange={color => void persist({ overlayAccent: color.toString("hex") })}>
+                  <Hint text="Set the accent color for overlays and score animations."><ColorPicker value={options.overlayAccent || defaultOverlayAccent} onChange={color => void persist({ overlayAccent: color.toString("hex") })}>
                     <ColorPicker.Trigger aria-label="Overlay accent" isDisabled={busy}><ColorSwatch /></ColorPicker.Trigger>
                     <ColorPicker.Popover className="flex w-64 flex-col gap-3 p-4">
                       <ColorArea colorSpace="hsb" xChannel="saturation" yChannel="brightness"><ColorArea.Thumb /></ColorArea>
@@ -758,7 +762,7 @@ export function App() {
           </Button>
         )}
         <Hint text="Save a CPOL-style PNG to your output folder without rendering a video.">
-          <Button variant="secondary" isDisabled={busy || !timeline} isPending={busy && busyAction === "thumbnail"} onPress={exportThumbnail}>
+          <Button variant="secondary" isDisabled={busy || !timeline} isPending={busy && busyAction === "thumbnail"} onPress={() => setThumbnailOpen(true)}>
             <ImageDown size={18} />Export thumbnail
           </Button>
         </Hint>
@@ -784,6 +788,7 @@ export function App() {
         </div>
       )}
 
+      {thumbnailOpen && options && <ThumbnailDialog accent={options.overlayAccent || defaultOverlayAccent} onClose={() => setThumbnailOpen(false)} onExport={value => void exportThumbnail(value)} />}
       <Modal.Backdrop isOpen={connectionPromptOpen} onOpenChange={setConnectionPromptOpen}>
         <Modal.Container>
           <Modal.Dialog className="sm:max-w-[420px]">
