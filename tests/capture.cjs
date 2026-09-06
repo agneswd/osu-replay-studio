@@ -1,4 +1,4 @@
-const { app, nativeImage } = require("electron");
+const { app, nativeImage, BrowserWindow } = require("electron");
 const assert = require("node:assert/strict");
 const path = require("node:path");
 const { pathToFileURL } = require("node:url");
@@ -45,6 +45,24 @@ app.whenReady().then(async () => {
   }
   assert.equal(count, 2);
   console.log("First captured frame contains loaded replay assets.");
+  const { frameAt } = await import(pathToFileURL(path.join(root, "dist/core/timeline.js")).href);
+  const tickWindow = new BrowserWindow({ show: false, webPreferences: { offscreen: true } });
+  try {
+    await tickWindow.loadFile(path.join(root, "overlays/hit-error-bar/index.html"));
+    const frame = frameAt(timeline, 0);
+    frame.timing.ticks = [{ error: -30, opacity: .8, height: 1 }, ...Array.from({ length: 5 }, () => ({ error: 10, opacity: .8, height: 1 }))];
+    await tickWindow.webContents.executeJavaScript(`window.renderReplayFrame(${JSON.stringify(frame)})`);
+    const tickPixels = [-30, 10].map(error => Math.round(2 * (192 + error * 192 / frame.timing.windows.meh)));
+    const colors = await tickWindow.webContents.executeJavaScript(`(() => {
+      const context = document.getElementById('timingTicks').getContext('2d');
+      return ${JSON.stringify(tickPixels)}.map(x => [...context.getImageData(x, 32, 1, 1).data]);
+    })()`);
+    assert.ok(colors[1][0] > colors[0][0] + 100, "Overlapping ticks become brighter.");
+    assert.ok(colors[1].slice(0, 3).every(value => value > 240), "Dense ticks approach white.");
+    frame.timing.ticks = [];
+    await tickWindow.webContents.executeJavaScript(`window.renderReplayFrame(${JSON.stringify(frame)})`);
+    assert.equal(await tickWindow.webContents.executeJavaScript(`document.getElementById('timingTicks').getContext('2d').getImageData(${tickPixels[1]},32,1,1).data[3]`), 0, "Seeking to an empty frame clears old ticks.");
+  } finally { tickWindow.destroy(); }
   const { captureThumbnail } = await import(pathToFileURL(path.join(root, "dist/electron/thumbnail.js")).href);
   const work = await fs.mkdtemp(path.join(os.tmpdir(), "studio-thumbnail-"));
   try {

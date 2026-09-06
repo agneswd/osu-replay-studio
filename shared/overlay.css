@@ -104,7 +104,6 @@ small { font-size: 15px; }
 .timing-zones { height: 10px; margin-top: 1px; border-radius: 6px; background: linear-gradient(to right, var(--timing-50) 0% 20%, var(--timing-100) 20% 40%, var(--timing-300) 40% 60%, var(--timing-100) 60% 80%, var(--timing-50) 80%); }
 .timing-center { position: absolute; top: -4px; left: 50%; width: 2px; height: 20px; background: #fff; opacity: .6; transform: translateX(-50%); }
 .pointer { position: absolute; top: 80px; left: 50%; transform: translateX(-50%); border-left: 8px solid transparent; border-right: 8px solid transparent; border-bottom: 15px solid #fff; }
-.replay-hit { position: absolute; top: -5px; height: 22px; width: 4px; border-radius: 1px; transform: translateX(-50%); }
 
 #leaderboard { width: 100%; }
 .score-entry { display: flex; align-items: center; padding: 4px 8px; gap: 8px; height: 48px; position: relative; }
@@ -169,5 +168,6 @@ canvas { width: 300px; height: 160px; display: block; }
 .ur .odometer-digit, .ur .odometer-mark { font-size: inherit; line-height: 1.2; }
 .ur .odometer-ribbon > span { font-size: inherit; line-height: 1.2; }
 .counts .odometer { justify-content: center; }
-.replay-hit { width: 4px; border-radius: 2px; transform-origin: center; }
 .leaderboard .score-entry.replay .score-content { background: rgba(8, 10, 14, .58); }
+
+#timingTicks { position: absolute; left: 0; top: -10px; width: 384px; height: 32px; pointer-events: none; }

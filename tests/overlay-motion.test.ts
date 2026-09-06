@@ -48,9 +48,11 @@ test("timing markers fade with replay time and return after a backward seek", as
   } as unknown as Timeline;
   const first = frameAt(timeline, .1).timing!;
   assert.equal(first.ticks[0].opacity, 1);
-  assert.equal(first.ticks[0].height, .15);
+  assert.equal(first.ticks[0].height, 0);
   assert.ok(frameAt(timeline, .15).timing!.ticks[0].height > .15);
-  assert.equal(frameAt(timeline, .25).timing!.ticks[0].height, 1);
+  assert.ok(frameAt(timeline, .25).timing!.ticks[0].height > .99);
+  assert.ok(frameAt(timeline, 2.9).timing!.ticks[0].height < .2);
+  assert.equal(frameAt(timeline, 3.31).timing!.ticks.length, 0);
   assert.ok(frameAt(timeline, 2).timing!.ticks[0].opacity < 1);
   assert.equal(frameAt(timeline, 6).timing!.ticks.length, 0);
   assert.deepEqual(frameAt(timeline, .1).timing, first);

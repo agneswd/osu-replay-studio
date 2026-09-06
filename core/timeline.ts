@@ -1,3 +1,4 @@
+import { timelineHitWindows } from "./hit-timing.js";
 import { animatedLeaderboardAt } from "./leaderboard.js";
 import { keysAt } from "./keys.js";
 import type { CounterFrame, OverlayFrame, Timeline } from "./types.js";
@@ -122,23 +123,35 @@ export function frameAt(timeline: Timeline, seconds: number, leaderboardSize: 50
   const index = Math.max(0, indexAtTime(timeline.snapshots, time));
   const s = timeline.snapshots[index];
   const hp = healthAt(timeline.health, time);
-  const average = counterAt(timeline, index, time, "average");
+  let average = counterAt(timeline, index, time, "average");
+  let ur = counterAt(timeline, index, time, "ur");
   const timingHits = timeline.timingHits ?? [];
   const hitIndex = indexAtTime(timingHits, time);
+  const timingState = timingHits[hitIndex];
+  const hasTimingStats = timeline.hitWindows !== undefined;
+  if (hasTimingStats) {
+    const progress = timingState ? Math.min(1, Math.max(0, (time - timingState.time) / (160 * timeline.speed))) : 1;
+    const previous = timingHits[hitIndex - 1];
+    average = { from: previous?.average ?? 0, to: timingState?.average ?? 0, progress };
+    ur = { from: Math.round(previous?.ur ?? 0), to: Math.round(timingState?.ur ?? 0), progress };
+  }
+  const errors = hasTimingStats ? timingHits.slice(Math.max(0, hitIndex - 99), hitIndex + 1).map(hit => hit.error) : s.errors;
   const ticks: { error: number; opacity: number; height: number }[] = [];
-  for (let i = hitIndex; i >= 0 && time - timingHits[i].time < 5000 * timeline.speed && ticks.length < 50; i--) {
+  for (let i = hitIndex; i >= 0 && time - timingHits[i].time < 3000 * timeline.speed && ticks.length < 50; i--) {
     const age = (time - timingHits[i].time) / timeline.speed;
-    ticks.unshift({ error: timingHits[i].error, opacity: (1 - age / 5000) ** .7,
-      height: .15 + .85 * (1 - (1 - Math.min(1, age / 140)) ** 3) });
+    const grow = 1 - (1 - Math.min(1, age / 140)) ** 3;
+    const remaining = Math.max(0, 1 - age / 3000);
+    ticks.unshift({ error: timingHits[i].error, opacity: remaining,
+      height: grow * (1 - (1 - remaining) ** 3) });
   }
   return {
     judgementHistory: judgementHistoryAt(timeline, time),
-    timing: { ticks: timeline.timingHits ? ticks : s.errors.map(error => ({ error, opacity: .7, height: 1 })),
+    timing: { windows: timelineHitWindows(timeline), ticks: timeline.timingHits ? ticks : s.errors.map(error => ({ error, opacity: .7, height: 1 })),
       average: average.from + (average.to - average.from) * (1 - (1 - average.progress) ** 3) },
     leaderboard: animatedLeaderboardAt(timeline, s, time, leaderboardSize, leaderboardSort),
     keys: keysAt(timeline, time),
     counters: {
-      ur: counterAt(timeline, index, time, "ur"),
+      ur,
       hit100: counterAt(timeline, index, time, "100"),
       hit50: counterAt(timeline, index, time, "50"),
       hitMiss: counterAt(timeline, index, time, "0"),
@@ -171,8 +184,8 @@ export function frameAt(timeline: Timeline, seconds: number, leaderboardSize: 50
       pp: { current: s.pp, fc: timeline.maxPP },
       grade: s.grade,
     },
-    hitErrors: s.errors,
-    play: { unstableRate: s.ur },
+    hitErrors: errors,
+    play: { unstableRate: hasTimingStats ? timingState?.ur ?? 0 : s.ur },
     userProfile: {
       name: timeline.player,
       avatar: timeline.playerAvatar,

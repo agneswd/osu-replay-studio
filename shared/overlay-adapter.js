@@ -312,8 +312,15 @@
     // Hit Error Bar
     if (id === "hit-error-bar") {
       const errors = data.hitErrors;
+      const windows = data.timing?.windows ?? { great: 40, ok: 120, meh: 200, inclusive: true };
+      const scale = 192 / windows.meh;
+      const edges = [0, 50 - windows.ok / windows.meh * 50, 50 - windows.great / windows.meh * 50,
+        50 + windows.great / windows.meh * 50, 50 + windows.ok / windows.meh * 50, 100];
+      document.querySelector(".timing-zones").style.background = `linear-gradient(to right, ${
+        ["#e7c80b", "#09ec39", "#2499bc", "#09ec39", "#e7c80b"].map((color, i) => `${color} ${edges[i]}% ${edges[i + 1]}%`).join(",")})`;
+      const within = (error, limit) => windows.inclusive ? error <= limit : error < limit;
       const average = data.timing?.average ?? errors.reduce((a, b) => a + b, 0) / (errors.length || 1);
-      document.querySelector(".pointer").style.left = `${Math.max(0, Math.min(100, 50 + average / 4))}%`;
+      document.querySelector(".pointer").style.left = `${Math.max(0, Math.min(100, 50 + average / windows.meh * 50))}%`;
       odometer("urValue", Math.round(data.play.unstableRate), data.counters?.ur);
       text("earlyValue", errors.filter((e) => e < 0).length);
       text("lateValue", errors.filter((e) => e >= 0).length);
@@ -321,17 +328,34 @@
         "avgValue",
         `${(errors.reduce((a, b) => a + b, 0) / (errors.length || 1)).toFixed(1)}ms`,
       );
-      el("barContainer")
-        .querySelectorAll(".replay-hit")
-        .forEach((node) => node.remove());
-      for (const {error, opacity, height = 1} of data.timing?.ticks ?? errors.map(error => ({error, opacity: .7}))) {
-        const tick = document.createElement("div");
-        tick.className = "replay-hit";
-        const position = Math.max(0, Math.min(100, 50 + error / 4));
-        const zone = Math.abs(position - 50) <= 10 ? "300" : Math.abs(position - 50) <= 30 ? "100" : "50";
-        tick.style.cssText = `background:var(--timing-${zone});left:${position}%;opacity:${opacity};transform:translateX(-50%) scaleY(${height})`;
-        el("barContainer").append(tick);
+      const canvas = el("timingTicks");
+      const context = canvas.getContext("2d");
+      const ticks = data.timing?.ticks ?? errors.map(error => ({ error, opacity: .7, height: 1 }));
+      context.setTransform(2, 0, 0, 2, 0, 0);
+      context.clearRect(0, 0, 384, 32);
+      const shape = tick => {
+        const x = Math.max(2, Math.min(382, 192 + tick.error * scale));
+        const height = 22 * (tick.height ?? 1);
+        context.beginPath(); context.roundRect(x - 2, 16 - height / 2, 4, height, 1);
+      };
+      // Shadows separate ticks from the bar. Additive color makes overlapping ticks approach white.
+      context.globalCompositeOperation = "source-over";
+      context.shadowColor = "#000"; context.shadowBlur = 3; context.shadowOffsetY = 1;
+      context.fillStyle = "#000";
+      // Remove the shadow's solid center before adding color. Fading ticks keep their hue.
+      for (const tick of ticks) { context.globalAlpha = tick.opacity ** 2; shape(tick); context.fill(); }
+      context.shadowBlur = 0; context.shadowOffsetY = 0;
+      context.globalCompositeOperation = "destination-out";
+      context.globalAlpha = 1;
+      for (const tick of ticks) { shape(tick); context.fill(); }
+      context.globalCompositeOperation = "lighter";
+      for (const tick of ticks) {
+        const error = Math.abs(tick.error);
+        context.fillStyle = within(error, windows.great) ? "#45a8c6" : within(error, windows.ok) ? "#30e157" : "#ebd132";
+        context.globalAlpha = tick.opacity; shape(tick); context.fill();
       }
+      context.globalAlpha = 1;
+      context.globalCompositeOperation = "source-over";
     }
 
     // Progress Graph
