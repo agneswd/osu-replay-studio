@@ -23,6 +23,8 @@ function serveStatic(urlPrefix: string, dir: string): Plugin {
       server.middlewares.use((req, res, next) => {
         const url = req.url?.split("?")[0] ?? "";
         if (!url.startsWith(urlPrefix)) return next();
+        // Source modules need Vite's TypeScript transform, including shared audio code.
+        if (/\.tsx?$/.test(url)) return next();
         const rel = decodeURIComponent(
           url.slice(urlPrefix.length).replace(/^\/+/, ""),
         );
