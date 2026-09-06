@@ -54,8 +54,10 @@ small { font-size: 15px; }
 .avatar-fallback { position: absolute; inset: 0; background: #292929; }
 .player-avatar-container img, .avatar-container img { position: relative; }
 .identity #playerName { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 10px; font-size: 25px; line-height: 30px; }
-.player-rank, .player-country { position: absolute; top: 6px; font-size: 24px; line-height: 30px; }
+.player-rank, .player-country, .player-global-rank { position: absolute; top: 6px; font-size: 24px; line-height: 30px; }
 .player-rank { right: 230px; }
+.player-global-rank { left: 198px; display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+.player-global-rank svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 1.5; flex-shrink: 0; }
 .player-country { right: 198px; font-size: 22px; }
 .player > .score { position: absolute; left: 676px; top: 33px; width: 172px; white-space: nowrap; font-size: 25px; line-height: 34px; }
 

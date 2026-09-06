@@ -177,6 +177,7 @@ export function frameAt(timeline: Timeline, seconds: number, leaderboardSize: 50
       name: timeline.player,
       avatar: timeline.playerAvatar,
       rank: timeline.playerRank,
+      countryRank: timeline.playerStats?.countryRank,
       country: timeline.playerCountry,
     },
   };

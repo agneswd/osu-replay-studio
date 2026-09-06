@@ -28,6 +28,8 @@ test("timeline uses the latest event and applies speed once, including backward 
     replay: "",
     beatmap: "",
     player: "a",
+    playerRank: 42,
+    playerStats: { countryRank: 7, pp: 1, hours: 1, playcount: 1, monthlyPlaycounts: [] },
     title: "b",
     mods: "DT",
     speed: 1.5,
@@ -52,6 +54,8 @@ test("timeline uses the latest event and applies speed once, including backward 
       ur: 0,
     })),
   };
+  assert.equal(frameAt(timeline, 1).userProfile.rank, 42);
+  assert.equal(frameAt(timeline, 1).userProfile.countryRank, 7);
   assert.equal(frameAt(timeline, 1).gameplay.score, 600);
   assert.equal(frameAt(timeline, 1).menu.bm.time.current, 1500);
   assert.equal(frameAt(timeline, 0.2).gameplay.score, 0);

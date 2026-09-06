@@ -239,12 +239,12 @@
     // Player Info
     if (id === "player-info") {
       setAvatar(el("playerAvatar"), data.userProfile?.avatar);
-      const pRank = el("playerRank");
-      if (pRank) {
-        pRank.hidden = !data.userProfile?.rank;
-        if (data.userProfile?.rank) {
-          pRank.textContent = `#${data.userProfile.rank.toLocaleString()}`;
-        }
+      for (const [target, value, container] of [
+        ["playerCountryRank", data.userProfile?.countryRank, "playerCountryRank"],
+        ["playerRank", data.userProfile?.rank, "playerGlobalRank"],
+      ]) {
+        el(container).hidden = !(value > 0);
+        text(target, value > 0 ? `#${value.toLocaleString()}` : "");
       }
       const country = el("playerCountry");
       const code = data.userProfile?.country?.toUpperCase();

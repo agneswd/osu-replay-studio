@@ -254,6 +254,7 @@ export interface OverlayFrame {
     name: string;
     avatar?: string;
     rank?: number | null;
+    countryRank?: number | null;
     country?: string | null;
   };
 }
