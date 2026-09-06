@@ -12,7 +12,7 @@ const replay = await parseReplay(bytes.buffer);
 
 test("timing windows follow the judge's mod rules and playback speed", () => {
   for (const mods of [0, 2, 16, 64, 256, 16 | 64]) {
-    const d = computeModDifficulty(map, { ...replay, version: 20200101, mods, scoreInfo: undefined });
+    const d = computeModDifficulty(map, { ...replay, gameVersion: 20200101, mods, scoreInfo: undefined });
     const stable = hitWindowsFor({ ...d, isLazer: false });
     assert.equal(stable.great, d.hitWindow300 / d.speed);
     assert.equal(stable.ok, d.hitWindow100 / d.speed);
@@ -30,7 +30,7 @@ test("slider heads appear at the press, before the tail or first circle", () => 
   const objects = [{ ...map.hitObjects[0], type: "slider", time: 1000 },
     { ...map.hitObjects[0], type: "circle", time: 7000 }] as typeof map.hitObjects;
   const hit = (objectIndex: number, time: number, extra: Partial<HitResult> = {}): HitResult =>
-    ({ objectIndex, time, judgement: 300, comboBreak: false, ...extra });
+    ({ objectIndex, time, x: 0, y: 0, hitSound: 0, judgement: 300, comboBreak: false, ...extra });
   const hits = collectTimingHits(objects, [
     hit(1, 7015), hit(0, 1030, { displayTime: 2500, judgement: 100 }),
     hit(0, 1200, { isSliderSub: true }), hit(0, 1100, { comboBreak: true }),

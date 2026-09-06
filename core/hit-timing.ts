@@ -14,9 +14,9 @@ export function hitWindowsFor(difficulty: ModDifficulty): HitWindows {
 
 export function timelineHitWindows(timeline: Timeline): HitWindows {
   return timeline.hitWindows ?? {
-    great: Math.floor(80 - 6 * timeline.od) / timeline.speed,
-    ok: Math.floor(140 - 8 * timeline.od) / timeline.speed,
-    meh: Math.floor(200 - 10 * timeline.od) / timeline.speed,
+    great: Math.floor(79.5 - 6 * timeline.od) / timeline.speed,
+    ok: Math.floor(139.5 - 8 * timeline.od) / timeline.speed,
+    meh: Math.floor(199.5 - 10 * timeline.od) / timeline.speed,
     inclusive: false,
   };
 }
