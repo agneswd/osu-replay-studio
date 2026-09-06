@@ -1,0 +1,7 @@
+Usecase: ingame, obs-overlay
+Name: Leaderboard
+Version: 2.0
+Author: dinonuwg
+CompatibleWith: tosu
+Resolution: 420x425
+Notes: Live leaderboard overlay with avatars, PP values, and smooth animations. Fetches player data from osu! API (Needs OAuth Keys). Shows up to 6 players centered around your position with profile pictures, grades, mods, combo, misses, PP, score, and accuracy.

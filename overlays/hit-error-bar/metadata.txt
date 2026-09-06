@@ -1,0 +1,7 @@
+Usecase: ingame, obs-overlay
+Name: Hit Error Bar
+Version: 1.0
+Author: dinonuwg
+CompatibleWith: tosu
+Resolution: 500x180
+Notes: Visual hit error bar with UR (unstable rate) calculation. Shows hit timing distribution with color-coded markers. Displays average offset, early hits, and late hits. Automatically hides when not playing.

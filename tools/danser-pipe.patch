@@ -1,0 +1,26 @@
+diff --git a/framework/files/namedpipe_others.go b/framework/files/namedpipe_others.go
+index d730ff8..f478717 100644
+--- a/framework/files/namedpipe_others.go
++++ b/framework/files/namedpipe_others.go
+@@ -1,8 +1,10 @@
++//go:build !windows
+ // +build !windows
+ 
+ package files
+ 
+ import (
++	"errors"
+ 	"github.com/wieku/danser-go/framework/util"
+ 	"golang.org/x/sys/unix"
+ 	"os"
+@@ -39,7 +41,9 @@ func NewNamedPipe(name string) (*NamedPipe, error) {
+ 	}
+ 
+ 	_, err = unix.FcntlInt(file.Fd(), unix.F_SETPIPE_SZ, 65536)
+-	if err != nil {
++	if err != nil && !errors.Is(err, syscall.EPERM) {
++		file.Close()
++		os.Remove(name)
+ 		return nil, err
+ 	}
+ 

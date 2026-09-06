@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <DebugType>none</DebugType>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="ppy.osu.Game" Version="2026.702.1" />
+    <PackageReference Include="ppy.osu.Game.Rulesets.Osu" Version="2026.702.1" />
+  </ItemGroup>
+  <!-- The headless calculator does not open graphics, audio, or video devices. -->
+  <Target Name="ExcludeGameResources" AfterTargets="ComputeFilesToPublish">
+    <ItemGroup>
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)" Condition="'%(Filename)' == 'osu.Game.Resources'" />
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('%(Filename)%(Extension)', '^(lib)?(SDL[23]|bass(_fx|mix|wasapi)?|avcodec(-58)?|avformat(-58)?|avutil(-56)?|swscale(-5)?|stbi|veldrid-spirv)\.(dll|lib|so(\.[0-9]+)?)$'))" />
+    </ItemGroup>
+  </Target>
+</Project>

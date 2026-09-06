@@ -1,0 +1,6 @@
+* text=auto eol=lf
+# Replay headers contain the MD5 of these exact bytes.
+tests/fixtures/*.osu -text
+*.osr binary
+*.png binary
+*.woff2 binary

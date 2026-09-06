@@ -1,0 +1,669 @@
+/* ==========================================================================
+   Showcase Intro Animation Styles (Center Lens & Flyout Stats)
+   ========================================================================== */
+
+:root,
+.showcase-intro-container {
+  --font-main: "Plus Jakarta Sans", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.showcase-intro-container {
+  width: 960px;
+  height: 540px;
+  flex: none;
+  position: relative;
+  overflow: hidden;
+  background: transparent;
+  color: #fff;
+  font-family: var(--font-main);
+  user-select: none;
+  box-sizing: border-box;
+}
+
+/* Export the same fixed canvas used by the preview, without stage padding. */
+.animation-stage.showcase-export {
+  width: 960px;
+  height: 540px;
+  min-height: 540px;
+  padding: 0;
+  overflow: hidden;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+
+/* ==========================================================================
+   Top Bar: Star Rating Ribbon & Difficulty Gauge Bars
+   ========================================================================== */
+.showcase-top-bar {
+  position: absolute;
+  top: 14px;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  z-index: 20;
+}
+
+.showcase-gauge-group {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+}
+
+.showcase-gauge-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.showcase-gauge-track {
+  width: 96px;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.14);
+  overflow: hidden;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.showcase-gauge-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.showcase-gauge-fill.cs {
+  background: linear-gradient(90deg, #FF6B6B, #FA5252);
+  box-shadow: 0 0 6px rgba(255, 107, 107, 0.6);
+}
+
+.showcase-gauge-fill.ar {
+  background: linear-gradient(90deg, #51CF66, #40C057);
+  box-shadow: 0 0 6px rgba(81, 207, 102, 0.6);
+}
+
+.showcase-gauge-fill.od {
+  background: linear-gradient(90deg, #CC5DE8, #B197FC);
+  box-shadow: 0 0 6px rgba(204, 93, 232, 0.6);
+}
+
+.showcase-gauge-fill.hp {
+  background: linear-gradient(90deg, #4DABF7, #748FFC);
+  box-shadow: 0 0 6px rgba(77, 171, 247, 0.6);
+}
+
+.showcase-gauge-labels {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  font-family: var(--font-main);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.95), 0 2px 8px rgba(0, 0, 0, 0.85);
+}
+
+.showcase-gauge-name {
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.95), 0 2px 8px rgba(0, 0, 0, 0.85);
+}
+
+.showcase-gauge-val {
+  color: #fff;
+  font-family: var(--font-main);
+  font-size: 13.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.2px;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.95), 0 2px 8px rgba(0, 0, 0, 0.85);
+}
+
+/* Center Golden Star Rating Badge */
+.showcase-star-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  top: -14px;
+}
+
+.showcase-star-ribbon {
+  width: 40px;
+  height: 24px;
+  background: linear-gradient(180deg, #F59F00 0%, #FCC419 100%);
+  clip-path: path("M0 0H40C32 2 33 10 30 17L20 24L10 17C7 10 8 2 0 0Z");
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 2px;
+  box-shadow: 0 2px 10px rgba(245, 159, 0, 0.5);
+}
+
+.showcase-star-icon {
+  width: 14px;
+  height: 14px;
+  fill: #fff;
+  color: #fff;
+}
+
+.showcase-sr-value {
+  font-family: var(--font-main);
+  font-size: 24px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: #F8D153;
+  margin-top: 2px;
+  letter-spacing: 0.3px;
+  text-shadow: 0 0 16px rgba(248, 209, 83, 0.7), 0 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+/* ==========================================================================
+   Center Circular Lens
+   ========================================================================== */
+.showcase-lens-wrap {
+  position: absolute;
+  top: 290px;
+  left: 480px;
+  transform: translate(-50%, -50%);
+  width: 380px;
+  height: 380px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 8px 36px rgba(0, 0, 0, 0.8), inset 0 0 16px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #111;
+}
+
+.showcase-lens-artwork {
+  position: absolute;
+  inset: -20px;
+  background-size: cover;
+  background-position: center;
+  filter: brightness(0.75) contrast(1.1);
+  transform: scale(1.05);
+}
+
+.showcase-lens-dim {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(0, 0, 0, 0.15) 0%, rgba(0, 0, 0, 0.65) 100%);
+}
+
+.showcase-grade-rank {
+  position: relative;
+  z-index: 3;
+  font-family: "Teko", "Impact", -apple-system, sans-serif;
+  font-size: 240px;
+  font-weight: 700;
+  line-height: 1;
+  color: #E2BC43;
+  text-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.9),
+    0 0 32px rgba(226, 188, 67, 0.6),
+    0 0 55px rgba(226, 188, 67, 0.3);
+  transform: translateY(-4px);
+}
+
+.showcase-grade-rank.rank-silver {
+  color: #E6EDF2;
+  text-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.9),
+    0 0 32px rgba(230, 237, 242, 0.6);
+}
+
+.showcase-grade-rank.rank-a {
+  color: #51CF66;
+  text-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.9),
+    0 0 32px rgba(81, 207, 102, 0.6);
+}
+
+.showcase-grade-rank.rank-b {
+  color: #339AF0;
+  text-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.9),
+    0 0 32px rgba(51, 154, 240, 0.6);
+}
+
+/* ==========================================================================
+   Left Flyout: Player Card & Top Plays Curved Along Circle Rim
+   ========================================================================== */
+.showcase-left-flyout {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 480px;
+  height: 540px;
+  z-index: 5;
+  pointer-events: none;
+}
+
+/* Player Card tucked behind circle rim */
+.showcase-player-card {
+  position: absolute;
+  top: 128px;
+  left: 180px;
+  width: 210px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #929696 0%, #747979 100%);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+  box-sizing: border-box;
+  overflow: hidden;
+  pointer-events: auto;
+}
+
+.showcase-player-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 5px;
+  object-fit: cover;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.showcase-player-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  overflow: hidden;
+  font-family: var(--font-main);
+}
+
+.showcase-player-name {
+  font-family: var(--font-main);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  line-height: 1.1;
+}
+
+.showcase-player-grank {
+  font-weight: 600;
+  opacity: 0.92;
+  margin-left: 2px;
+}
+
+.showcase-player-sub {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-main);
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.1;
+}
+
+.showcase-player-flag {
+  line-height: 1;
+}
+
+.showcase-player-crank {
+  opacity: 0.95;
+}
+
+/* 6 Leaderboard rows curved along circle */
+.showcase-top-plays-list {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.showcase-play-item {
+  position: absolute;
+  height: 32px;
+  width: 200px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 2px;
+  box-sizing: border-box;
+  pointer-events: auto;
+}
+
+.showcase-play-row-1 {
+  top: 190px;
+  left: 96px;
+}
+
+.showcase-play-row-2 {
+  top: 228px;
+  left: 87px;
+}
+
+.showcase-play-row-3 {
+  top: 266px;
+  left: 82px;
+}
+
+.showcase-play-row-4 {
+  top: 304px;
+  left: 84px;
+}
+
+.showcase-play-row-5 {
+  top: 342px;
+  left: 92px;
+}
+
+.showcase-play-row-6 {
+  top: 380px;
+  left: 109px;
+}
+
+/* Thumbnail with artwork and rank letter */
+.showcase-play-thumb-wrap {
+  width: 44px;
+  height: 27px;
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #1a1a1e;
+}
+
+.showcase-play-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.showcase-play-thumb-dim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0.4) 45%, rgba(0, 0, 0, 0.1) 100%);
+}
+
+.showcase-play-rank-badge {
+  position: absolute;
+  left: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9), 0 0 6px rgba(0, 0, 0, 0.7);
+}
+
+.showcase-play-rank-badge.rank-s,
+.showcase-play-rank-badge.rank-sh,
+.showcase-play-rank-badge.rank-x,
+.showcase-play-rank-badge.rank-xh {
+  color: #ffffff;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.95), 0 0 8px rgba(255, 255, 255, 0.6);
+}
+
+.showcase-play-rank-badge.rank-a {
+  color: #51CF66;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.95), 0 0 8px rgba(81, 207, 102, 0.6);
+}
+
+.showcase-play-rank-badge.rank-b {
+  color: #339AF0;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.95), 0 0 8px rgba(51, 154, 240, 0.6);
+}
+
+.showcase-play-rank-badge.rank-c {
+  color: #CC5DE8;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.95), 0 0 8px rgba(204, 93, 232, 0.6);
+}
+
+.showcase-play-rank-badge.rank-d {
+  color: #FF6B6B;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.95), 0 0 8px rgba(255, 107, 107, 0.6);
+}
+
+/* Play Body: 2 Lines */
+.showcase-play-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  overflow: hidden;
+  min-width: 0;
+  font-family: var(--font-main);
+}
+
+.showcase-play-title {
+  font-family: var(--font-main);
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  letter-spacing: 0.1px;
+}
+
+.showcase-play-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-family: var(--font-main);
+}
+
+/* Connected Mod Badges Pill */
+.showcase-mod-combo {
+  display: inline-flex;
+  align-items: center;
+  gap: 1.5px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.showcase-play-time {
+  font-family: var(--font-main);
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.65);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  flex-shrink: 0;
+}
+
+.showcase-play-pp {
+  margin-left: auto;
+  font-family: var(--font-main);
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #ffffff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+  padding-right: 2px;
+  flex-shrink: 0;
+}
+
+/* ==========================================================================
+   Right Flyout: Score, Combo, PP Badge, Accuracy, Hit Judgments
+   ========================================================================== */
+.showcase-right-flyout {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 960px;
+  height: 540px;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.showcase-right-item {
+  position: absolute;
+  pointer-events: auto;
+}
+
+/* 1. Score Row */
+.showcase-score-row {
+  top: 184px;
+  left: 658px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.showcase-score-label {
+  align-self: flex-start;
+  font-family: var(--font-main);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: #858b8d;
+  color: #fff;
+  letter-spacing: 0.4px;
+  transform: skewX(-14deg);
+}
+
+.showcase-score-val {
+  font-family: var(--font-main);
+  font-size: 24px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.5px;
+  color: #fff;
+  line-height: 1;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+}
+
+/* 2. Combo Row */
+.showcase-combo-row {
+  top: 238px;
+  left: 672px;
+  font-family: var(--font-main);
+  font-size: 22px;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  color: #a6a6a2;
+  letter-spacing: 0.3px;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
+  line-height: 1;
+}
+
+/* 3. Chevron PP Badge */
+.showcase-pp-badge {
+  top: 276px;
+  left: 672px;
+  display: inline-flex;
+  align-items: center;
+  background: linear-gradient(180deg, #969b9d 0%, #747a7d 100%);
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%, 9px 50%);
+  padding: 5px 18px;
+  box-shadow: 0 3px 12px rgba(216, 129, 146, 0.45);
+}
+
+.showcase-pp-text {
+  font-family: var(--font-main);
+  font-size: 22px;
+  font-weight: 500;
+  color: #fff;
+  letter-spacing: 0.4px;
+  line-height: 1;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+/* 4. Accuracy Row */
+.showcase-acc-row {
+  top: 324px;
+  left: 672px;
+  font-family: var(--font-main);
+  font-size: 22px;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  color: #a6a6a2;
+  letter-spacing: 0.3px;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
+  line-height: 1;
+}
+
+/* 5. Hit Counts Slanted Strip */
+.showcase-hits-strip {
+  top: 358px;
+  left: 624px;
+  display: flex;
+  align-items: center;
+  transform: skewX(-18deg);
+  border-radius: 3px;
+  overflow: hidden;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.5);
+}
+
+.showcase-hit-box {
+  padding: 5px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.showcase-hit-box span {
+  transform: skewX(18deg);
+  font-family: var(--font-main);
+  font-size: 19px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+  line-height: 1;
+}
+
+.showcase-hit-box.h300 {
+  padding-left: 48px;
+  background: #61C97D;
+}
+
+.showcase-hit-box.h100 {
+  background: #BAD750;
+}
+
+.showcase-hit-box.h0 {
+  background: #DE6984;
+}
+
+/* Bottom relative time */
+.showcase-bottom-time {
+  position: absolute;
+  bottom: 16px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-family: var(--font-main);
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  letter-spacing: 0.3px;
+  z-index: 20;
+}
+
+.showcase-score-mods {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 2px;
+  z-index: 3;
+}
+
+.showcase-hit-box.h50 { background: #65b9df; }

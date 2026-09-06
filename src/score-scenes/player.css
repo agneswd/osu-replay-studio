@@ -1,0 +1,49 @@
+@font-face { font-family: "Plus Jakarta Sans"; src: url("../../overlays/score-scenes/jakarta.woff2") format("woff2"); font-weight: 500 800; font-display: block; }
+html, body, #root { margin: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; color-scheme: dark; }
+#root { width: 960px; height: 540px; position: relative; }
+#intro, #outro { position: absolute; inset: 0; width: 960px; height: 540px; min-height: 540px; }
+
+*, *::before, *::after { animation: none !important; transition: none !important; }
+/* Missing online sections stay hidden without showing sample data. */
+.no-online-map .map-stats-counts, .no-online-map .map-status-badge, .no-mapper-avatar .mapper-avatar-mini, .no-top-plays .showcase-top-plays-list { display: none !important; }
+.no-history .history-chart-wrap, .no-history .playcount-meta-row, .no-profile-stats .player-info-bottom-bar { visibility: hidden; }
+.no-map-stats .map-stat-bars-2x2, .no-map-stats .showcase-gauge-group { visibility: hidden; }
+.showcase-grade-rank, .showcase-grade-rank.rank-silver { color: #ffdb79; }
+.silver-grade .showcase-grade-rank.rank-s, .silver-grade .showcase-grade-rank.rank-ss { color: #edf3fa; }
+.showcase-grade-rank.rank-a { color: #baff9c; }
+.showcase-grade-rank.rank-b { color: #b2e3ff; }
+.map-info-bottom-bar { justify-content: space-between; gap: 10px; }
+
+@font-face { font-family: "Teko"; src: url("../../overlays/score-scenes/teko.woff2") format("woff2"); font-weight: 600 700; font-display: block; }
+/* Keep the local-data card compact when online history is unavailable. */
+.no-history .bottom-details-card { height: 125px; }
+.no-history .player-badges-strip, .no-history .playcount-meta-row, .no-history .history-chart-wrap { display: none; }
+.no-history #layer-bottom-player { justify-content: center; }
+.no-profile-stats.intro-player .bottom-details-card { visibility: hidden; }
+.bottom-card-top-lip { display: none; }
+.no-online-map .map-retry-chart { display: none; }
+.no-history .player-info-bottom-bar { font-size: 14px; }
+.showcase-grade-rank.rank-c { color: #dda9f0; }
+.showcase-grade-rank.rank-d { color: #ef9eaa; }
+.showcase-play-rank-badge.rank-s.gold { color: #ffdb79; }
+.showcase-play-rank-badge.rank-s.silver { color: #edf3fa; }
+.silver-grade .showcase-grade-rank.rank-s, .silver-grade .showcase-grade-rank.rank-ss { text-shadow: 0 4px 20px #0009, 0 0 32px #e6edf299; }
+
+.map-retry-chart { height: 108px; }
+.map-retry-chart.unavailable { display: grid; place-items: center; font-size: 11px; opacity: .5; }
+.no-history:not(.no-online-map) .bottom-details-card { height: 228px; }
+
+.showcase-player-card, .showcase-pp-badge { background: linear-gradient(180deg, var(--scene-plate-top), var(--scene-plate-bottom)); }
+.showcase-score-label { background: var(--scene-plate-top); }
+
+.map-status-badge { color: #a0b0be; filter: none; }
+.map-status-badge.status-ranked { color: #7ac9f2; }
+.map-status-badge.status-loved { color: #ff66ab; }
+.map-status-badge.status-approved, .map-status-badge.status-qualified { color: #8fda8c; }
+
+#layer-bottom-player { top: 16px; gap: 6px; }
+.player-badges-strip { margin-top: 0; min-height: 24px; gap: 10px; }
+.badges-right-meta { flex-shrink: 0; }
+.badges-image-row { min-width: 0; }
+.badge-item-img { max-width: 37px; }
+.history-chart-wrap { height: 140px; flex: 1; min-height: 0; }

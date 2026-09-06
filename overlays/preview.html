@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Overlay preview</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #141414; color: #eee; font: 14px sans-serif; }
+    iframe { width: 100%; height: calc(100% - 48px); border: 0; background: #0a0a0a; }
+    #bar { height: 48px; display: flex; align-items: center; gap: 12px; padding: 0 12px; }
+  </style>
+</head>
+<body>
+  <div id="bar">
+    <label>Accent <input id="accent" type="color" value="#d4d7de"></label>
+    <button id="cyan" type="button">Cyan sample</button>
+    <button id="gray" type="button">Gray default</button>
+  </div>
+  <iframe id="ov" src="index.html" title="Combined overlay"></iframe>
+  <script>
+    const strains = Array.from({ length: 80 }, (_, i) => 20 + Math.abs(Math.sin(i / 6) * 80));
+    const frame = {
+      menu: {
+        state: 2,
+        mods: { str: "HDDT" },
+        bm: { stats: { SR: 6.08, OD: 8, BPM: { common: 170 } }, time: { current: 45000, mp3: 90000 } },
+        pp: { strains },
+      },
+      gameplay: {
+        name: "Unknown player",
+        score: 36840,
+        accuracy: 98.21,
+        combo: { current: 247, max: 1129 },
+        hp: { normal: 72 },
+        hits: { "300": 120, "100": 8, "50": 1, "0": 2, sliderBreaks: 1 },
+        pp: { current: 181, fc: 300 },
+        grade: "A",
+      },
+      hitErrors: [-12, -4, 3, 8, -18, 22, 1, -7],
+      play: { unstableRate: 83 },
+      userProfile: { name: "Unknown player", rank: null },
+    };
+    const enabled = [
+      "player-info", "pp-counter", "accuracy-counter", "combo-counter",
+      "health-bar", "hit-counts", "hit-error-bar", "leaderboard", "progress-graph",
+    ];
+    const ov = document.getElementById("ov");
+    const accent = document.getElementById("accent");
+    function send() {
+      ov.contentWindow.postMessage({
+        type: "replay-frame",
+        frame,
+        enabled,
+        accent: accent.value,
+      }, "*");
+    }
+    ov.addEventListener("load", send);
+    accent.addEventListener("input", send);
+    document.getElementById("cyan").onclick = () => { accent.value = "#00d2ff"; send(); };
+    document.getElementById("gray").onclick = () => { accent.value = "#d4d7de"; send(); };
+  </script>
+</body>
+</html>

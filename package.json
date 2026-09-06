@@ -1,0 +1,64 @@
+{
+  "name": "osu-replay-studio",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Render osu! replays with gameplay, overlays, and score animations.",
+  "type": "module",
+  "main": "dist/electron/main.js",
+  "scripts": {
+    "build": "node tools/patch-replayviewer.mjs && bun run build:score-scenes && tsc --noEmit && vite build && tsc -p tsconfig.node.json && esbuild electron/preload.ts --bundle --platform=node --format=cjs --external:electron --outfile=dist/electron/preload.cjs",
+    "dev": "node tools/dev.mjs",
+    "start": "bun run build && node tools/electron.mjs",
+    "render": "node tools/electron.mjs --render",
+    "test": "tsx --test tests/*.test.ts",
+    "build:score-scenes": "node tools/build-score-scenes.mjs",
+    "build:calculator": "node tools/build-calculator.mjs",
+    "setup": "node tools/install-binaries.mjs && bun run build:calculator && node tools/prepare-runtime.mjs",
+    "package": "bun run build && node tools/package.mjs",
+    "package:dir": "bun run build && electron-builder --dir --publish never",
+    "benchmark": "tsx benchmarks/preview.ts",
+    "dev:web": "vite --host 127.0.0.1 --port 5173 --strictPort"
+  },
+  "dependencies": {
+    "electron-updater": "6.8.9",
+    "fflate": "0.8.2",
+    "replayviewer-js": "0.1.1"
+  },
+  "devDependencies": {
+    "@heroui/react": "^3.2.4",
+    "@heroui/styles": "^3.2.4",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "@vitejs/plugin-react": "^5.2.0",
+    "electron": "^44.2.0",
+    "electron-builder": "^26.15.3",
+    "esbuild": "^0.25.0",
+    "ffmpeg-static": "^5.3.0",
+    "lucide-react": "^1.40.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "tailwindcss": "^4.3.3",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0",
+    "vite": "^7.1.0"
+  },
+  "author": "osu! Replay Studio contributors",
+  "license": "GPL-3.0-only",
+  "desktopName": "osu-replay-studio.desktop",
+  "packageManager": "bun@1.4.2",
+  "engines": {
+    "node": ">=22.12.0",
+    "bun": ">=1.4.2"
+  },
+  "trustedDependencies": [
+    "electron",
+    "esbuild",
+    "ffmpeg-static"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/agneswd/osu-replay-studio.git"
+  }
+}

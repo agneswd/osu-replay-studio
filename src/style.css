@@ -1,0 +1,59 @@
+@import "tailwindcss";
+@import "@heroui/styles";
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+}
+
+.preview-area { container-type: size; }
+
+.preview-box {
+  position: relative;
+  width: min(100cqw, calc(100cqh * 16 / 9));
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: #09090b;
+}
+
+.preview-box iframe,
+.preview-gameplay,
+.preview-box canvas,
+.preview-box img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.preview-gameplay { position: absolute; inset: 0; }
+
+.preview-box img {
+  object-fit: cover;
+  filter: brightness(0.28);
+  pointer-events: none;
+}
+
+.preview-box canvas,
+.preview-box iframe {
+  pointer-events: none;
+}
+
+/* Portal menus inherit the same narrow scrollbar as the workspace. */
+* { scrollbar-width: thin; scrollbar-color: #52525b transparent; }
+.select-popover { max-height: min(320px, 60vh); }
+.tooltip, .setting-tooltip { overflow-wrap: normal; word-break: normal; hyphens: none; }
+.setting-tooltip[data-exiting="true"] { animation-duration: 40ms; }
+
+.app-title { transform: translateY(10px); transition: transform 220ms cubic-bezier(.2, .8, .2, 1); }
+.app-subtitle { opacity: 0; transform: translateY(5px); transition: opacity 180ms ease, transform 220ms cubic-bezier(.2, .8, .2, 1); }
+.has-replay .app-title, .has-replay .app-subtitle { transform: translateY(0); }
+.has-replay .app-subtitle { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .app-title, .app-subtitle { transition: none; } }

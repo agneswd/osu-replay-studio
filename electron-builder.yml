@@ -1,0 +1,45 @@
+appId: io.github.osu-replay-studio
+productName: osu Replay Studio
+artifactName: osu-replay-studio-${version}-${os}-${arch}.${ext}
+directories:
+  output: release
+files:
+  - dist/**/*
+  - overlays/**/*
+  - shared/**/*
+  - public/assets/**/*
+  - package.json
+  - LICENSE
+  - THIRD-PARTY.md
+  - licenses/**/*
+  - '!overlays/preview.html'
+extraResources:
+  - from: runtime
+    to: runtime
+    filter:
+      - '**/*'
+      - '!calculator/osu.Game.Resources.dll'
+      - '!calculator/**/*.pdb'
+      - '!ffmpeg/ffprobe*'
+      - '!danser/ffmpeg/**/lib*.so*'
+      - '!danser/ffmpeg/ffmpeg'
+      - '!danser/ffmpeg/ffprobe'
+asar: true
+electronLanguages: [en-US, en-GB]
+linux:
+  icon: build/icon.png
+  syncDesktopName: true
+  target:
+    - target: AppImage
+      arch: [x64]
+  category: AudioVideo
+  maintainer: osu! Replay Studio contributors
+win:
+  icon: build/icon.png
+  target:
+    - target: nsis
+      arch: [x64]
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: false

@@ -1,0 +1,7 @@
+Usecase: ingame, obs-overlay
+Name: Player Info
+Version: 1.0
+Author: dinonuwg
+CompatibleWith: tosu
+Resolution: 1000x120
+Notes: Displays player information with avatar, country flag, global rank, score, accuracy, grade, live star rating (updates during play), and BPM. Uses osu! API v2 for player data. Features gradient background with divider design. All values have fixed positions to prevent shifting. Automatically hides when not playing.
