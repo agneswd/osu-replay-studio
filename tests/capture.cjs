@@ -2,8 +2,11 @@ const { app, nativeImage } = require("electron");
 const assert = require("node:assert/strict");
 const path = require("node:path");
 const { pathToFileURL } = require("node:url");
+const fs = require("node:fs/promises");
+const os = require("node:os");
 const root = path.resolve(__dirname, "..");
 
+app.on("window-all-closed", () => {});
 app.whenReady().then(async () => {
   const { pngEncoder } = await import(pathToFileURL(path.join(root, "dist/electron/png.js")).href);
   const bitmap = Buffer.alloc(256 * 256 * 4);
@@ -35,5 +38,17 @@ app.whenReady().then(async () => {
   }
   assert.equal(count, 2);
   console.log("First captured frame contains loaded replay assets.");
+  const { captureThumbnail } = await import(pathToFileURL(path.join(root, "dist/electron/thumbnail.js")).href);
+  const work = await fs.mkdtemp(path.join(os.tmpdir(), "studio-thumbnail-"));
+  try {
+    const file = path.join(work, "score.png");
+    await captureThumbnail(root, { ...timeline, sceneInfo: { title: "Capture check", artist: "Artist", maxCombo: 12, score: timeline.snapshots[0] } }, file, "#d4d7de", new AbortController().signal);
+    const image = nativeImage.createFromPath(file);
+    assert.deepEqual(image.getSize(), { width: 1280, height: 720 });
+    const pixel = image.toBitmap().subarray((490 * 1280 + 640) * 4, (490 * 1280 + 640) * 4 + 4);
+    assert.ok(pixel[2] > 240 && pixel[1] < 10 && pixel[0] < 10, "The first thumbnail contains the rendered avatar.");
+    console.log("Thumbnail capture contains loaded replay assets.");
+  } finally { await fs.rm(work, { recursive: true, force: true }); }
+
   app.exit(0);
 }).catch(error => { console.error(error); app.exit(1); });
