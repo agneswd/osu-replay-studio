@@ -1,0 +1,7 @@
+Usecase: ingame, obs-overlay
+Name: Combo Counter
+Version: 1.0
+Author: dinonuwg
+CompatibleWith: tosu
+Resolution: 240x140
+Notes: Shows current combo with pulse animation on increase and shake animation on combo break. Automatically hides when not playing.

@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' file:; script-src 'self' 'unsafe-inline' file:; style-src 'self' 'unsafe-inline' https: file:; font-src 'self' data: https: file:; img-src 'self' data: https: file:; frame-src 'self' file:;">
+  <title>player-info</title>
+  <link rel="stylesheet" href="../../shared/overlay.css">
+  <script src="../../shared/overlay-theme.js"></script>
+</head>
+<body class="player-info">
+  <div class="player">
+    <div class="map-stats">
+      <span>★ <span id="starValue">0.00</span></span>
+      <span><span id="bpmValue">0</span>bpm</span>
+    </div>
+    <div class="identity">
+      <span id="playerRank" class="player-rank" hidden></span>
+      <span id="playerCountry" class="player-country" hidden></span>
+      <div class="player-avatar-container">
+        <div class="player-avatar-circle avatar-fallback" aria-hidden="true"></div>
+        <img id="playerAvatar" class="player-avatar-circle" alt="" hidden>
+      </div>
+      <span id="playerName"></span>
+    </div>
+    <div id="scoreValue" class="score">0</div>
+  </div>
+  <script src="../../shared/overlay-adapter.js"></script>
+</body>
+</html>

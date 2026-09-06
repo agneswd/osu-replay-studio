@@ -1,0 +1,7 @@
+Usecase: ingame, obs-overlay
+Name: Hit Counts
+Version: 1.0
+Author: dinonuwg
+CompatibleWith: tosu
+Resolution: 350x100
+Notes: Displays hit counts with color-coded labels (100=green, 50=orange, miss=red, sb=gray). Only tracks non-perfect hits. Automatically hides when not playing.

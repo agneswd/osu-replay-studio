@@ -1,0 +1,7 @@
+Usecase: ingame, obs-overlay
+Name: Accuracy Counter
+Version: 1.0
+Author: dinonuwg
+CompatibleWith: tosu
+Resolution: 260x140
+Notes: Shows current accuracy with color-coded display based on grade (SS=Gold, S=Orange, A=Green, B=Blue, C=Purple, D=Red). Automatically hides when not playing.

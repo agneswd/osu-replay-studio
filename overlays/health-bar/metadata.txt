@@ -1,0 +1,7 @@
+Usecase: ingame, obs-overlay
+Name: Health
+Version: 1.0
+Author: dinonuwg
+CompatibleWith: tosu
+Resolution: 700x16
+Notes: Displays player health bar and fades from white to red if low hp.

@@ -1,0 +1,7 @@
+Usecase: ingame, obs-overlay
+Name: PP Counter
+Version: 1.0
+Author: dinonuwg
+CompatibleWith: tosu
+Resolution: 280x140
+Notes: Shows current PP and max PP (FC) in a clean display. Automatically hides when not playing.

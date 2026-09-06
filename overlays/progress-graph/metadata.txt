@@ -1,0 +1,8 @@
+Usecase: ingame, obs-overlay
+Name: Progress Graph
+Version: 1.0
+Author: dinonuwg
+CompatibleWith: tosu
+Author: dinonuwg
+Description: Displays note density/strain graph with progress indicator
+Resolution: 250x100

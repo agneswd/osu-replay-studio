@@ -1,0 +1,62 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Danser runtime (large, machine-specific)
+danser/bin/
+danser/Songs
+danser/Skins
+danser/Replays
+danser/*.db
+danser/*.log
+danser/logs/
+
+# Render output
+renders/*.mp4
+renders/*.mov
+renders/*.mkv
+renders/tmp/
+
+# Python
+__pycache__/
+*.pyc
+
+# Dependencies
+node_modules/
+runtime/
+release/
+calculator/bin/
+calculator/obj/
+
+# Local replay data and user settings
+*.osr
+!tests/fixtures/*.osr
+*.osz
+*.osk
+*.log
+.replay-studio-*/
+.t3/
+.codex/
+.claude/
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+*.swp
+
+# Build and per-job render files
+dist/
+renders/*
+!renders/.gitkeep
+# Generated animation bundles
+overlays/score-scenes/player.js
+overlays/score-scenes/player.css
+overlays/score-scenes/fonts/
+overlays/runtime.js
+
+overlays/thumbnail/player.js
+overlays/thumbnail/player.css
+overlays/thumbnail/fonts/

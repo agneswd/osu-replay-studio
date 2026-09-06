@@ -1,0 +1,5 @@
+@font-face { font-family: "Baloo 2"; src: url("../../overlays/thumbnail/baloo-2-latin-400-normal.woff2"); font-weight: 400; }
+@font-face { font-family: "Baloo 2"; src: url("../../overlays/thumbnail/baloo-2-latin-700-normal.woff2"); font-weight: 600 700; }
+html, body { margin: 0; background: #141414; overflow: hidden; }
+#thumbnail-root { position: relative; width: 1280px; height: 720px; overflow: hidden; -webkit-font-smoothing: antialiased; }
+#thumbnail-root, #thumbnail-root * { box-sizing: border-box; }
