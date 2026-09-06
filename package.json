@@ -28,7 +28,7 @@
     "@heroui/react": "^3.2.4",
     "@heroui/styles": "^3.2.4",
     "@tailwindcss/vite": "^4.3.3",
-    "@types/node": "^24.0.0",
+    "@types/node": "^26.4.1",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
     "@vitejs/plugin-react": "^5.2.0",
