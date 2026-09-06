@@ -32,8 +32,15 @@ app.whenReady().then(async () => {
   let count = 0;
   for await (const png of captureOverlay(root)({ width: 1920, height: 1080, fps: 60, overlays: overlayIds }, timeline, 2, new AbortController().signal)) {
     const image = nativeImage.createFromBuffer(png);
-    const pixel = image.toBitmap().subarray((50 * 1920 + 960) * 4, (50 * 1920 + 960) * 4 + 4);
+    const bitmap = image.toBitmap();
+    const pixel = bitmap.subarray((50 * 1920 + 960) * 4, (50 * 1920 + 960) * 4 + 4);
     assert.ok(pixel[2] > 240 && pixel[1] < 10 && pixel[0] < 10 && pixel[3] === 255, `Frame ${count} must contain the loaded avatar.`);
+    if (count === 0) {
+      let visibleKeyPixels = 0;
+      for (let y = 394; y < 504; y++) for (let x = 1694; x < 1920; x++)
+        if (bitmap[(y * 1920 + x) * 4 + 3] > 0) visibleKeyPixels++;
+      assert.ok(visibleKeyPixels > 100, "The default capture contains the key press overlay.");
+    }
     count++;
   }
   assert.equal(count, 2);

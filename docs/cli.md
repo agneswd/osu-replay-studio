@@ -19,7 +19,7 @@ Create a JSON job with absolute paths:
   "overlayAccent": "#d4d7de",
   "leaderboardSize": 50,
   "leaderboardSort": "pp",
-  "overlays": ["player-info", "pp-counter", "accuracy-counter", "combo-counter", "health-bar", "hit-counts", "hit-error-bar", "leaderboard", "progress-graph"]
+  "overlays": ["player-info", "pp-counter", "accuracy-counter", "combo-counter", "health-bar", "hit-counts", "hit-error-bar", "leaderboard", "progress-graph", "key-overlay"]
 }
 ```
 

@@ -1,7 +1,7 @@
 import type { UpdateStatus } from "../electron/updates.js";
 import { defaultVideo } from "../core/video-options.js";
 import type { PreviewData } from "../core/preview.js";
-import { defaultOverlayAccent, overlayIds, type AnalyzeInput, type Progress, type RenderOptions, type SavedSettings, type StudioDefaults, type ThumbnailOptions, type Timeline } from "../core/types.js";
+import { defaultOverlayAccent, defaultOverlayIds, type AnalyzeInput, type Progress, type RenderOptions, type SavedSettings, type StudioDefaults, type ThumbnailOptions, type Timeline } from "../core/types.js";
 import type { SkinChoice } from "../core/skins.js";
 import type { PpEngineStatus } from "../core/pp.js";
 
@@ -45,8 +45,8 @@ export function installBrowserStudio() {
     saveOsuCredentials: async () => { throw new Error("Connect osu! in the desktop app."); },
     clearOsuCredentials: async () => ({ clientId: "", configured: false }),
     openOsuSettings: async () => { window.open("https://osu.ppy.sh/home/account/edit#oauth", "_blank", "noopener"); },
-    updateStatus: async () => ({ state: "disabled", version: "0.1.0" }),
-    checkUpdates: async () => ({ state: "disabled", version: "0.1.0" }),
+    updateStatus: async () => ({ state: "disabled", version: "0.1.1" }),
+    checkUpdates: async () => ({ state: "disabled", version: "0.1.1" }),
     defaults: async () => ({
       skinPath: "",
       replay: "",
@@ -57,7 +57,7 @@ export function installBrowserStudio() {
       danserFound: false,
       outputDir: "renders",
       ...defaultVideo,
-      overlays: [...overlayIds],
+      overlays: [...defaultOverlayIds],
       overlayAccent: defaultOverlayAccent,
       introOutro: false,
       leaderboardSize: 50,

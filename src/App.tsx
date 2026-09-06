@@ -164,6 +164,7 @@ export function App() {
   const [connectionMessage, setConnectionMessage] = useState("");
   const [update, setUpdate] = useState<UpdateStatus>();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [connectionPromptOpen, setConnectionPromptOpen] = useState(false);
   const [skins, setSkins] = useState<SkinChoice[]>([]);
   const [ppStatus, setPpStatus] = useState<{ version: string; latest?: string }>();
   const [engine, setEngine] = useState<PreviewEngine>();
@@ -186,7 +187,11 @@ export function App() {
       .defaults()
       .then(setOptions)
       .catch((e) => setError(String(e)));
-    void window.studio.osuStatus().then(status => { setOsuStatus(status); setClientId(status.clientId); });
+    void window.studio.osuStatus().then(status => {
+      setOsuStatus(status);
+      setClientId(status.clientId);
+      setConnectionPromptOpen(!status.configured);
+    });
     void window.studio.ppEngineStatus().then(setPpStatus).catch(() => {});
     return window.studio.onProgress(setProgress);
   }, []);
@@ -778,6 +783,33 @@ export function App() {
           </Alert>
         </div>
       )}
+
+      <Modal.Backdrop isOpen={connectionPromptOpen} onOpenChange={setConnectionPromptOpen}>
+        <Modal.Container>
+          <Modal.Dialog className="sm:max-w-[420px]">
+            <Modal.CloseTrigger />
+            <Modal.Header>
+              <Modal.Heading>Connect osu!</Modal.Heading>
+            </Modal.Header>
+            <Modal.Body>
+              <p>Connect an osu! OAuth client to load player history, mapper portraits, and map leaderboards.</p>
+              <p className="text-sm text-muted">You can continue without it and connect later in Settings.</p>
+            </Modal.Body>
+            <Modal.Footer>
+              <Button slot="close" variant="secondary" onPress={() => setConnectionPromptOpen(false)}>
+                Not now
+              </Button>
+              <Button onPress={() => {
+                setConnectionPromptOpen(false);
+                setSettingsOpen(true);
+                void window.studio.openOsuSettings();
+              }}>
+                Set up osu! OAuth
+              </Button>
+            </Modal.Footer>
+          </Modal.Dialog>
+        </Modal.Container>
+      </Modal.Backdrop>
 
 
         <Modal.Backdrop isOpen={settingsOpen} onOpenChange={setSettingsOpen}>
