@@ -8,6 +8,7 @@ import { atTime, frameAt, healthAt } from "../core/timeline.js";
 import { resolveBeatmap } from "../core/analyze.js";
 import { validateOptions, run } from "../core/render.js";
 import {
+  defaultOverlayIds,
   defaultOverlayAccent,
   normalizeOverlayAccent,
   overlayIds,
@@ -159,6 +160,11 @@ test("overlay accent falls back to light gray and accepts hex", () => {
   assert.equal(normalizeOverlayAccent("not-a-color"), defaultOverlayAccent);
   assert.equal(normalizeOverlayAccent("#9cf"), "#99ccff");
   assert.equal(normalizeOverlayAccent("#00D2FF"), "#00d2ff");
+});
+
+test("key presses are enabled in the default overlay set", () => {
+  assert.ok(defaultOverlayIds.includes("key-overlay"));
+  assert.deepEqual(defaultOverlayIds, overlayIds);
 });
 
 test("tool failures and cancellation stop the job", async () => {

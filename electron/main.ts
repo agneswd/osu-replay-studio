@@ -17,6 +17,7 @@ import {
 } from "../core/paths.js";
 import { render } from "../core/render.js";
 import {
+  defaultOverlayIds,
   overlayIds,
   normalizeOverlayAccent,
   type AnalyzeInput,
@@ -188,7 +189,7 @@ app
           ...videoSettings(saved),
           overlays: Array.isArray(saved.overlays)
             ? saved.overlays.filter((id) => overlayIds.includes(id))
-            : [...overlayIds],
+            : [...defaultOverlayIds],
           overlayAccent: normalizeOverlayAccent(saved.overlayAccent),
           introOutro: saved.introOutro === true,
           leaderboardSort: saved.leaderboardSort === "score" ? "score" : "pp",

@@ -11,6 +11,7 @@ export const overlayIds = [
   "key-overlay",
 ] as const;
 export type OverlayId = (typeof overlayIds)[number];
+export const defaultOverlayIds: readonly OverlayId[] = [...overlayIds];
 export const defaultOverlayAccent = "#d4d7de";
 const accentPattern = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
 export function normalizeOverlayAccent(value: unknown): string {

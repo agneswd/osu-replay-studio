@@ -1,7 +1,7 @@
 import type { UpdateStatus } from "../electron/updates.js";
 import { defaultVideo } from "../core/video-options.js";
 import type { PreviewData } from "../core/preview.js";
-import { defaultOverlayAccent, overlayIds, type AnalyzeInput, type Progress, type RenderOptions, type SavedSettings, type StudioDefaults, type ThumbnailOptions, type Timeline } from "../core/types.js";
+import { defaultOverlayAccent, defaultOverlayIds, type AnalyzeInput, type Progress, type RenderOptions, type SavedSettings, type StudioDefaults, type ThumbnailOptions, type Timeline } from "../core/types.js";
 import type { SkinChoice } from "../core/skins.js";
 import type { PpEngineStatus } from "../core/pp.js";
 
@@ -57,7 +57,7 @@ export function installBrowserStudio() {
       danserFound: false,
       outputDir: "renders",
       ...defaultVideo,
-      overlays: [...overlayIds],
+      overlays: [...defaultOverlayIds],
       overlayAccent: defaultOverlayAccent,
       introOutro: false,
       leaderboardSize: 50,
