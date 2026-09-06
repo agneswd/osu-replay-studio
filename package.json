@@ -41,7 +41,7 @@
     "react-dom": "^19.1.1",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.20.0",
-    "typescript": "^5.9.0",
+    "typescript": "^7.0.2",
     "vite": "^7.1.0"
   },
   "author": "osu! Replay Studio contributors",
