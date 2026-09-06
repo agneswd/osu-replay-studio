@@ -8,8 +8,8 @@
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="ppy.osu.Game" Version="2026.702.1" />
-    <PackageReference Include="ppy.osu.Game.Rulesets.Osu" Version="2026.702.1" />
+    <PackageReference Include="ppy.osu.Game" Version="2026.730.0" />
+    <PackageReference Include="ppy.osu.Game.Rulesets.Osu" Version="2026.730.0" />
   </ItemGroup>
   <!-- The headless calculator does not open graphics, audio, or video devices. -->
   <Target Name="ExcludeGameResources" AfterTargets="ComputeFilesToPublish">

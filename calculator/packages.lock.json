@@ -4,9 +4,9 @@
     "net10.0": {
       "ppy.osu.Game": {
         "type": "Direct",
-        "requested": "[2026.702.1, )",
-        "resolved": "2026.702.1",
-        "contentHash": "8vG31Dt/gB0eQ02I6SXCZAySXCsQgKVf5NNhnz6JEa2tWjbpM2rLODBwpqA4mOx7Z0ibwQNhlRScfmIf6ZW8xw==",
+        "requested": "[2026.730.0, )",
+        "resolved": "2026.730.0",
+        "contentHash": "hW3visGxfYTap7p+NurnWjK0aeuKPy53d5vZngSTfve5nZ5oU9JuFiOI5Qkymu2oHvI1JrpIqqGuK6wqXzi40w==",
         "dependencies": {
           "AutoMapper": "13.0.1",
           "DiffPlex": "1.9.0",
@@ -27,17 +27,17 @@
           "SharpCompress": "0.49.1",
           "System.ComponentModel.Annotations": "5.0.0",
           "TagLibSharp": "2.3.0",
-          "ppy.osu.Framework": "2026.629.0",
-          "ppy.osu.Game.Resources": "2026.523.0"
+          "ppy.osu.Framework": "2026.728.1",
+          "ppy.osu.Game.Resources": "2026.710.0"
         }
       },
       "ppy.osu.Game.Rulesets.Osu": {
         "type": "Direct",
-        "requested": "[2026.702.1, )",
-        "resolved": "2026.702.1",
-        "contentHash": "mo4jUF4HiQcMCNO7nAk2m7t8ddcHuxL/4ZUiWkr/joJFJxt8Poz/Y+wvHWiaSc/uSuw6hifHEAxMW9WDU7t3Tw==",
+        "requested": "[2026.730.0, )",
+        "resolved": "2026.730.0",
+        "contentHash": "+OvxH7ACj0148/on+R1MDJuYUZVrZDEd/Q3FJ9UBkKbGcw/krYbS8Kn1ZlD/8xF0lscAa08ok9l7OWUqrSK/7g==",
         "dependencies": {
-          "ppy.osu.Game": "2026.702.1"
+          "ppy.osu.Game": "2026.730.0"
         }
       },
       "AutoMapper": {
@@ -828,8 +828,8 @@
       },
       "ppy.osu.Framework": {
         "type": "Transitive",
-        "resolved": "2026.629.0",
-        "contentHash": "H0CDYPkNkpCIkG2ZtdzI3qA2sM5Z9E1aATMZM96Ss2jNDt8CIguzm1bezepYdzVhhDJI6aAggNTWxmoUYeYF+w==",
+        "resolved": "2026.728.1",
+        "contentHash": "Xjm5yPyKeEg8AeJ0OlMh7LeutB4yVgpDXiGGQyZawfkEgdwxBVqt3kqEDs9RJ35ia53fdjo2vn3zlTvaGG6WKA==",
         "dependencies": {
           "FFmpeg.AutoGen": "4.3.0.1",
           "JetBrains.Annotations": "2025.2.4",
@@ -869,8 +869,8 @@
       },
       "ppy.osu.Game.Resources": {
         "type": "Transitive",
-        "resolved": "2026.523.0",
-        "contentHash": "Zw+yktEo1N2dkPMX5Gj9qjkM7JARn2F/qSAsx5jmI8ter4uLoRRaISMyQx0RcXw6OjWDFr31QEG1Y1KtIWUNeQ=="
+        "resolved": "2026.710.0",
+        "contentHash": "mLshrEiL/kxEg5ZtJ1wgZvN0fALjXRS4yhXbgc1/Oz3BJbpWK/gMsrBdRlZ2urlkcb38oFpuUjPaV2yXJs1o8A=="
       },
       "ppy.osuTK.NS20": {
         "type": "Transitive",
@@ -1079,51 +1079,6 @@
         "type": "Transitive",
         "resolved": "1.4.25",
         "contentHash": "V2yJMl/QKceXEjYEnf2EWcNkUJI5/zE04cNUnawHbdR0wjMHv1dVTLf0IUJk0D0w29FrCWdQQK/n4L4vx0HeQA=="
-      }
-    },
-    "net10.0/win-x64": {
-      "ppy.osu.Framework.NativeLibs": {
-        "type": "Transitive",
-        "resolved": "2025.806.0-nativelibs",
-        "contentHash": "andr6OYdjUCpglWMdKoXarGVcgQFza3oRZ8LMJFHjv31N2tO6v9DTs6gZdJB8YWuOBMn77A6Eg3Hy38UZhD9IA=="
-      },
-      "ppy.SDL2-CS": {
-        "type": "Transitive",
-        "resolved": "1.0.741-alpha",
-        "contentHash": "6mjubcZCHcYRog2nit9gmcQss7hTprnAvfR9U3UmCcEi1KoNyzKDuI862mNae0dmgLPviSubywG08e54jT52Lg=="
-      },
-      "ppy.SDL3-CS": {
-        "type": "Transitive",
-        "resolved": "2026.629.0",
-        "contentHash": "HgnHCdsOu7OiMbU+OG7E7rpkNajs4tm9ovejyc56AD1NNSJD8OLqXh+mGKlDBYem8+MBTrNKUWVcdKG76HhOVQ=="
-      },
-      "ppy.Veldrid.SPIRV": {
-        "type": "Transitive",
-        "resolved": "1.0.15-g5911265ec3",
-        "contentHash": "hTHVEqmAJ/p6zlHBQKrg5pkCHiNFhEp1Ms5No7eur4E48ALUdPsnruedPMXIXye2vX2JLZa8CohZPOCgyApJNQ==",
-        "dependencies": {
-          "ppy.Veldrid": "4.9.69-ga405fe8484"
-        }
-      },
-      "Realm": {
-        "type": "Transitive",
-        "resolved": "20.1.0",
-        "contentHash": "jDwR8r8gDZq3Mrlzx1MYtg7FodPFD4Kpku9QMh5Q0Lzia0nfTZo9/Q9ZMFGhwuZSv7T78EvMAr3LPm8iwR7wnQ==",
-        "dependencies": {
-          "Fody": "6.9.1",
-          "MongoDB.Bson": "2.21.0",
-          "Remotion.Linq": "2.2.0"
-        }
-      },
-      "SourceGear.sqlite3": {
-        "type": "Transitive",
-        "resolved": "3.50.4.5",
-        "contentHash": "UtnipXhJYZKQOQIfpws/msLK7IRhMplE1CZCaZLIQXRnGD474QVpO/J9nMlQQY8NZueGz1aidjoxDRnrC1NT3Q=="
-      },
-      "StbiSharp": {
-        "type": "Transitive",
-        "resolved": "1.1.0",
-        "contentHash": "4xHXYrSztnfDtDGX/sgbZtOXQ4K+0VSQoRPW6Ts2pWOZgXCEAtn3hc0CwwMMLzBLf8kc9KF/AcanIP3Vqgd0mw=="
       }
     }
   }
