@@ -245,7 +245,7 @@ export function App() {
     setConnecting(true); setConnectionMessage("");
     try {
       const status = await window.studio.saveOsuCredentials({ clientId: clientId.trim(), clientSecret: clientSecret.trim() });
-      setOsuStatus(status); setClientSecret(""); setConnectionMessage("Connected.");
+      setOsuStatus(status); setClientSecret(""); setConnectionMessage("");
       if (timeline) await inspect();
     } catch (error) { setConnectionMessage((error instanceof Error ? error.message : String(error)).replace(/^Error invoking remote method '[^']+': (?:Error: )?/, "")); }
     finally { setConnecting(false); }
@@ -837,12 +837,12 @@ export function App() {
                   <Input variant="secondary" aria-label="osu! client ID" placeholder="Client ID" value={clientId} onChange={event => setClientId(event.target.value)} autoComplete="off" />
                   <Input variant="secondary" aria-label="osu! client secret" type="password" placeholder={osuStatus.configured ? "Secret saved securely" : "Client secret"} value={clientSecret} onChange={event => setClientSecret(event.target.value)} autoComplete="new-password" />
                   <div className="flex flex-wrap gap-2">
-                    <Button size="sm" isDisabled={connecting || !clientId || !clientSecret} onPress={() => void connectOsu()}>{connecting ? "Connecting" : "Connect"}</Button>
+                    <Button size="sm" isDisabled={connecting || !clientId || !clientSecret} onPress={() => void connectOsu()}>{connecting ? "Connecting" : osuStatus.configured && !clientSecret ? "Connected" : "Connect"}</Button>
                     <Button size="sm" variant="ghost" onPress={() => void window.studio.openOsuSettings()}>Create osu! client</Button>
-                    {osuStatus.configured && <Button size="sm" variant="ghost" onPress={() => { void window.studio.clearOsuCredentials().then(setOsuStatus); setClientId(""); }}>Disconnect</Button>}
+                    {osuStatus.configured && <Button size="sm" variant="ghost" onPress={() => { void window.studio.clearOsuCredentials().then(setOsuStatus); setClientId(""); setConnectionMessage(""); }}>Disconnect</Button>}
                   </div>
                   {timeline && <Button size="sm" variant="ghost" isDisabled={busy} onPress={() => void inspect()}>Refresh replay data</Button>}
-                  <p className="text-sm text-muted">{connectionMessage || (osuStatus.configured ? "Connected" : "Not connected")}</p>
+                  {(connectionMessage || !osuStatus.configured) && <p className="text-sm text-muted">{connectionMessage || "Not connected"}</p>}
                 </div>
                 <PathRow
                   label="Songs folder"
