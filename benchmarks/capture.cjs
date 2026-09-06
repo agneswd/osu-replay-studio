@@ -1,11 +1,12 @@
 const { app } = require('electron');
 const path = require('node:path');
+const { pathToFileURL } = require('node:url');
 const fs = require('node:fs');
 const assert = require('node:assert/strict');
 const root = path.resolve(__dirname, '..');
 app.whenReady().then(async () => {
-  const { captureOverlay } = await import(path.join(root, 'dist/electron/capture.js'));
-  const { overlayIds } = await import(path.join(root, 'dist/core/types.js'));
+  const { captureOverlay } = await import(pathToFileURL(path.join(root, 'dist/electron/capture.js')).href);
+  const { overlayIds } = await import(pathToFileURL(path.join(root, 'dist/core/types.js')).href);
   const snapshot = { time: 0, score: 123456, combo: 12, maxCombo: 12, accuracy: 98.12, pp: 123,
     grade: 'A', hits: {'300': 100, '100': 2, '50': 0, '0': 0, sliderBreaks: 0}, errors: [], ur: 80 };
   const timeline = { replay: '', beatmap: '', player: 'Player', title: 'Capture benchmark', mods: 'HDHR', speed: 1,

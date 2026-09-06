@@ -1,10 +1,11 @@
 const { app, nativeImage } = require("electron");
 const assert = require("node:assert/strict");
 const path = require("node:path");
+const { pathToFileURL } = require("node:url");
 const root = path.resolve(__dirname, "..");
 
 app.whenReady().then(async () => {
-  const { pngEncoder } = await import(path.join(root, "dist/electron/png.js"));
+  const { pngEncoder } = await import(pathToFileURL(path.join(root, "dist/electron/png.js")).href);
   const bitmap = Buffer.alloc(256 * 256 * 4);
   for (let alpha = 0; alpha < 256; alpha++) for (let color = 0; color < 256; color++) {
     const at = (alpha * 256 + color) * 4;
@@ -17,8 +18,8 @@ app.whenReady().then(async () => {
   assert.deepEqual(nativeImage.createFromBuffer(encode(bitmap)).toBitmap(), bitmap);
   bitmap.fill(0);
   assert.deepEqual(nativeImage.createFromBuffer(encode(bitmap)).toBitmap(), bitmap);
-  const { captureOverlay } = await import(path.join(root, "dist/electron/capture.js"));
-  const { overlayIds } = await import(path.join(root, "dist/core/types.js"));
+  const { captureOverlay } = await import(pathToFileURL(path.join(root, "dist/electron/capture.js")).href);
+  const { overlayIds } = await import(pathToFileURL(path.join(root, "dist/core/types.js")).href);
   const timeline = {
     player: "First frame", playerAvatar: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128"><path fill="red" d="M0 0h128v128H0z"/></svg>')}`,
     title: "Capture check", mods: "HD", speed: 1, duration: 1, stars: 5, bpm: 180, od: 8, maxPP: 400,
