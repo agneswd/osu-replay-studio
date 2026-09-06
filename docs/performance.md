@@ -45,3 +45,72 @@ Alternative RLE and Huffman compression also increased gameplay capture time.
 Encoder cancellation now closes capture resources even when the input pipe is full.
 The headless calculator excludes unused game resources and native graphics, audio, and video libraries.
 Its published Linux runtime is 128 MiB. Calculator tests run against that reduced runtime.
+
+The bundled renderer draws gameplay and HUD sprites on the GPU, then encodes video once with x264 fast at CRF 16.
+Chromium prepares reusable artwork and glyphs before rendering. Frame commands use a compressed stream with bounded memory.
+Plain gameplay skips HUD preparation. Audio processing copies the encoded video stream.
+External Danser builds without native HUD support retain the browser path and exact video trimming.
+That fallback captures only selected components and skips capture when overlays and scenes are disabled.
+Hit-error ticks use a reusable canvas instead of rebuilding DOM elements for every frame.
+
+Each export saves `<video>.render.log` and `<video>.render.json` beside the output.
+The report includes settings, encoder settings, stage durations, captured frame count, and failure details.
+These files remain after temporary files are removed, including after failed setup or cancellation.
+
+A 30-second mrekk export at 1080p60 took 12.51 seconds with overlays and scenes disabled on a Ryzen 7 7800X3D.
+It produced all 1800 video frames and captured zero overlay frames.
+This is not directly comparable to an export with visible overlays.
+
+## Native HUD
+
+The native HUD keeps all ten components. It uses the existing timeline sampler and bundled fonts, flags, and mod artwork.
+Text rasterization can differ from the browser preview. Gameplay no longer passes through an intermediate CRF-18 encode.
+This change does not add hardware encoding or GPU-to-encoder transfer. FFmpeg still uses software x264 encoding.
+
+Intro and outro scenes still use Chromium. Their held clear and blurred backgrounds are prepared once.
+Chromium blends those images on the GPU. Opaque scene capture uses native PNG encoding.
+The final file joins the scene videos and gameplay by stream copy. Audio stays on one continuous presentation clock.
+
+Use the same job and a copy of the previous Danser runtime for a full export comparison:
+
+```sh
+node benchmarks/export.mjs /path/to/job.json /path/to/previous/danser-cli renders/evidence/export-comparison
+```
+
+The command runs three exports per renderer in alternating order. It saves each output, log, and timing report.
+Use a new output directory for each run. Include all selected overlays and the same scene settings in both paths.
+
+On 2026-09-07, a 30-second mrekk export at 1080p60 used all ten HUD components and no scenes.
+Three alternating trials on a Ryzen 7 7800X3D with a Radeon RX 9070-series GPU gave these results:
+
+| Renderer | Trial 1 | Trial 2 | Trial 3 | Median |
+| --- | ---: | ---: | ---: | ---: |
+| Browser | 59.81 s | 61.98 s | 62.93 s | 61.98 s |
+| Native | 13.70 s | 13.97 s | 14.48 s | 13.97 s |
+
+The native median used 77.5% less time, or 4.44 times the throughput.
+These times include replay analysis, online data loading, HUD preparation, rendering, and audio processing.
+They exclude application startup. Each output contained exactly 1800 frames and 30 seconds of audio.
+Decoded audio matched between paths. A gameplay crop matched the same frame clock, with no one-frame shift.
+The normal desktop session stayed active during these tests. Results on other hardware can differ.
+
+A separate opaque scene PNG test averaged 7.17 ms with native encoding and 35.57 ms with JavaScript conversion and encoding.
+Decoded pixels matched exactly in that test. This does not predict the same speed ratio for a full scene export.
+
+A confirmation export after the timing-window and slider-head fixes took 14.18 seconds with the same 30-second job.
+The first timing tick appeared at 0.668 seconds. DT windows were ±16 ms, ±43.33 ms, and ±71.33 ms.
+Timing samples and color zones use playback milliseconds. Slider-head samples no longer wait for the slider tail.
+
+### Rendered comparison
+
+These frames show the same replay at 20 seconds, with all ten components enabled.
+The native image includes the corrected timing windows and slider-head samples.
+Text uses the same font, but browser and Canvas rasterization can produce different edges.
+
+Browser composition:
+
+![Browser HUD at 20 seconds](images/browser-hud.png)
+
+Native composition:
+
+![Native HUD at 20 seconds](images/native-hud.png)
