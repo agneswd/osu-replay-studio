@@ -74,7 +74,7 @@ export function usePlayback(timeline: Timeline | undefined, time: number, setTim
   useEffect(() => {
     if (!playing || !engine || !timeline || !introOutro) return;
     const timing = presentationTiming(timeline.duration, fps, true, firstNoteSeconds(timeline));
-    const begins = (timing.introFrames + timing.gameplayFrames) / fps;
+    const begins = timing.outroStartFrame / fps;
     const offset = currentTime.current - begins;
     if (offset >= 2) return;
     const context = engine.context;

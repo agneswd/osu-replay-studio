@@ -26,7 +26,7 @@ Create a JSON job with absolute paths:
 On Windows, use `danser-cli.exe` and escape backslashes in JSON paths.
 Add `beatmap` to select a matching `.osu` file directly.
 Add `skinPath` for a skin folder. Add `duration` to limit gameplay seconds.
-The intro and outro each run for 5.4 seconds. The first note follows the intro by one second.
+The intro and outro each run for 5.4 seconds. The first note follows the intro by one second. Gameplay pauses for one second before the outro.
 An empty `overlays` array hides the gameplay HUD.
 
 ```sh

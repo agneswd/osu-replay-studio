@@ -25,7 +25,7 @@ test("opaque scenes and transparent gameplay preserve export frames and colors",
     const frames = Buffer.concat([
       ...Array<Buffer>(timing.sceneFrames).fill(fixture("opaque-red")),
       ...Array<Buffer>(timing.introFrames - timing.sceneFrames).fill(fixture("transparent")),
-      ...Array<Buffer>(timing.gameplayFrames).fill(fixture("transparent")),
+      ...Array<Buffer>(timing.gameplayFrames + timing.outroPauseFrames).fill(fixture("transparent")),
       ...Array<Buffer>(timing.sceneFrames).fill(fixture("opaque-blue")),
     ]);
     ffmpeg(compositeArgs(gameplay, output, 0.2, 30, true), frames);
@@ -35,6 +35,7 @@ test("opaque scenes and transparent gameplay preserve export frames and colors",
     const red = pixel(30), white = pixel(timing.sceneFrames + 2), blue = pixel(timing.frames - 30);
     assert.ok(red[0] > 240 && red[1] < 10 && red[2] < 10);
     assert.ok(white.every(value => value > 240));
+    assert.ok(pixel(timing.outroStartFrame - 1).every(value => value > 240), "The final gameplay frame stays clear during the pause.");
     assert.ok(blue[0] < 10 && blue[1] < 10 && blue[2] > 240);
   } finally {
     rmSync(work, { recursive: true, force: true });
