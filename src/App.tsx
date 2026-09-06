@@ -236,7 +236,7 @@ export function App() {
   useEffect(() => {
     if (engine) {
       engine.cursorSize(options?.cursorSize ?? 1);
-      engine.draw(position?.gameplayTime ?? time, timeline?.speed ?? 1, options?.backgroundDim ?? .72);
+      engine.draw(position?.gameplayTime ?? time, timeline?.speed ?? 1, options?.backgroundDim ?? .95);
     }
   }, [engine, options?.cursorSize]);
 
@@ -284,7 +284,7 @@ export function App() {
   };
   useEffect(sendFrame, [timeline, time, options?.overlays, options?.overlayAccent, options?.introOutro, options?.fps, options?.leaderboardSize, options?.leaderboardSort, options?.backgroundDim]);
   useEffect(() => {
-    if (engine && timeline) engine.draw(position?.gameplayTime ?? time, timeline.speed, options?.backgroundDim ?? .72);
+    if (engine && timeline) engine.draw(position?.gameplayTime ?? time, timeline.speed, options?.backgroundDim ?? .95);
   }, [time, timeline, engine, options?.introOutro, options?.fps, options?.backgroundDim]);
 
   function patch(next: Partial<StudioDefaults>) {
@@ -492,7 +492,7 @@ export function App() {
   }
 
   const videoOptions = useMemo(() => options ? (
-      <aside aria-label="Video options" className="workspace-options flex w-[360px] shrink-0 flex-col gap-4 overflow-y-auto border-l border-border p-4">
+      <aside aria-label="Video options" className="workspace-options flex w-[384px] shrink-0 flex-col gap-4 overflow-y-auto border-l border-border p-4">
                 <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-2">
                   <Hint text="Use this skin for preview gameplay, hit sounds, and the exported video."><Select aria-label="Gameplay skin" value={options.skinPath || "default"} isDisabled={busy}
                     onChange={key => void persist({ skinPath: key === "default" ? "" : String(key) })}>
@@ -508,7 +508,7 @@ export function App() {
                 <div className="grid grid-cols-2 gap-4">
                 <Hint text="Darken the beatmap background in the preview and video. 100% is black."><Slider aria-label="Background dim" minValue={0} maxValue={100} step={1} value={Math.round(options.backgroundDim * 100)}
                   onChange={value => void persist({ backgroundDim: Number(value) / 100 })}>
-                  <div className="flex justify-between gap-2 text-sm"><Label>Background dim</Label><Slider.Output>{() => `${Math.round(options.backgroundDim * 100)}%`}</Slider.Output></div>
+                  <div className="flex justify-between gap-2 text-sm"><Label className="whitespace-nowrap">Background dim</Label><Slider.Output>{() => `${Math.round(options.backgroundDim * 100)}%`}</Slider.Output></div>
                   <Slider.Track><Slider.Fill /><Slider.Thumb /></Slider.Track>
                 </Slider></Hint>
                 <Hint text="Set the cursor size in the preview and exported video."><Slider aria-label="Cursor size" minValue={.5} maxValue={2} step={.05} value={options.cursorSize}

@@ -76,7 +76,7 @@ window.setReplayFrame = async (data, enabled, theme) => {
   const scene = theme?.scene;
   const strength = scene ? Math.min(1, scene.kind === "intro" ? 1 : scene.time / .25, Math.max(0, (5.4 - scene.time) / .45)) : 0;
   const hide = scene?.kind === "outro" ? Math.min(1, scene.time / .3) : 0;
-  const dim = theme?.backgroundDim ?? .72;
+  const dim = theme?.backgroundDim ?? .95;
   outroBackground.style.display = scene && outroBackground.getAttribute("src") ? "block" : "none";
   outroBackground.style.opacity = String(scene?.kind === "intro" ? strength * Math.max(0, (dim - .72) / .28) : 1);
   outroBackground.style.filter = `blur(${strength * 8}px) brightness(${scene?.kind === "intro" ? .12 : 1 - Math.min(.85, dim)})`;

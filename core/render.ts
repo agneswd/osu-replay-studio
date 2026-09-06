@@ -258,7 +258,7 @@ export async function render(
           Logo: { Enabled: false },
           Background: {
             LoadStoryboards: false, LoadVideos: false, FlashToTheBeat: false,
-            Dim: { Intro: o.backgroundDim ?? .72, Normal: o.backgroundDim ?? .72, Breaks: o.backgroundDim ?? .72 },
+            Dim: { Intro: o.backgroundDim ?? .95, Normal: o.backgroundDim ?? .95, Breaks: o.backgroundDim ?? .95 },
             Parallax: { Enabled: false }, Blur: { Enabled: false },
           },
         },
