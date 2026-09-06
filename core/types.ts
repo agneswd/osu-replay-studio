@@ -280,4 +280,5 @@ export type Capture = (
   timeline: Timeline,
   frames: number,
   signal: AbortSignal,
+  range?: { start: number; end: number; background?: { clear: string; soft: string } },
 ) => AsyncIterable<Uint8Array>;

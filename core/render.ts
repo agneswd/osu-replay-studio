@@ -1,3 +1,5 @@
+import { pathToFileURL } from "node:url";
+import { nativeFrameWindow, nativeSceneArgs, nativeSceneBackgroundArgs, nativeAudioArgs, type PrepareHud } from "./native-hud.js";
 import { resolutions, frameRates } from "./video-options.js";
 import { constants, createWriteStream } from "node:fs";
 import {
@@ -8,16 +10,17 @@ import {
   mkdir,
   mkdtemp,
   readdir,
+  readFile,
   rm,
   symlink,
   writeFile,
 } from "node:fs/promises";
 import path from "node:path";
 import { spawn } from "node:child_process";
-import { pipeline } from "node:stream/promises";
+import { pipeline, finished } from "node:stream/promises";
 import type { OsuClient } from "./online.js";
 import { analyze } from "./analyze.js";
-import { compositeArgs, presentationTiming, firstNoteSeconds } from "./presentation.js";
+import { compositeArgs, gameplayOutputArgs, presentationTiming, firstNoteSeconds } from "./presentation.js";
 import { runtimeTool } from "./runtime.js";
 import { exportLoudness, measuredAudioFilter, outroWave, outroMusicArgs } from "./audio.js";
 import {
@@ -148,10 +151,18 @@ export async function render(
   options: RenderOptions,
   capture: Capture,
   signal: AbortSignal,
-  progress: (p: Progress) => void,
+  onProgress: (p: Progress) => void,
   onlineClient?: OsuClient,
   thumbnail?: (timeline: Timeline) => Promise<void>,
+  prepareHud?: PrepareHud,
 ): Promise<string> {
+  const started = performance.now();
+  const stages: { stage: string; seconds: number }[] = [];
+  const progress = (value: Progress) => {
+    const stage = value.stage === "Overlay" ? "Composite" : value.stage;
+    if (stages.at(-1)?.stage !== stage) stages.push({ stage, seconds: (performance.now() - started) / 1000 });
+    onProgress(value);
+  };
   validateOptions(options);
   const o = {
     ...options,
@@ -168,20 +179,26 @@ export async function render(
     try { await access(o.output.replace(/\.mp4$/i, ".png")); throw new Error("Thumbnail already exists. Select a new filename."); }
     catch (error) { if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) throw error; }
   }
-  await access(o.danser, constants.X_OK);
-  await run(runtimeTool("ffmpeg"), ["-version"], signal, () => {});
-  progress({ stage: "Analyze", message: "Resolve beatmap and analyze replay" });
-  const timeline = await analyze(o, signal, onlineClient);
-  const duration = Math.min(o.duration ?? timeline.duration, timeline.duration);
-  const timing = presentationTiming(duration, o.fps, o.introOutro, firstNoteSeconds(timeline));
-  const { frames } = timing;
   await mkdir(path.dirname(o.output), { recursive: true });
-  const work = await mkdtemp(
-    path.join(path.dirname(o.output), ".replay-studio-"),
-  );
-  const log = createWriteStream(path.join(work, "render.log"));
+  const log = createWriteStream(`${o.output}.render.log`);
+  const logDone = finished(log).catch(error => console.error("Could not save render log:", error));
+  let work: string | undefined;
   let videoComplete = false;
+  let failure: string | undefined;
+  let overlayFrames = 0;
+  let native = false;
   try {
+    await access(o.danser, constants.X_OK);
+    await run(runtimeTool("ffmpeg"), ["-version"], signal, () => {});
+    progress({ stage: "Analyze", message: "Resolve beatmap and analyze replay" });
+    const timeline = await analyze(o, signal, onlineClient);
+    const duration = Math.min(o.duration ?? timeline.duration, timeline.duration);
+    const timing = presentationTiming(duration, o.fps, o.introOutro, firstNoteSeconds(timeline));
+    const { frames } = timing;
+    work = await mkdtemp(
+      path.join(path.dirname(o.output), ".replay-studio-"),
+    );
+
     await writeFile(path.join(work, "timeline.json"), JSON.stringify(timeline));
     await writeFile(path.join(work, "job.json"), JSON.stringify(o, null, 2));
     const runtime = path.join(work, "danser");
@@ -273,6 +290,9 @@ export async function render(
     );
     const danserEnv: NodeJS.ProcessEnv = {
       ...process.env,
+      STUDIO_NATIVE_PROBE: "1",
+      STUDIO_NATIVE_HUD: "",
+      STUDIO_NATIVE_FRAME_LIMIT: "",
       PATH: [path.dirname(runtimeTool("ffmpeg")), process.env.PATH].filter(Boolean).join(path.delimiter),
     };
     let version = "";
@@ -291,6 +311,22 @@ export async function render(
       throw new Error(
         "This render clock requires Danser 0.11.0.",
       );
+    const leadIn = 1 + timeline.preempt / 1000 / timeline.speed;
+    native = !!prepareHud && version.includes("STUDIO_NATIVE_HUD 1");
+    if (native) {
+      const window = nativeFrameWindow(leadIn, timing.startFrame, timing.gameplayFrames, o.fps);
+      const settingsFile = path.join(runtime, "settings", "studio.json");
+      const settings = JSON.parse(await readFile(settingsFile, "utf8"));
+      settings.Recording.libx264 = { CRF: 16, Preset: "fast", AdditionalOptions: "-video_track_timescale 90000" };
+      settings.Recording.Filters = window.filter + `,tpad=stop_mode=clone:stop=-1,trim=end_frame=${timing.gameplayFrames}`;
+      await writeFile(settingsFile, JSON.stringify(settings));
+      danserEnv.STUDIO_NATIVE_FRAME_LIMIT = String(window.end);
+      if (o.overlays.length) {
+        progress({ stage: "HUD", message: "Prepare native HUD artwork and animation" });
+        danserEnv.STUDIO_NATIVE_HUD = await prepareHud!(o, timeline, work, signal);
+      }
+    }
+    log.write(`Renderer: ${native ? "native HUD, one gameplay encode" : "browser HUD"}\n`);
     progress({ stage: "Gameplay", message: "Render gameplay with Danser" });
     await run(
       path.join(runtime, danserName),
@@ -322,7 +358,6 @@ export async function render(
     );
     progress({ stage: "Audio", message: "Normalize video audio" });
     const gameplay = path.join(work, "gameplay.mp4");
-    const leadIn = 1 + timeline.preempt / 1000 / timeline.speed;
     const musicAudio = o.introOutro && timeline.audioPath ? path.join(work, "music.wav") : undefined;
     if (musicAudio) await run(runtimeTool("ffmpeg"), outroMusicArgs(gameplay, timeline.audioPath!, musicAudio,
       timing.startFrame / o.fps, leadIn, Math.min(duration, timeline.gameplayFadeStart ?? duration),
@@ -334,12 +369,13 @@ export async function render(
     const audioFilter = measuredAudioFilter(audioLog);
     const outroAudio = o.introOutro ? path.join(work, "outro.wav") : undefined;
     if (outroAudio) await writeFile(outroAudio, outroWave());
-    progress({
+    const needsComposition = !native && (o.overlays.length > 0 || o.introOutro === true);
+    if (needsComposition) progress({
       stage: "Overlay",
       fraction: 0,
       message: "Capture overlay frames",
     });
-    let overlayFrames = 0;
+
     async function* trackCapture() {
       for await (const chunk of capture(o, timeline, frames, signal)) {
         overlayFrames++;
@@ -352,14 +388,43 @@ export async function render(
         yield chunk;
       }
     }
-    const overlayPipe = trackCapture();
+    const overlayPipe = needsComposition ? trackCapture() : undefined;
     progress({
       stage: "Composite",
       message: "Multiplex gameplay, overlay and audio",
     });
-    await run(
+    if (native) {
+      const audio = path.join(work, "final-audio.m4a");
+      await run(runtimeTool("ffmpeg"), nativeAudioArgs(gameplay, audio, timing, o.fps, leadIn, audioFilter, musicAudio, outroAudio), signal, line => log.write(line));
+      let video = gameplay;
+      if (o.introOutro) {
+        for (const kind of ["intro", "outro"] as const) {
+          progress({ stage: "Scenes", message: `Render ${kind}` });
+          const start = kind === "intro" ? 0 : timing.outroStartFrame;
+          const clear = path.join(work, `${kind}-clear.png`), soft = path.join(work, `${kind}-soft.png`);
+          await run(runtimeTool("ffmpeg"), nativeSceneBackgroundArgs(gameplay, clear, soft, kind, timing.gameplayFrames, o.fps), signal, line => log.write(line));
+          const background = { clear: pathToFileURL(clear).href, soft: pathToFileURL(soft).href };
+          async function* sceneCapture() {
+            for await (const chunk of capture({ ...o, overlays: [] }, timeline, frames, signal, { start, end: start + timing.sceneFrames, background })) {
+              overlayFrames++;
+              if (overlayFrames % o.fps === 0) progress({ stage: "Scenes", fraction: overlayFrames / (timing.sceneFrames * 2), message: `Render ${kind}` });
+              yield chunk;
+            }
+          }
+          await run(runtimeTool("ffmpeg"), nativeSceneArgs(path.join(work, `${kind}.mp4`), timing.sceneFrames, o.fps), signal, line => log.write(line), work, sceneCapture());
+        }
+        await run(runtimeTool("ffmpeg"), ["-y", "-i", gameplay, "-map", "0:v:0", "-an", "-c:v", "copy", path.join(work, "gameplay-video.mp4")], signal, line => log.write(line));
+        // Relative fixed names keep the concat file independent of user path quoting.
+        await writeFile(path.join(work, "segments.txt"), "file 'intro.mp4'\nfile 'gameplay-video.mp4'\nfile 'outro.mp4'\n");
+        video = path.join(work, "video.mp4");
+        await run(runtimeTool("ffmpeg"), ["-y", "-f", "concat", "-safe", "0", "-i", path.join(work, "segments.txt"), "-map", "0:v:0", "-an", "-c:v", "copy", video], signal, line => log.write(line), work);
+      }
+      await run(runtimeTool("ffmpeg"), ["-y", "-i", video, "-i", audio, "-map", "0:v:0", "-map", "1:a:0", "-c", "copy", o.output], signal, line => log.write(line));
+    } else await run(
       runtimeTool("ffmpeg"),
-      compositeArgs(gameplay, o.output, duration, o.fps, o.introOutro, leadIn, firstNoteSeconds(timeline), audioFilter, outroAudio, musicAudio),
+      needsComposition
+        ? compositeArgs(gameplay, o.output, duration, o.fps, o.introOutro, leadIn, firstNoteSeconds(timeline), audioFilter, outroAudio, musicAudio)
+        : gameplayOutputArgs(gameplay, o.output, frames / o.fps, o.fps, leadIn, audioFilter),
       signal,
       (line) => log.write(line),
       work,
@@ -377,11 +442,20 @@ export async function render(
     });
     return o.output;
   } catch (error) {
+    failure = error instanceof Error ? error.message : String(error);
+    log.write(`\n${signal.aborted ? "Cancelled" : "Failed"}: ${failure}\n`);
     if (signal.aborted || !videoComplete) await rm(o.output, { force: true });
     if (signal.aborted && o.thumbnail) await rm(o.output.replace(/\.mp4$/i, ".png"), { force: true });
     throw error;
   } finally {
     log.end();
-    await rm(work, { recursive: true, force: true });
+    await logDone;
+    const seconds = (performance.now() - started) / 1000;
+    await writeFile(`${o.output}.render.json`, JSON.stringify({
+      status: failure !== undefined ? signal.aborted ? "cancelled" : "failed" : "complete", error: failure,
+      seconds, overlayFrames, renderer: native ? "native" : "browser", settings: o, encoder: { name: "libx264", preset: "fast", gameplayCRF: native ? 16 : 18, finalCRF: 16 },
+      stages: stages.map((mark, index) => ({ stage: mark.stage, seconds: (stages[index + 1]?.seconds ?? seconds) - mark.seconds })),
+    }, null, 2)).catch(error => console.error("Could not save render diagnostics:", error));
+    if (work) await rm(work, { recursive: true, force: true });
   }
 }

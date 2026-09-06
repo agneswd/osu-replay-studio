@@ -85,3 +85,12 @@ export function compositeArgs(gameplay: string, output: string, duration: number
     "-r", String(fps), "-c:v", "libx264", "-preset", "fast", "-crf", "16", "-pix_fmt", "yuv420p", "-c:a", "aac", "-ar", "48000", "-b:a", "320k", output,
   ];
 }
+
+// Keep frame-accurate trimming and audio processing without an overlay input.
+export function gameplayOutputArgs(gameplay: string, output: string, duration: number, fps: number, leadIn: number, audioFilter = exportLoudness) {
+  return ["-y", "-ss", String(leadIn), "-i", gameplay,
+    "-map", "0:v:0", "-map", "0:a?", "-t", String(duration), "-r", String(fps),
+    "-vf", `fps=${fps},setpts=PTS-STARTPTS,tpad=stop_mode=clone:stop=-1,trim=end_frame=${Math.ceil(duration * fps)}`,
+    "-c:v", "libx264", "-preset", "fast", "-crf", "16", "-pix_fmt", "yuv420p",
+    "-af", audioFilter, "-c:a", "aac", "-ar", "48000", "-b:a", "320k", output];
+}

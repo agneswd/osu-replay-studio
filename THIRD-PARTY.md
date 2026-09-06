@@ -19,7 +19,8 @@ Replay Studio is licensed under GPL-3.0-only. Separate components retain their o
 | React | MIT | [facebook/react](https://github.com/facebook/react) |
 | HeroUI | MIT | [heroui-inc/heroui](https://github.com/heroui-inc/heroui) |
 
-The Linux Danser build includes `tools/danser-pipe.patch`. `tools/build-danser.mjs` downloads its exact source and applies the patch.
+The Danser builds include the native HUD source and patch in `tools/danser/`, plus `tools/danser-pipe.patch`.
+`tools/build-danser.mjs` downloads the pinned upstream source, applies these changes, and builds the Linux or Windows library.
 
 License texts are in `licenses/` and beside bundled fonts.
 Danser includes BASS and other assets with separate terms. See `licenses/danser-credits.md`.

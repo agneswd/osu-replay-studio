@@ -19,8 +19,9 @@ const outroBackground = document.createElement("img");
 outroBackground.alt = "";
 outroBackground.style.cssText = "position:absolute;inset:-20px;width:1960px;height:1120px;object-fit:cover;display:none;pointer-events:none";
 stage.append(outroBackground);
+const requestedOverlays = new URLSearchParams(location.search).get("overlays")?.split(",");
 window.overlayReady = Promise.all(
-  Object.entries(layout).map(
+  Object.entries(layout).filter(([id]) => !requestedOverlays || requestedOverlays.includes(id)).map(
     ([id, [x, y, w, h]]) =>
       new Promise((resolve) => {
         const iframe = document.createElement("iframe");
@@ -52,6 +53,14 @@ function applyTheme(accent) {
   }
 }
 window.setOverlayTheme = applyTheme;
+let heldBackground;
+window.setSceneBackground = ({ clear, soft }) => {
+  const base = document.createElement("img"), blurred = document.createElement("img");
+  base.src = clear; blurred.src = soft;
+  for (const image of [base, blurred]) image.style.cssText = "position:absolute;inset:0;width:1920px;height:1080px;pointer-events:none";
+  stage.prepend(base, blurred);
+  heldBackground = blurred;
+};
 let lastAccent;
 let sceneFrame;
 let sceneReady;
@@ -75,6 +84,7 @@ window.setReplayFrame = async (data, enabled, theme) => {
   if (theme?.accent) applyTheme(theme.accent);
   const scene = theme?.scene;
   const strength = scene ? Math.min(1, scene.kind === "intro" ? 1 : scene.time / .25, Math.max(0, (5.4 - scene.time) / .45)) : 0;
+  if (heldBackground) heldBackground.style.opacity = String(strength);
   const hide = scene?.kind === "outro" ? Math.min(1, scene.time / .3) : 0;
   const dim = theme?.backgroundDim ?? .95;
   outroBackground.style.display = scene && outroBackground.getAttribute("src") ? "block" : "none";

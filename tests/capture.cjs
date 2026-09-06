@@ -72,7 +72,21 @@ app.whenReady().then(async () => {
     await tickWindow.webContents.executeJavaScript(`window.renderReplayFrame(${JSON.stringify(frame)})`);
     assert.equal(await tickWindow.webContents.executeJavaScript(`document.getElementById('timingTicks').getContext('2d').getImageData(${tickPixels[1]},32,1,1).data[3]`), 0, "Seeking to an empty frame clears old ticks.");
   } finally { tickWindow.destroy(); }
+  const nativeWindow = new BrowserWindow({ show: false, webPreferences: { offscreen: true } });
+  try {
+    await nativeWindow.loadFile(path.join(root, "overlays/native-hud.html"));
+    const widths = [];
+    for (const value of [0, .5, 1]) {
+      const input = { ...timeline, health: [{ time: 0, value }] };
+      const result = await nativeWindow.webContents.executeJavaScript(`window.createNativeHud(${JSON.stringify(input)},{fps:60,overlays:['health-bar']}).then(hud=>hud.batch(0,1).frames[0])`);
+      assert.equal(result.sprites.length, value === 0 ? 1 : 2, "Empty HP has no dark center.");
+      widths.push(result.sprites[1]?.clip[2] ?? 0);
+    }
+    assert.ok(widths[1] > widths[2] * .45 && widths[1] < widths[2] * .6, "Half HP fills half the curved bar, not the whole bar.");
+    console.log("Native HUD preserves the HP percentage scale.");
+  } finally { nativeWindow.destroy(); }
   const { captureThumbnail } = await import(pathToFileURL(path.join(root, "dist/electron/thumbnail.js")).href);
+  timeline.playerCountry = "SE";
   const work = await fs.mkdtemp(path.join(os.tmpdir(), "studio-thumbnail-"));
   try {
     const file = path.join(work, "score.png");
@@ -82,12 +96,21 @@ app.whenReady().then(async () => {
     const pixel = image.toBitmap().subarray((490 * 1280 + 640) * 4, (490 * 1280 + 640) * 4 + 4);
     assert.ok(pixel[2] > 240 && pixel[1] < 10 && pixel[0] < 10, "The first thumbnail contains the rendered avatar.");
     const bitmap = image.toBitmap();
-    const colors = new Set();
+    let darkModPixels = 0;
     for (let y = 530; y < 565; y++) for (let x = 766; x < 801; x++) {
       const at = (y * 1280 + x) * 4;
-      colors.add(bitmap.subarray(at, at + 3).toString("hex"));
+      const [b, g, r, alpha] = bitmap.subarray(at, at + 4);
+      if (alpha > 200 && Math.max(b, g, r) < 70) darkModPixels++;
     }
-    assert.ok(colors.size > 10, "The thumbnail contains the mod icon, not only its background.");
+    assert.ok(darkModPixels > 20, "The thumbnail contains the mod icon, not only its background.");
+    let blue = 0, yellow = 0;
+    for (let y = 554; y < 590; y++) for (let x = 612; x < 669; x++) {
+      const at = (y * 1280 + x) * 4;
+      const [b, g, r] = bitmap.subarray(at, at + 3);
+      if (b > r + 40 && g > r + 20) blue++;
+      if (r > 170 && g > 130 && b < 80) yellow++;
+    }
+    assert.ok(blue > 100 && yellow > 100, "The thumbnail loads the bundled Swedish flag.");
     console.log("Thumbnail capture contains loaded replay assets.");
   } finally { await fs.rm(work, { recursive: true, force: true }); }
 

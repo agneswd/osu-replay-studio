@@ -9,7 +9,7 @@ import {
 } from "../core/types.js";
 
 export function captureOverlay(root: string): Capture {
-  return async function* (options, timeline, frames, signal) {
+  return async function* (options, timeline, frames, signal, range) {
     const win = new BrowserWindow({
       show: false,
       width: options.width,
@@ -30,21 +30,22 @@ export function captureOverlay(root: string): Capture {
     win.webContents.setFrameRate(240);
     const encode = pngEncoder(options.width, options.height);
     try {
-      await win.loadFile(path.join(root, "overlays/index.html"));
+      await win.loadFile(path.join(root, "overlays/index.html"), { query: { overlays: options.overlays.join(",") } });
       // Hidden windows can keep the initial viewport until content finishes loading.
       win.setContentSize(options.width, options.height);
       await win.webContents.executeJavaScript("window.overlayReady");
       await win.webContents.executeJavaScript(`window.replayTimeline=${JSON.stringify(timeline)}`);
+      if (range?.background) await win.webContents.executeJavaScript(`window.setSceneBackground(${JSON.stringify(range.background)})`);
       if (options.introOutro)
         await win.webContents.executeJavaScript("window.prepareScenes(window.replayTimeline)");
       await win.webContents.executeJavaScript("new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
-      for (let i = 0; i < frames; i++) {
+      for (let i = range?.start ?? 0; i < (range?.end ?? frames); i++) {
         signal.throwIfAborted();
         const position = presentationAt(timeline, i / options.fps, options.fps, options.introOutro, Math.min(options.duration ?? timeline.duration, timeline.duration));
         await win.webContents.executeJavaScript(
           `window.setReplayFrame(window.sampleReplayFrame(window.replayTimeline,${position.gameplayTime},${options.leaderboardSize ?? 50},${JSON.stringify(options.leaderboardSort ?? "pp")}),${JSON.stringify(options.overlays)},${JSON.stringify({ accent: normalizeOverlayAccent(options.overlayAccent ?? defaultOverlayAccent), scene: position.scene, backgroundDim: options.backgroundDim })})`,
         );
-        if (i === 0) {
+        if (i === (range?.start ?? 0)) {
           // The first update creates player rows and starts their image and font loads.
           await win.webContents.executeJavaScript(`Promise.all([document, ...[...document.querySelectorAll('iframe')].map(frame => frame.contentDocument)].map(async doc => {
             void doc.body.offsetHeight;
@@ -65,7 +66,8 @@ export function captureOverlay(root: string): Capture {
           throw new Error(
             "Overlay capture size does not match output resolution.",
           );
-        yield encode(image.toBitmap());
+        // Scene backgrounds are opaque. Native PNG encoding avoids the JavaScript pixel conversion.
+        yield range?.background ? image.toPNG() : encode(image.toBitmap());
       }
     } finally {
       win.destroy();
