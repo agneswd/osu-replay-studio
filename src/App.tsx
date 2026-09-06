@@ -828,7 +828,7 @@ export function App() {
                 <div className="flex flex-col gap-1">
                   <p className="text-sm font-medium">osu! calculator {ppStatus?.version ?? ""}</p>
 
-                  {ppStatus?.latest && ppStatus.latest !== ppStatus.version && <p className="text-sm text-warning">Newer osu! calculator available.</p>}
+                  {ppStatus?.latest && ppStatus.latest.localeCompare(ppStatus.version, "en", { numeric: true }) > 0 && <p className="text-sm text-warning">osu! calculator {ppStatus.latest} is available upstream. Calculator updates are included in app releases.</p>}
                   {!ppStatus?.latest && <p className="text-sm text-muted">Update status unavailable.</p>}
                 </div>
                 {timeline?.warnings.filter(message => message.startsWith("Local PP")).map(message => <p key={message} className="text-xs text-muted">{message}</p>)}
