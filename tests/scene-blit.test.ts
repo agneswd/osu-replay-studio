@@ -19,6 +19,17 @@ test("sprite blit tints, clips, and covers the destination", () => {
   assert.ok(at(0, 0)[1] > 100);
 });
 
+test("resized scene sprites interpolate premultiplied pixels without dark edges", () => {
+  const dest = new Uint8Array(4);
+  // Halfway between opaque red and transparent pixels retains premultiplied red.
+  blitSprite(dest, 1, 1, new Uint8Array([0, 0, 255, 255, 0, 0, 0, 0]), 2, 1,
+    0, 0, 1, 1, [1, 1, 1, 1]);
+  assert.equal(dest[0], 0);
+  assert.equal(dest[1], 0);
+  assert.ok(Math.abs(dest[2]! - 127.5) <= 1);
+  assert.equal(dest[2], dest[3]);
+});
+
 test("background mix and fade keep opaque frames", () => {
   const dest = new Uint8Array(4), clear = new Uint8Array([10, 20, 30, 255]), soft = new Uint8Array([110, 120, 130, 255]);
   mixBuffers(dest, clear, soft, 0.5);

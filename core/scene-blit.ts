@@ -59,18 +59,55 @@ export function blitSprite(
   if (x1 <= x0 || y1 <= y0) return;
   const scaleX = sw / w;
   const scaleY = sh / h;
+  const interpolate = scaleX !== 1 || scaleY !== 1 || !Number.isInteger(x) || !Number.isInteger(y);
+  // Most settled artwork is already at output resolution. Keep that path cheap.
+  if (!interpolate) {
+    for (let dy = y0; dy < y1; dy++) {
+      const destRow = dy * dw * 4, srcRow = (dy - y) * sw * 4;
+      for (let dx = x0; dx < x1; dx++) {
+        const si = srcRow + (dx - x) * 4, srcA = src[si + 3]! * ca;
+        if (srcA < 1) continue;
+        const di = destRow + dx * 4;
+        const b = src[si]! * cb * ca, g = src[si + 1]! * cg * ca, r = src[si + 2]! * cr * ca;
+        if (srcA >= 254.5) {
+          dest[di] = b; dest[di + 1] = g; dest[di + 2] = r; dest[di + 3] = 255;
+        } else {
+          const keep = 1 - srcA / 255;
+          dest[di] = b + dest[di]! * keep;
+          dest[di + 1] = g + dest[di + 1]! * keep;
+          dest[di + 2] = r + dest[di + 2]! * keep;
+          dest[di + 3] = srcA + dest[di + 3]! * keep;
+        }
+      }
+    }
+    return;
+  }
   for (let dy = y0; dy < y1; dy++) {
-    const sy = Math.min(sh - 1, Math.max(0, Math.floor((dy + 0.5 - y) * scaleY)));
+    const sourceY = Math.min(sh - 1, Math.max(0, (dy + 0.5 - y) * scaleY - 0.5));
+    const sy = Math.floor(sourceY), fy = sourceY - sy;
+    const nextRow = Math.min(sh - 1, sy + 1) * sw * 4;
     const destRow = dy * dw * 4;
     const srcRow = sy * sw * 4;
     for (let dx = x0; dx < x1; dx++) {
-      const sx = Math.min(sw - 1, Math.max(0, Math.floor((dx + 0.5 - x) * scaleX)));
+      const sourceX = Math.min(sw - 1, Math.max(0, (dx + 0.5 - x) * scaleX - 0.5));
+      const sx = Math.floor(sourceX);
       const si = srcRow + sx * 4;
-      let srcA = src[si + 3]! * ca;
+      let b = src[si]!, g = src[si + 1]!, r = src[si + 2]!, a = src[si + 3]!;
+      {
+        // Interpolate premultiplied channels to avoid dark fringes on text and rounded edges.
+        const fx = sourceX - sx, right = Math.min(sw - 1, sx + 1) * 4;
+        const tr = srcRow + right, bl = nextRow + sx * 4, br = nextRow + right;
+        const tlWeight = (1 - fx) * (1 - fy), trWeight = fx * (1 - fy), blWeight = (1 - fx) * fy, brWeight = fx * fy;
+        b = b * tlWeight + src[tr]! * trWeight + src[bl]! * blWeight + src[br]! * brWeight;
+        g = g * tlWeight + src[tr + 1]! * trWeight + src[bl + 1]! * blWeight + src[br + 1]! * brWeight;
+        r = r * tlWeight + src[tr + 2]! * trWeight + src[bl + 2]! * blWeight + src[br + 2]! * brWeight;
+        a = a * tlWeight + src[tr + 3]! * trWeight + src[bl + 3]! * blWeight + src[br + 3]! * brWeight;
+      }
+      const srcA = a * ca;
       if (srcA < 1) continue;
-      const srcB = src[si]! * cb * ca;
-      const srcG = src[si + 1]! * cg * ca;
-      const srcR = src[si + 2]! * cr * ca;
+      const srcB = b * cb * ca;
+      const srcG = g * cg * ca;
+      const srcR = r * cr * ca;
       const di = destRow + dx * 4;
       if (srcA >= 254.5) {
         dest[di] = srcB;

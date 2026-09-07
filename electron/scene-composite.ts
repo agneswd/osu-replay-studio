@@ -26,14 +26,16 @@ export async function* compositeNativeScene(
   signal: AbortSignal,
 ) {
   const data = JSON.parse(await readFile(scene, "utf8")) as SceneData;
+  if (data.fps !== fps) throw new Error("Native scene frame rate does not match the presentation clock.");
   const clear = bitmap(background.clear);
   const soft = bitmap(background.soft);
-  if (clear.width !== width || clear.height !== height)
+  if (clear.width !== width || clear.height !== height || soft.width !== width || soft.height !== height)
     throw new Error("Scene background size does not match the output.");
   const assets = data.assets.map(file => file ? bitmap(file) : undefined);
   const dest = new Uint8Array(width * height * 4);
   const mixed = new Uint8Array(width * height * 4);
   let mixedStrength = Number.NaN;
+  let previousFrame = "";
   const scaleX = width / 1920, scaleY = height / 1080;
   const stream = createReadStream(data.frames);
   const zip = createGunzip();
@@ -43,26 +45,33 @@ export async function* compositeNativeScene(
     for await (const line of lines) {
       signal.throwIfAborted();
       if (index >= frames) break;
-      const frame = JSON.parse(line) as HudFrame;
       const time = index / fps;
       const strength = sceneBlur(kind, time);
-      if (strength !== mixedStrength) {
+      const backgroundChanged = strength !== mixedStrength;
+      if (backgroundChanged) {
         mixBuffers(mixed, clear.data, soft.data, strength);
         mixedStrength = strength;
       }
-      dest.set(mixed);
-      for (const sprite of frame.sprites) {
-        const asset = assets[sprite.asset];
-        if (!asset) continue;
-        blitSprite(
-          dest, width, height, asset.data, asset.width, asset.height,
-          sprite.x * scaleX, sprite.y * scaleY, sprite.w * scaleX, sprite.h * scaleY,
-          sprite.color,
-          sprite.clip ? [sprite.clip[0] * scaleX, sprite.clip[1] * scaleY, sprite.clip[2] * scaleX, sprite.clip[3] * scaleY] : undefined,
-        );
+      // Hold the composed image while both the sprite frame and background stay unchanged.
+      if (line !== previousFrame || backgroundChanged) {
+        const frame = JSON.parse(line) as HudFrame;
+        dest.set(mixed);
+        for (const sprite of frame.sprites) {
+          const asset = assets[sprite.asset];
+          if (!asset) throw new Error(`Native scene sprite ${sprite.asset} is missing.`);
+          blitSprite(
+            dest, width, height, asset.data, asset.width, asset.height,
+            sprite.x * scaleX, sprite.y * scaleY, sprite.w * scaleX, sprite.h * scaleY,
+            sprite.color,
+            sprite.clip ? [sprite.clip[0] * scaleX, sprite.clip[1] * scaleY, sprite.clip[2] * scaleX, sprite.clip[3] * scaleY] : undefined,
+          );
+        }
+        previousFrame = line;
       }
-      fadeToBlack(dest, sceneFade(kind, time));
-      yield Buffer.from(dest);
+      // Fade a separate output buffer so repeated frames cannot accumulate the fade.
+      const output = Buffer.from(dest);
+      fadeToBlack(output, sceneFade(kind, time));
+      yield output;
       index++;
     }
   } finally {

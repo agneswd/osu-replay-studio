@@ -120,7 +120,7 @@ Native composition:
 ![Native HUD at 20 seconds](images/native-hud.png)
 
 These frames show the intro player card and the outro score scene for the same replay.
-Text rasterization and a few layout details can differ from Chromium CSS.
+The images below include the native scene alignment fixes. Text edges and shadows still differ slightly from Chromium CSS.
 
 Browser intro:
 
@@ -137,6 +137,45 @@ Browser outro:
 Native outro:
 
 ![Native outro](images/native-outro.png)
+
+### Native scene refinement check (2026-09-07)
+
+Matched captures use the same frozen timeline, background, dimensions, and animation time.
+The review covered opening, player details, the player-to-map wipe, map details, closing, and the outro reveal.
+Additional fixtures cover missing profile data, retry charts, NM, and an SS grade.
+
+The fixes align text baselines, tabular digits, badge rows, mod artwork, hit counts, and the grade.
+The wipe now clips inside each rounded card. Closing transforms follow the browser perspective and transform order.
+Single-digit combo values use the same centered number-and-suffix group as longer values.
+
+The comparison sheets show browser and native frames above a 50% overlap and an amplified difference image.
+
+![Intro comparison](images/scene-intro-overlap.png)
+
+![Outro comparison](images/scene-outro-overlap.png)
+
+![Wipe overlap](images/scene-wipe-overlap.png)
+
+![Combo alignment](images/combo-alignment.png)
+
+The final native pass prepared and composited 648 frames at 1080p60 in 10.66 seconds:
+1.61 seconds for preparation and 9.06 seconds for composition.
+Browser capture of the same timeline and backgrounds took 67.35 seconds, about 6.3 times longer.
+These timings exclude video encoding and gameplay rendering. They are local measurements, not a general throughput guarantee.
+The finer interpolation adds work compared with the original native port, but removes visible scaling artifacts.
+
+The compositor reuses unchanged frames. A full 648-frame hash comparison confirmed identical output with this cache enabled and disabled.
+Missing sprites now fail explicitly. Background dimensions and frame rates are checked before composition.
+The review export contains all 648 frames at 1080p60. The build and 51 tests passed.
+
+To repeat the visual comparison with a saved timeline:
+
+```sh
+env -u ELECTRON_RUN_AS_NODE bunx electron benchmarks/scene-parity.cjs /path/to/timeline.json /path/to/output
+```
+
+The command writes browser, native, overlap, and difference PNGs for selected animation times.
+Inspect the images: whole-frame error averages include large background areas and do not establish visual equivalence.
 
 ### App response during scene capture
 

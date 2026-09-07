@@ -59,7 +59,7 @@ const rgb = (hex: string, alpha = 1): HudSprite["color"] => [
 // Rasterize reusable artwork once. Export frames contain only sprite positions and colors.
 async function create(t: Timeline, o: RenderOptions) {
   const enabled = new Set(o.overlays);
-  await document.fonts.load('700 32px "Exo 2"');
+  await document.fonts.load('700 32px "Exo 2 Tabular"');
   let assets: HudBatch["assets"] = [],
     nextId = 0;
   const cache = new Map<string, Sprite>();
@@ -85,7 +85,7 @@ async function create(t: Timeline, o: RenderOptions) {
   };
   const measure = canvas(1, 1).getContext("2d")!;
   const width = (value: string, size: number) => {
-    measure.font = `700 ${size}px "Exo 2"`;
+    measure.font = `700 ${size}px "Exo 2 Tabular"`;
     return measure.measureText(value).width;
   };
   const textArt = (value: string, size: number) =>
@@ -94,7 +94,7 @@ async function create(t: Timeline, o: RenderOptions) {
       width(value, size) + 8,
       size * 1.3 + 8,
       (c) => {
-        c.font = `700 ${size}px "Exo 2"`;
+        c.font = `700 ${size}px "Exo 2 Tabular"`;
         c.textBaseline = "top";
         c.fillStyle = "white";
         c.shadowColor = "black";
@@ -334,6 +334,8 @@ async function create(t: Timeline, o: RenderOptions) {
       c.fill();
       c.globalAlpha = 0.09;
       c.lineWidth = 4;
+      c.beginPath();
+      c.roundRect(2, 2, w - 4, 46, 7);
       c.stroke();
     });
   let frame: HudFrame;
@@ -533,12 +535,13 @@ async function create(t: Timeline, o: RenderOptions) {
     if (enabled.has("combo-counter")) {
       const w = Math.max(
           92,
-          36 + digitWidth(g.combo.current, 30) + width("x", 30),
+          36 + digitWidth(g.combo.current, 30) + width("x", 28),
         ),
         x = 744 - w;
       sprite(plate(w, false), x - 14, 1013);
-      const end = digits(g.combo.current, x + 18, 1021, 30, f.counters?.combo);
-      text("x", end, 1021, 30);
+      const contentWidth = digitWidth(g.combo.current, 30) + width("x", 28);
+      const end = digits(g.combo.current, x + (w - contentWidth) / 2, 1025, 30, f.counters?.combo);
+      text("x", end, 1027, 28);
     }
     if (enabled.has("pp-counter")) {
       const suffix = ` / ${number(g.pp.fc)}pp`,

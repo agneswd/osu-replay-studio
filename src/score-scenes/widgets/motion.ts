@@ -148,6 +148,8 @@ export function introMotion(t: number, data: OverlayData, spline?: PlaycountSpli
     motion.bannerPlayer = showMap ? 0 : 0.55;
     motion.bannerMap = showMap ? 0.55 : 0;
     motion.chartProgress = 1;
+    motion.peakProgress = 1;
+    motion.yearProgress = 1;
     motion.hours = data.player.hours;
     motion.playcount = data.player.playcount;
   } else if (t < 4.70) {

@@ -4,11 +4,8 @@ import { overlayData, sceneFlags } from "./score-scenes/data.js";
 import { introMotion, outroMotion, widgetCloseScale } from "./score-scenes/widgets/motion.js";
 import { buildPlaycountSpline } from "./score-scenes/widgets/spline.js";
 import { scenePalette } from "./score-scenes/widgets/themes.js";
-import { modColor } from "./mod-badges.js";
-const modPath = (mod: string) => {
-  const name = { EZ: "easy", NF: "no-fail", HT: "half-time", HR: "hard-rock", SD: "sudden-death", PF: "perfect", DT: "double-time", NC: "nightcore", HD: "hidden", FL: "flashlight", RX: "relax", AP: "autopilot", SO: "spun-out", MR: "mirror", FI: "fade-in", TD: "touch-device", CL: "classic", V2: "score-v2", DA: "difficulty-adjust", AS: "adaptive-speed", CS: "constant-speed" }[mod];
-  return name ? `../shared/assets/mods/mod-${name}.svg` : "";
-};
+import { modColor, modAssetPath } from "./mod-badges.js";
+const modPath = (mod: string) => modAssetPath(mod)?.replace("../../", "../") ?? "";
 
 interface Sprite { id: number; w: number; h: number; pad: number; canvas?: HTMLCanvasElement }
 const canvas = (w: number, h: number) => {
@@ -43,75 +40,37 @@ function roundRect(c: CanvasRenderingContext2D, x: number, y: number, w: number,
   c.roundRect(x, y, w, h, r);
 }
 
+const heartPath = "M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5";
+const starPath = "M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z";
 function drawHeart(c: CanvasRenderingContext2D, x: number, y: number, s: number, fill = "#fff") {
+  drawLucide(c, x, y, s, fill, heartPath, true);
+}
+function drawStar(c: CanvasRenderingContext2D, x: number, y: number, s: number, fill = "#FFB703") {
+  drawLucide(c, x - s, y - s, s * 2, fill, starPath, true);
+}
+
+// Use the same Lucide paths and stroke geometry as the React widgets.
+function drawLucide(c: CanvasRenderingContext2D, x: number, y: number, s: number, color: string, path: string, fill = false, stroke = 2) {
   c.save();
   c.translate(x, y);
   c.scale(s / 24, s / 24);
-  c.fillStyle = fill;
-  c.beginPath();
-  c.moveTo(12, 21);
-  c.bezierCurveTo(10, 19.2, 2.5, 13.4, 2.5, 8.5);
-  c.bezierCurveTo(2.5, 5.4, 4.9, 3, 8, 3);
-  c.bezierCurveTo(9.7, 3, 11.2, 3.8, 12, 5);
-  c.bezierCurveTo(12.8, 3.8, 14.3, 3, 16, 3);
-  c.bezierCurveTo(19.1, 3, 21.5, 5.4, 21.5, 8.5);
-  c.bezierCurveTo(21.5, 13.4, 14, 19.2, 12, 21);
-  c.fill();
-  c.restore();
-}
-
-function drawStar(c: CanvasRenderingContext2D, x: number, y: number, s: number, fill = "#FFB703") {
-  c.save();
-  c.translate(x, y);
-  c.fillStyle = fill;
-  c.beginPath();
-  for (let i = 0; i < 5; i++) {
-    const a = -Math.PI / 2 + i * Math.PI * 2 / 5;
-    const b = a + Math.PI / 5;
-    c.lineTo(Math.cos(a) * s, Math.sin(a) * s);
-    c.lineTo(Math.cos(b) * s * 0.4, Math.sin(b) * s * 0.4);
-  }
-  c.closePath();
-  c.fill();
-  c.restore();
-}
-
-function drawPlay(c: CanvasRenderingContext2D, x: number, y: number, s: number, fill: string) {
-  c.fillStyle = fill;
-  c.beginPath();
-  c.moveTo(x, y);
-  c.lineTo(x + s, y + s / 2);
-  c.lineTo(x, y + s);
-  c.closePath();
-  c.fill();
-}
-
-function drawHourglass(c: CanvasRenderingContext2D, x: number, y: number, s: number, stroke: string) {
-  c.strokeStyle = stroke;
-  c.lineWidth = 2;
-  c.lineJoin = "round";
-  c.beginPath();
-  c.moveTo(x, y);
-  c.lineTo(x + s, y);
-  c.lineTo(x, y + s);
-  c.lineTo(x + s, y + s);
-  c.closePath();
-  c.stroke();
-}
-
-function chevrons(c: CanvasRenderingContext2D, x: number, y: number, color: string) {
   c.strokeStyle = color;
-  c.lineWidth = 4;
+  c.fillStyle = color;
+  c.lineWidth = stroke;
   c.lineCap = "round";
   c.lineJoin = "round";
-  for (const oy of [-4, 4]) {
-    c.beginPath();
-    c.moveTo(x - 7, y + oy + 6);
-    c.lineTo(x, y + oy);
-    c.lineTo(x + 7, y + oy + 6);
-    c.stroke();
-  }
+  const shape = new Path2D(path);
+  if (fill) c.fill(shape);
+  c.stroke(shape);
+  c.restore();
 }
+function drawPlay(c: CanvasRenderingContext2D, x: number, y: number, s: number, fill: string) {
+  drawLucide(c, x, y, s, fill, "M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z", true);
+}
+function drawHourglass(c: CanvasRenderingContext2D, x: number, y: number, s: number, stroke: string) {
+  drawLucide(c, x, y, s, stroke, "M5 22h14M5 2h14M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2");
+}
+
 
 function formatScoreNumber(val: string | number) {
   const raw = String(val).replace(/\s+/g, "");
@@ -125,6 +84,7 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
     document.fonts.load('800 24px "Plus Jakarta Sans"'),
     document.fonts.load('500 22px "Plus Jakarta Sans"'),
     document.fonts.load('700 240px Teko'),
+    document.fonts.load('500 24px "Scene Tabular"'),
   ]);
   await document.fonts.ready;
   const data = overlayData(timeline);
@@ -133,13 +93,14 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
   const accent = normalizeOverlayAccent(options.overlayAccent);
   const palette = scenePalette(accent);
   const S = 2;
-  let assets: HudBatch["assets"] = [];
+  const assets = new Map<number, HudBatch["assets"][number]>();
+  const sentAssets = { intro: new Set<number>(), outro: new Set<number>() };
   let nextId = 0;
   const cache = new Map<string, Sprite>();
   const save = (key: string, c: HTMLCanvasElement, pad = 0): Sprite => {
     const result = { id: nextId++, w: c.width, h: c.height, pad, canvas: c };
     cache.set(key, result);
-    assets.push({ id: result.id, png: c.toDataURL("image/png").split(",")[1] });
+    assets.set(result.id, { id: result.id, png: c.toDataURL("image/png").split(",")[1] });
     return result;
   };
   const art = (key: string, w: number, h: number, paint: (c: CanvasRenderingContext2D) => void, pad = 0) => {
@@ -157,17 +118,35 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
     measure.font = `${weight} ${size}px ${font}`;
     return measure.measureText(value).width;
   };
-  const label = (value: string, size: number, color: string, weight = 700, shadow = true, font = '"Plus Jakarta Sans"') =>
-    art(`label:${font}:${weight}:${size}:${color}:${shadow}:${value}`, widthOf(value, size, weight, font) + 8, size * 1.35 + 8, c => {
+  const baselines = new Map<string, number>();
+  const baseline = (size: number, weight: number, font: string, lineHeight: number) => {
+    const key = `${font}:${weight}:${size}:${lineHeight}`;
+    let value = baselines.get(key);
+    if (value !== undefined) return value;
+    const span = document.createElement("span");
+    span.style.cssText = `position:absolute;visibility:hidden;display:inline-block;font:${weight} ${size}px ${font};line-height:${lineHeight ? `${lineHeight}px` : "normal"}`;
+    span.textContent = "Mg";
+    const marker = document.createElement("i");
+    marker.style.cssText = "display:inline-block;width:0;height:0;vertical-align:baseline";
+    span.append(marker);
+    document.body.append(span);
+    value = marker.getBoundingClientRect().top - span.getBoundingClientRect().top;
+    span.remove();
+    baselines.set(key, value);
+    return value;
+  };
+  const label = (value: string, size: number, color: string, weight = 700, shadow = true, font = '\"Plus Jakarta Sans\"', lineHeight = 0, spacing = 0) =>
+    art(`label:${font}:${weight}:${size}:${color}:${shadow}:${lineHeight}:${spacing}:${value}`, widthOf(value, size, weight, font) + spacing * value.length + 16, size * 1.5 + 16, c => {
       c.font = `${weight} ${size}px ${font}`;
-      c.textBaseline = "top";
+      c.letterSpacing = `${spacing}px`;
+      c.textBaseline = "alphabetic";
       c.fillStyle = color;
       if (shadow) {
         c.shadowColor = "rgba(0,0,0,0.75)";
-        c.shadowBlur = 4;
-        c.shadowOffsetY = 1;
+        c.shadowBlur = 8;
+        c.shadowOffsetY = 2;
       }
-      c.fillText(value, 4, 4);
+      c.fillText(value, 4, 4 + baseline(size, weight, font, lineHeight));
     });
 
   const images = new Map<string, HTMLImageElement>();
@@ -185,8 +164,8 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
   }));
 
   const bottomH = !flags.history && !flags.onlineMap ? 125 : 228;
-  const widgetW = 470, topH = 62, gap = 12, footerH = 22;
-  const widgetH = topH + gap + bottomH + gap + footerH;
+  const widgetW = 470, topH = 62, gap = 12, footerH = 18;
+  const widgetH = topH + gap + bottomH + gap + footerH - 2;
   const widgetX = 12 + (936 - widgetW) / 2;
   const widgetY = 24 + (492 - widgetH) / 2;
   const overlay = `rgba(${palette.overlayRgb.join(",")},`;
@@ -195,8 +174,12 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
     art(key, w, h, c => {
       c.save();
       c.shadowColor = "rgba(0,0,0,0.88)";
-      c.shadowBlur = 18;
-      c.shadowOffsetY = 8;
+      c.shadowBlur = 36;
+      c.shadowOffsetY = 24;
+      c.fillStyle = "#000";
+      roundRect(c, 8, 8, w - 16, h - 16, 6);
+      c.fill();
+      c.shadowColor = "transparent";
       const g = c.createLinearGradient(0, 0, 0, h);
       g.addColorStop(0, palette.top);
       g.addColorStop(1, palette.bottom);
@@ -209,8 +192,16 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
       c.clip();
       if (bannerUrl && images.has(bannerUrl)) {
         const img = images.get(bannerUrl)!;
+        const banner = canvas(w * 2, h * 2);
+        const bc = banner.getContext("2d")!;
+        bc.scale(2, 2);
+        cover(bc, img, w, h, img.width, img.height);
+        bc.globalCompositeOperation = "destination-in";
+        const alphaMask = bc.createLinearGradient(0, 0, w, 0);
+        for (const [at, alpha] of [[0, .92], [.32, .8], [.65, .25], [1, .85]]) alphaMask.addColorStop(at!, `rgba(0,0,0,${alpha})`);
+        bc.fillStyle = alphaMask; bc.fillRect(0, 0, w, h);
         c.globalAlpha = bannerAlpha;
-        cover(c, img, w, h, img.width, img.height);
+        c.drawImage(banner, 0, 0, w, h);
         c.globalAlpha = 1;
         const mask = c.createLinearGradient(0, 0, w, 0);
         mask.addColorStop(0, `${overlay}0.88)`);
@@ -222,37 +213,39 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
       }
       c.restore();
       c.strokeStyle = palette.border;
-      c.lineWidth = 1.5;
-      roundRect(c, 0.75, 0.75, w - 1.5, h - 1.5, 14);
-      c.stroke();
-      c.strokeStyle = "rgba(255,255,255,0.35)";
       c.lineWidth = 1;
-      c.beginPath();
-      c.roundRect(1, 1, w - 2, h - 2, 13);
+      roundRect(c, 0.5, 0.5, w - 1, h - 1, 14);
       c.stroke();
-    }, 16);
+      c.save();
+      roundRect(c, 1, 1, w - 2, h - 2, 13); c.clip();
+      const highlight = c.createLinearGradient(0, 1, 0, 4);
+      highlight.addColorStop(0, "rgba(255,255,255,0.35)");
+      highlight.addColorStop(1, "transparent");
+      c.fillStyle = highlight; c.fillRect(0, 1, w, 3);
+      c.restore();
+    }, 24);
 
   const topPlayerChrome = cardChrome("top-player-chrome", widgetW, topH, data.player.banner, 0.55);
   const topMapChrome = cardChrome("top-map-chrome", widgetW, topH, data.map.cover, 0.55);
   const bottomChrome = cardChrome("bottom-chrome", widgetW, bottomH);
 
-  const wipe = art("wipe", widgetW, bottomH * 1.6, c => {
-    const g = c.createLinearGradient(0, 0, 0, bottomH * 1.6);
+  const wipe = (height: number) => art(`wipe-art:${height}`, widgetW - 2, height, c => {
+    const g = c.createLinearGradient(0, 0, 0, height);
     g.addColorStop(0, palette.wipeLight);
     g.addColorStop(0.12, palette.wipeEdge);
     g.addColorStop(0.48, palette.wipeMiddle);
     g.addColorStop(0.88, palette.wipeEdge);
     g.addColorStop(1, palette.wipeLight);
     c.fillStyle = g;
-    c.fillRect(0, 0, widgetW, bottomH * 1.6);
-    const sheen = c.createLinearGradient(0, 0, widgetW, bottomH * 1.6);
+    c.fillRect(0, 0, widgetW, height);
+    const sheen = c.createLinearGradient(0, 0, widgetW, height);
     sheen.addColorStop(0.2, "transparent");
     sheen.addColorStop(0.44, "rgba(225,234,239,0.08)");
     sheen.addColorStop(0.65, "transparent");
     c.fillStyle = sheen;
-    c.fillRect(0, 0, widgetW, bottomH * 1.6);
+    c.fillRect(0, 0, widgetW, height);
     c.fillStyle = "rgba(255,255,255,0.025)";
-    for (let y = 2; y < bottomH * 1.6; y += 3) c.fillRect(0, y, widgetW, 1);
+    for (let y = 2; y < height; y += 3) c.fillRect(0, y, widgetW, 1);
   });
 
   const roundedImage = (key: string, url: string, w: number, h: number, r: number) =>
@@ -260,23 +253,27 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
       roundRect(c, 0, 0, w, h, r);
       c.clip();
       const img = images.get(url);
-      if (img) cover(c, img, w, h, img.width, img.height, 0.5, 0.5);
+      if (img) { c.save(); c.translate(1, 1); cover(c, img, w - 2, h - 2, img.width, img.height, 0.5, 0.5); c.restore(); }
       else { c.fillStyle = "#292929"; c.fillRect(0, 0, w, h); }
       c.strokeStyle = "rgba(255,255,255,0.4)";
-      c.lineWidth = 1.5;
-      roundRect(c, 0.75, 0.75, w - 1.5, h - 1.5, r);
+      c.lineWidth = 1;
+      roundRect(c, 0.5, 0.5, w - 1, h - 1, r);
       c.stroke();
     });
 
   const avatar = roundedImage("avatar", data.player.avatar, 38, 38, 8);
   const coverThumb = roundedImage("cover", data.map.cover, 38, 38, 8);
   const mapper = roundedImage("mapper", data.map.mapperAvatar, 20, 20, 4);
-  const flag = /^[A-Z]{2}$/.test(data.player.countryCode)
-    ? art("flag", 16, 11, c => {
-        const img = images.get(`../shared/assets/flags/${data.player.countryCode}.svg`);
-        if (img) c.drawImage(img, 0, 0, 16, 11);
-      })
-    : undefined;
+  const flagWidth = widthOf(data.player.flag, 10.5, 600);
+  const flag = data.player.flag ? art("flag", flagWidth, 14, c => {
+    c.font = '600 10.5px "Plus Jakarta Sans"';
+    c.fillText(data.player.flag, 0, baseline(10.5, 600, '\"Plus Jakarta Sans\"', 0));
+  }) : undefined;
+  const outroAvatar = art("outro-avatar", 28, 28, c => {
+    roundRect(c, 0, 0, 28, 28, 5); c.clip();
+    const img = images.get(data.player.avatar);
+    if (img) cover(c, img, 28, 28, img.width, img.height, 0.5, 0.5);
+  });
 
   const heart = art("heart", 21, 12, c => {
     c.fillStyle = "#ff5277";
@@ -290,7 +287,12 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
 
   const status = art("status", 28, 28, c => {
     const color = data.map.status === "loved" ? "#ff66ab" : data.map.status === "qualified" || data.map.status === "approved" ? "#8fda8c" : "#7ac9f2";
-    chevrons(c, 14, 8, color);
+    const state = data.map.status?.toLowerCase();
+    if (state === "loved") drawLucide(c, 1.5, 1.5, 25, color, heartPath, true, 2.4);
+    else if (state === "qualified") drawLucide(c, 1.5, 1.5, 25, color, "M18 6 7 17l-5-5 M22 10l-7.5 7.5L13 16", false, 2.4);
+    else if (["graveyard", "grave", "pending", "wip", "unranked"].includes(state ?? "")) {
+      drawLucide(c, 1.5, 1.5, 25, "#a0b0be", "M22 12a10 10 0 1 0-20 0a10 10 0 1 0 20 0 M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3 M12 17h.01", false, 2.4);
+    } else drawLucide(c, 1.5, 1.5, 25, color, "m17 11-5-5-5 5 m10 7-5-5-5 5", false, 4);
   });
 
   const chart = art("chart", 430, 140, c => {
@@ -303,12 +305,31 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
       c.lineTo(425, tick.y);
       c.stroke();
     }
+    c.font = '600 8.5px "Plus Jakarta Sans"';
+    c.textAlign = "right";
+    c.fillStyle = palette.dim;
+    for (const tick of spline.yTicks) c.fillText(tick.label, 16, tick.y - 8 + baseline(8.5, 600, '\"Plus Jakarta Sans\"', 16));
+  });
+  const years = art("chart-years", 430, 140, c => {
+    c.font = '600 8.5px "Plus Jakarta Sans"';
+    c.fillStyle = palette.dim;
+    spline.yearTicks.forEach((tick, i) => {
+      c.textAlign = i === spline.yearTicks.length - 1 ? "right" : "center";
+      c.fillText(String(tick.year), tick.x, 127 + baseline(8.5, 600, '\"Plus Jakarta Sans\"', 16));
+    });
+  });
+  const chartPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  chartPath.setAttribute("d", spline.d || "M0 0");
+  const chartLength = chartPath.getTotalLength();
+  const curve = (progress: number) => art(`curve:${progress}`, 430, 140, c => {
     c.strokeStyle = accent;
     c.lineWidth = 1.05;
     c.lineCap = "round";
     c.lineJoin = "round";
     c.shadowColor = palette.glow;
-    c.shadowBlur = 2;
+    c.shadowBlur = 4;
+    c.setLineDash([chartLength, chartLength]);
+    c.lineDashOffset = Math.round(chartLength * (1 - progress));
     c.stroke(new Path2D(spline.d));
   });
   const peakLine = art("peak-line", 405, 2, c => {
@@ -331,34 +352,41 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
     c.stroke();
   });
 
+  const retries = data.map.retries;
+  const retryCount = Math.max(retries?.fail.length ?? 0, retries?.exit.length ?? 0);
+  const retryCounts = Array.from({ length: retryCount }, (_, i) => Math.max(0, (retries?.fail[i] ?? 0) + (retries?.exit[i] ?? 0)));
+  const retryPeak = Math.max(1, ...retryCounts);
+  const retryUnit = 10 ** Math.floor(Math.log10(retryPeak));
+  const retryMax = Math.ceil(retryPeak / retryUnit) * retryUnit;
+  const retryPath = retryCounts.map((count, i) => `${i ? "L" : "M"}${(26 + i / (retryCount - 1) * 398).toFixed(2)},${(78 - count / retryMax * 63).toFixed(2)}`).join(" ");
+  const retrySvgPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  retrySvgPath.setAttribute("d", retryCount >= 2 ? retryPath : "M0 0");
+  const retryLength = retrySvgPath.getTotalLength();
   const mapChart = art("map-chart", 430, 100, c => {
-    const retries = data.map.retries;
-    const length = Math.max(retries?.fail.length ?? 0, retries?.exit.length ?? 0);
-    if (length < 2) return;
-    const counts = Array.from({ length }, (_, i) => Math.max(0, (retries?.fail[i] ?? 0) + (retries?.exit[i] ?? 0)));
-    const peak = Math.max(1, ...counts);
-    const unit = 10 ** Math.floor(Math.log10(peak));
-    const max = Math.ceil(peak / unit) * unit;
-    c.strokeStyle = "rgba(255,255,255,0.08)";
-    c.lineWidth = 1;
+    if (retryCount < 2) return;
+    c.strokeStyle = "rgba(255,255,255,0.08)"; c.lineWidth = 1;
+    c.font = '600 8.5px "Plus Jakarta Sans"'; c.fillStyle = palette.dim;
+    const labelY = baseline(8.5, 600, '\"Plus Jakarta Sans\"', 16);
+    const format = (n: number) => n >= 1e6 ? `${(n / 1e6).toFixed(1)}m` : n >= 1e3 ? `${+(n / 1e3).toFixed(1)}k` : String(Math.round(n));
     for (const fraction of [0, 0.5, 1]) {
       const y = 78 - fraction * 63;
-      c.beginPath();
-      c.moveTo(26, y);
-      c.lineTo(424, y);
-      c.stroke();
+      c.beginPath(); c.moveTo(26, y); c.lineTo(424, y); c.stroke();
+      c.textAlign = "right"; c.fillText(format(retryMax * fraction), 22, y - 9 + labelY);
     }
-    c.strokeStyle = accent;
-    c.lineWidth = 1.05;
-    c.lineCap = "round";
-    c.lineJoin = "round";
-    c.beginPath();
-    counts.forEach((count, i) => {
-      const x = 26 + i / (length - 1) * 398;
-      const y = 78 - count / max * 63;
-      if (i) c.lineTo(x, y); else c.moveTo(x, y);
-    });
-    c.stroke();
+    for (const percent of [0, 25, 50, 75, 100]) {
+      c.textAlign = percent === 0 ? "left" : percent === 100 ? "right" : "center";
+      c.fillText(`${percent}%`, 26 + percent / 100 * 398, 84 + labelY);
+    }
+  });
+  const mapCurve = (progress: number) => art(`map-curve:${progress}`, 430, 100, c => {
+    c.strokeStyle = accent; c.lineWidth = 1.05; c.lineCap = "round"; c.lineJoin = "round";
+    c.shadowColor = palette.glow; c.shadowBlur = 4;
+    c.setLineDash([retryLength, retryLength]); c.lineDashOffset = Math.round(retryLength * (1 - progress));
+    c.stroke(new Path2D(retryPath));
+  });
+  const mapCaption = art("map-caption", 436, 11, c => {
+    c.font = 'italic 400 9px "Plus Jakarta Sans"'; c.textAlign = "right"; c.fillStyle = palette.muted;
+    c.fillText("Fails and exits by map progress", 436, baseline(9, 400, '\"Plus Jakarta Sans\"', 0));
   });
 
   const pillTrack = (code: string) => art(`pill:${code}`, 180, 14, c => {
@@ -378,6 +406,13 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
 
   const lens = art("lens", 380, 380, c => {
     c.save();
+    c.fillStyle = "#111";
+    c.shadowColor = "rgba(0,0,0,0.8)";
+    c.shadowBlur = 72;
+    c.shadowOffsetY = 16;
+    c.beginPath(); c.arc(190, 190, 190, 0, Math.PI * 2); c.fill();
+    c.restore();
+    c.save();
     c.beginPath();
     c.arc(190, 190, 190, 0, Math.PI * 2);
     c.clip();
@@ -386,10 +421,13 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
     const img = images.get(data.map.cover);
     if (img) {
       c.filter = "brightness(0.75) contrast(1.1)";
-      cover(c, img, 380, 380, img.width, img.height, 0.5, 0.5);
+      c.save();
+      c.translate(-28.4, -28.4);
+      cover(c, img, 436.8, 436.8, img.width, img.height, 0.5, 0.5);
+      c.restore();
       c.filter = "none";
     }
-    const dim = c.createRadialGradient(190, 190, 20, 190, 190, 190);
+    const dim = c.createRadialGradient(190, 190, 0, 190, 190, 188 * Math.SQRT2);
     dim.addColorStop(0, "rgba(0,0,0,0.15)");
     dim.addColorStop(1, "rgba(0,0,0,0.65)");
     c.fillStyle = dim;
@@ -400,23 +438,23 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
     c.beginPath();
     c.arc(190, 190, 189, 0, Math.PI * 2);
     c.stroke();
-  }, 8);
+  }, 40);
 
-  const gradeColor = flags.silverGrade ? "#edf3fa" : data.score!.rank === "A" ? "#baff9c" : data.score!.rank === "B" ? "#b2e3ff" : data.score!.rank === "C" ? "#dda9f0" : data.score!.rank === "D" ? "#ef9eaa" : "#ffdb79";
+  const silverGrade = flags.silverGrade && ["S", "SS"].includes(data.score!.rank);
+  const gradeColor = silverGrade ? "#edf3fa" : data.score!.rank === "A" ? "#baff9c" : data.score!.rank === "B" ? "#b2e3ff" : data.score!.rank === "C" ? "#dda9f0" : data.score!.rank === "D" ? "#ef9eaa" : "#ffdb79";
   const grade = art("grade", 280, 280, c => {
     c.font = '700 240px Teko';
     c.textAlign = "center";
-    c.textBaseline = "middle";
+    c.textBaseline = "alphabetic";
     c.fillStyle = gradeColor;
-    c.shadowColor = "rgba(0,0,0,0.9)";
-    c.shadowBlur = 20;
-    c.shadowOffsetY = 4;
-    c.fillText(data.score!.rank, 140, 132);
-    c.shadowColor = gradeColor;
-    c.shadowBlur = 32;
-    c.shadowOffsetY = 0;
-    c.globalAlpha = 0.7;
-    c.fillText(data.score!.rank, 140, 132);
+    const y = 20 + baseline(240, 700, "Teko", 240);
+    c.shadowColor = silverGrade ? "rgba(230,237,242,0.6)" : data.score!.rank === "A" ? "rgba(81,207,102,0.6)" : data.score!.rank === "B" ? "rgba(51,154,240,0.6)" : "rgba(226,188,67,0.6)";
+    c.shadowBlur = 64;
+    c.fillText(data.score!.rank, 140, y);
+    c.shadowColor = silverGrade ? "rgba(0,0,0,0.6)" : "rgba(0,0,0,0.9)";
+    c.shadowBlur = 40;
+    c.shadowOffsetY = 8;
+    c.fillText(data.score!.rank, 140, y);
   });
 
   const starRibbon = art("star-ribbon", 40, 36, c => {
@@ -432,6 +470,15 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
     drawStar(c, 20, 10, 7, "#fff");
   });
 
+  const starValueWidth = widthOf(data.map.sr, 24, 800, '\"Scene Tabular\"') + data.map.sr.length * 0.3;
+  const starValue = art("star-value", starValueWidth, 30, c => {
+    c.font = '800 24px "Scene Tabular"'; c.letterSpacing = "0.3px";
+    c.fillStyle = "#F8D153"; c.shadowColor = "rgba(248,209,83,0.7)"; c.shadowBlur = 32;
+    c.fillText(data.map.sr, 0, baseline(24, 800, '\"Scene Tabular\"', 0));
+    c.shadowColor = "rgba(0,0,0,0.8)"; c.shadowBlur = 8; c.shadowOffsetY = 4;
+    c.fillText(data.map.sr, 0, baseline(24, 800, '\"Scene Tabular\"', 0));
+  }, 24);
+
   const modIcon = (mod: string, size: number, radius: number) => {
     const color = modColor(mod);
     return art(`mod:${mod}:${size}`, size, size, c => {
@@ -441,8 +488,12 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
       const img = images.get(modPath(mod));
       if (img) {
         if (color.fg === "dark") c.filter = "brightness(0.15)";
-        const scale = Math.min(size / img.width, size / img.height);
+        c.save();
+        roundRect(c, 0, 0, size, size, radius);
+        c.clip();
+        const scale = Math.max(size / img.width, size / img.height);
         c.drawImage(img, (size - img.width * scale) / 2, (size - img.height * scale) / 2, img.width * scale, img.height * scale);
+        c.restore();
         c.filter = "none";
       }
     });
@@ -486,7 +537,7 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
     ...(data.score!.count50 > 0 ? [{ color: "#65b9df", value: String(data.score!.count50), padLeft: 12 }] : []),
     { color: "#DE6984", value: String(data.score!.countMiss), padLeft: 12 },
   ];
-  const hitWidths = hitBoxes.map(box => box.padLeft + widthOf(box.value, 19, 500) + 12);
+  const hitWidths = hitBoxes.map(box => box.padLeft + widthOf(box.value, 19, 500, '"Scene Tabular"') + 12);
   const hitsW = hitWidths.reduce((sum, w) => sum + w, 0);
   const hitsStrip = skewPaint("hits-strip", hitsW, 29, -18, (c, w, h) => {
     roundRect(c, 0, 0, w, h, 3);
@@ -498,20 +549,21 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
       c.fillStyle = box.color;
       c.fillRect(x, 0, bw, h);
       c.save();
-      c.translate(x + bw / 2, h / 2);
+      c.translate(x + box.padLeft + (bw - box.padLeft - 12) / 2, h / 2);
       c.transform(1, 0, Math.tan(rad), 1, 0, 0);
-      c.font = '500 19px "Plus Jakarta Sans"';
+      c.font = '500 19px "Scene Tabular"';
       c.fillStyle = "#fff";
       c.textAlign = "center";
       c.textBaseline = "middle";
-      c.fillText(box.value, 0, 0);
+      c.textBaseline = "alphabetic";
+      c.fillText(box.value, 0, baseline(19, 500, '"Plus Jakarta Sans"', 19) - 19 / 2);
       c.restore();
       x += bw;
     });
   });
 
   const ppText = data.score!.pp.trim().toUpperCase().endsWith("PP") ? data.score!.pp.toUpperCase() : `${data.score!.pp}PP`;
-  const ppW = Math.ceil(widthOf(ppText, 22, 500) + 48);
+  const ppW = Math.ceil(widthOf(ppText, 22, 500) + ppText.length * 0.4 + 36);
   const ppBadge = art("pp-badge", ppW, 32, c => {
     const g = c.createLinearGradient(0, 0, 0, 32);
     g.addColorStop(0, palette.plateTop);
@@ -542,18 +594,20 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
     c.restore();
   }, 10);
 
-  const baseAssets = assets.slice();
   let frame: HudFrame;
   type Draw = (s: Sprite, x: number, y: number, w?: number, h?: number, color?: HudSprite["color"], clip?: HudSprite["clip"]) => void;
   const sprite: Draw = (s, x, y, w = s.w / 2 - s.pad * 2, h = s.h / 2 - s.pad * 2, color = rgb("#ffffff"), clip) => {
     if (w <= 0 || h <= 0 || color[3] <= 0) return;
-    frame.sprites.push({ asset: s.id, x: (x - s.pad) * S, y: (y - s.pad) * S, w: (w + s.pad * 2) * S, h: (h + s.pad * 2) * S, color, clip: clip ? [clip[0] * S, clip[1] * S, clip[2] * S, clip[3] * S] : undefined });
+    const px = s.pad * w / (s.w / 2 - s.pad * 2), py = s.pad * h / (s.h / 2 - s.pad * 2);
+    frame.sprites.push({ asset: s.id, x: (x - px) * S, y: (y - py) * S, w: (w + px * 2) * S, h: (h + py * 2) * S, color, clip: clip ? [clip[0] * S, clip[1] * S, clip[2] * S, clip[3] * S] : undefined });
   };
   let draw: Draw = sprite;
-  const text = (value: string, x: number, y: number, size: number, color: string, alpha = 1, weight = 700, align: "left" | "right" | "center" = "left", shadow = true) => {
+  const text = (value: string, x: number, y: number, size: number, color: string, alpha = 1, weight = 700, align: "left" | "right" | "center" = "left", shadow = true, style: { lineHeight?: number; spacing?: number; tabular?: boolean; font?: string } = {}) => {
+    const { lineHeight = 0, spacing = 0, tabular = false } = style;
     if (!value || alpha <= 0) return;
-    const s = label(value, size, color, weight, shadow);
-    const tw = widthOf(value, size, weight);
+    const font = style.font ?? (tabular ? '"Scene Tabular"' : '"Plus Jakarta Sans"');
+    const s = label(value, size, color, weight, shadow, font, lineHeight, spacing);
+    const tw = widthOf(value, size, weight, font) + spacing * value.length;
     const at = align === "right" ? x - tw : align === "center" ? x - tw / 2 : x;
     draw(s, at - 4, y - 4, undefined, undefined, rgb("#ffffff", alpha));
   };
@@ -566,125 +620,181 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
     if (a <= 0) return frame;
     const close = t >= 4.70;
     const layers: { s: Sprite; x: number; y: number; w?: number; h?: number; color?: HudSprite["color"]; clip?: HudSprite["clip"] }[] = [];
-    const add: Draw = (s, x, y, w, h, color, clip) => layers.push({ s, x, y, w, h, color, clip });
+    let cardClip: HudSprite["clip"] | undefined;
+    const add: Draw = (s, x, y, w, h, color, clip) => {
+      if (cardClip) {
+        if (clip) {
+          const left = Math.max(clip[0], cardClip[0]), top = Math.max(clip[1], cardClip[1]);
+          clip = [left, top, Math.max(0, Math.min(clip[0] + clip[2], cardClip[0] + cardClip[2]) - left), Math.max(0, Math.min(clip[1] + clip[3], cardClip[1] + cardClip[3]) - top)];
+        } else clip = cardClip;
+      }
+      layers.push({ s, x, y, w, h, color, clip });
+    };
     draw = add;
 
-    if (m.bottomCard.opacity > 0) {
+    if (m.bottomCard.opacity > 0 && (flags.profileStats || t >= 2.7)) {
       const clip: HudSprite["clip"] | undefined = m.bottomCard.clipBottom > 0
-        ? [ox, oy + topH + gap, widgetW, bottomH * (1 - m.bottomCard.clipBottom / 100)]
+        ? [ox, oy + topH + gap + m.bottomCard.y, widgetW, bottomH * (1 - m.bottomCard.clipBottom / 100)]
         : undefined;
+      cardClip = clip;
       add(bottomChrome, ox, oy + topH + gap + m.bottomCard.y, widgetW, bottomH, rgb("#ffffff", m.bottomCard.opacity * a), clip);
       if (m.bottomPlayer.opacity > 0 && flags.history) {
-        const bx = ox + 16, by = oy + topH + gap + 16 + m.bottomCard.y;
+        const bx = ox + 17, by = oy + topH + gap + 17 + m.bottomCard.y;
         const count = String(data.player.badgeCount);
         const stackW = Math.max(widthOf(count, 11), widthOf("badges", 7.5));
-        text(count, bx + stackW / 2, by, 11, accent, m.bottomPlayer.opacity * a, 700, "center");
-        text("badges", bx + stackW / 2, by + 11, 7.5, "rgba(255,255,255,0.45)", m.bottomPlayer.opacity * a, 700, "center", false);
-        let badgeX = bx + stackW + 10;
+        if (data.player.badges.length) text(count, bx + stackW / 2, by + 0.75, 11, accent, m.bottomPlayer.opacity * a, 700, "center");
+        if (data.player.badges.length) text("badges", bx + stackW / 2, by + 12.25, 7.5, "rgba(255,255,255,0.45)", m.bottomPlayer.opacity * a, 700, "center", false);
+        let badgeX = bx + stackW + 8;
         data.player.badges.slice(0, 5).forEach((badge, i) => {
           const img = images.get(badge.url);
           if (!img) return;
           const b = art(`badge:${i}`, 37, 19, c => {
-            const scale = Math.min(37 / img.width, 19 / img.height);
+            roundRect(c, 0, 0, 37, 19, 3);
+            c.clip();
+            const scale = Math.min(35 / img.width, 17 / img.height);
             c.drawImage(img, (37 - img.width * scale) / 2, (19 - img.height * scale) / 2, img.width * scale, img.height * scale);
+            c.strokeStyle = "rgba(255,255,255,0.18)";
+            c.lineWidth = 1;
+            roundRect(c, 0.5, 0.5, 36, 18, 3);
+            c.stroke();
           });
-          add(b, badgeX, by + 2, 37, 19, rgb("#ffffff", m.bottomPlayer.opacity * a));
+          add(b, badgeX, by + 2.5, 37, 19, rgb("#ffffff", m.bottomPlayer.opacity * a));
           badgeX += 41;
         });
         if (data.player.badges.length > 5) {
           const more = `+${data.player.badges.length - 5} more`;
-          const mw = widthOf(more, 9) + 10;
-          const pill = art(`more:${more}`, mw, 16, c => {
+          const mw = widthOf(more, 9) + 12;
+          const pill = art(`more:${more}`, mw, 18.6, c => {
             c.strokeStyle = "rgba(255,255,255,0.18)";
             c.lineWidth = 1;
-            roundRect(c, 0.5, 0.5, mw - 1, 15, 3);
+            roundRect(c, 0.5, 0.5, mw - 1, 17.6, 3);
             c.stroke();
           });
-          add(pill, badgeX + 2, by + 2, mw, 16, rgb("#ffffff", m.bottomPlayer.opacity * a));
-          text(more, badgeX + 7, by + 4, 9, palette.muted, m.bottomPlayer.opacity * a);
+          add(pill, badgeX, by + 2.7, mw, 18.6, rgb("#ffffff", m.bottomPlayer.opacity * a));
+          text(more, badgeX + 6, by + 5.7, 9, palette.muted, m.bottomPlayer.opacity * a);
         }
-        text("Playcount over time", ox + widgetW - 16, by, 9.5, palette.muted, m.bottomPlayer.opacity * a, 600, "right", false);
-        text(`peak: ${data.player.peakCount} (${data.player.peakMonth})`, ox + widgetW - 16, by + 12, 8.5, palette.dim, m.bottomPlayer.opacity * a, 600, "right", false);
-        const cx = ox + 20, cy = by + 38;
-        add(chart, cx, cy, 430, 140, rgb("#ffffff", m.bottomPlayer.opacity * a), [cx, cy, 430 * Math.max(0.02, m.chartProgress), 140]);
-        spline.yTicks.forEach(tick => text(tick.label, cx + 16, cy + tick.y - 6, 8.5, palette.dim, m.bottomPlayer.opacity * a, 600, "right", false));
-        spline.yearTicks.forEach((tick, i) => text(String(tick.year), cx + tick.x, cy + 128, 8.5, palette.dim, m.yearProgress * m.bottomPlayer.opacity * a, 600, i === spline.yearTicks.length - 1 ? "right" : "center", false));
+        text("Playcount over time", ox + widgetW - 17, by + 0.5, 9.5, palette.muted, m.bottomPlayer.opacity * a, 600, "right", false);
+        text(`peak: ${data.player.peakCount} (${data.player.peakMonth})`, ox + widgetW - 17, by + 12.5, 8.5, palette.dim, m.bottomPlayer.opacity * a, 600, "right", false);
+        const chartScale = 436 / 430;
+        const cx = ox + 17, cy = oy + topH + gap + 47 + (149 - 140 * chartScale) / 2 + m.bottomCard.y;
+        const chartA = m.bottomPlayer.opacity * a;
+        add(chart, cx, cy, 436, 140 * chartScale, rgb("#ffffff", chartA));
         if (m.peakProgress > 0) {
-          add(peakLine, cx + 20, cy + spline.peakY, 405, 2, rgb("#ffffff", m.peakProgress * a));
-          add(peakDot, cx + spline.peakX - 6, cy + spline.peakY - 6, 12, 12, rgb("#ffffff", m.peakProgress * a));
+          add(peakLine, cx + 20 * chartScale, cy + (spline.peakY - 1) * chartScale, 405 * chartScale, 2 * chartScale, rgb("#ffffff", m.peakProgress * chartA));
         }
-        const barY = oy + topH + gap + bottomH - 20 + m.bottomCard.y;
-        drawIconRow(ox + 16, barY, m.hours, m.playcount, m.bottomPlayer.opacity * a, add);
+        if (m.chartProgress > 0) add(curve(m.chartProgress), cx, cy, 436, 140 * chartScale, rgb("#ffffff", chartA));
+        add(years, cx, cy, 436, 140 * chartScale, rgb("#ffffff", m.yearProgress * chartA));
+        if (m.peakProgress > 0) {
+          const size = 12 * chartScale * (0.7 + 0.3 * m.peakProgress);
+          add(peakDot, cx + spline.peakX * chartScale - size / 2, cy + spline.peakY * chartScale - size / 2, size, size, rgb("#ffffff", m.peakProgress * chartA));
+        }
+        const barY = oy + topH + gap + bottomH - 26 + m.bottomCard.y;
+        drawIconRow(ox + 17, barY, m.hours, m.playcount, m.bottomPlayer.opacity * a, add);
+      }
+      if (!flags.history && flags.profileStats && m.bottomPlayer.opacity > 0) {
+        drawIconRow(ox + 17, oy + topH + gap + (bottomH - 18) / 2 + 2 + m.bottomCard.y, m.hours, m.playcount, m.bottomPlayer.opacity * a, add, 14);
       }
       if (m.bottomMap.opacity > 0 && flags.mapStats) {
-        const mx = ox + 16, my = oy + topH + gap + 28 + m.bottomCard.y;
+        const mx = ox + 17, my = oy + topH + gap + 26 + m.bottomCard.y;
         ([["AR", "ar", data.map.arMs, data.map.ar.toFixed(2), 11], ["CS", "", "", data.map.cs.toFixed(2), 10], ["OD", "od", data.map.odMs, data.map.od.toFixed(2), 11], ["HP", "", "", data.map.hp.toFixed(2), 10]] as const).forEach((row, i) => {
-          const x = mx + (i % 2) * 220, y = my + Math.floor(i / 2) * 20;
+          const x = mx + (i % 2) * 225, y = my + Math.floor(i / 2) * 20;
           const key = row[0].toLowerCase() as "ar" | "cs" | "od" | "hp";
-          text(row[0], x, y, 10, "rgba(255,255,255,0.85)", m.bottomMap.opacity * a);
-          add(pillTrack(key), x + 22, y, 180, 14, rgb("#ffffff", m.bottomMap.opacity * a));
-          const fillW = 180 * m.fills[key];
-          if (fillW > 0) add(fills[key]!, x + 22, y, fillW, 14, rgb("#ffffff", m.bottomMap.opacity * a), [x + 22, y, fillW, 14]);
-          if (row[2]) text(row[2], x + 28, y + 1, 9, "#fff", m.bottomMap.opacity * a);
-          text(row[3], x + 196, y + 1, 9, "#fff", m.bottomMap.opacity * a, 700, "right");
+          text(row[0], x, y + 1, 10, "rgba(255,255,255,0.85)", m.bottomMap.opacity * a, 700, "left", false, { spacing: 0.5 });
+          add(pillTrack(key), x + 24, y, 187, 14, rgb("#ffffff", m.bottomMap.opacity * a));
+          const fillW = 185 * m.fills[key];
+          if (fillW > 0) add(fills[key]!, x + 25, y + 1, fillW, 12, rgb("#ffffff", m.bottomMap.opacity * a), [x + 25, y + 1, fillW, 12]);
+          if (row[2]) text(row[2], x + 31, y + 1.5, 9, "#fff", m.bottomMap.opacity * a, 700, "left", true, { spacing: 0.2, tabular: true });
+          text(row[3], x + 204, y + 1.5, 9, "#fff", m.bottomMap.opacity * a, 700, "right", true, { spacing: 0.2, tabular: true });
         });
-        if (flags.onlineMap && data.map.retries) {
-          add(mapChart, mx, my + 54, 430, 100, rgb("#ffffff", m.bottomMap.opacity * a), [mx, my + 54, 430 * Math.max(0.02, m.mapPath), 100]);
-          text("Fails and exits by map progress", ox + widgetW - 16, my + 44, 9, palette.muted, m.bottomMap.opacity * a, 600, "right", false);
-          const retries = data.map.retries;
-          const length = Math.max(retries.fail.length, retries.exit.length);
-          const peak = Math.max(1, ...Array.from({ length }, (_, i) => (retries.fail[i] ?? 0) + (retries.exit[i] ?? 0)));
-          const unit = 10 ** Math.floor(Math.log10(peak));
-          const max = Math.ceil(peak / unit) * unit;
-          const fmt = (n: number) => n >= 1e6 ? `${(n / 1e6).toFixed(1)}m` : n >= 1e3 ? `${+(n / 1e3).toFixed(1)}k` : String(Math.round(n));
-          for (const fraction of [0, 0.5, 1]) text(fmt(max * fraction), mx + 22, my + 54 + 78 - fraction * 63 - 6, 8.5, palette.dim, m.bottomMap.opacity * a, 600, "right", false);
-          for (const percent of [0, 25, 50, 75, 100]) text(`${percent}%`, mx + 26 + percent / 100 * 398, my + 54 + 88, 8.5, palette.dim, m.bottomMap.opacity * a, 600, percent === 0 ? "left" : percent === 100 ? "right" : "center", false);
+        if (flags.onlineMap && retryCount >= 2) {
+          const scale = 436 / 430, y = my + 56.5 + (108 - 100 * scale) / 2;
+          add(mapCaption, mx, my + 45.5, 436, 11, rgb("#ffffff", m.bottomMap.opacity * a));
+          add(mapChart, mx, y, 436, 100 * scale, rgb("#ffffff", m.bottomMap.opacity * a));
+          if (m.mapPath > 0) add(mapCurve(m.mapPath), mx, y, 436, 100 * scale, rgb("#ffffff", m.bottomMap.opacity * a));
         }
-        const barY = oy + topH + gap + bottomH - 20 + m.bottomCard.y;
-        const heartIcon = art("fav-heart", 12, 12, c => drawHeart(c, 1, 1, 10, accent));
-        add(heartIcon, ox + 16, barY + 1, 12, 12, rgb("#ffffff", m.bottomMap.opacity * a));
-        text(`Favs: ${comma(m.favs)}`, ox + 32, barY, 11, "rgba(255,255,255,0.85)", m.bottomMap.opacity * a);
-        const playSmall = art("play-icon-sm", 12, 12, c => drawPlay(c, 2, 1, 10, accent));
-        add(playSmall, ox + 128, barY + 1, 12, 12, rgb("#ffffff", m.bottomMap.opacity * a));
-        text(`Plays: ${comma(m.plays)}`, ox + 144, barY, 11, "rgba(255,255,255,0.85)", m.bottomMap.opacity * a);
-        if (flags.mapperAvatar) {
-          add(mapper, ox + widgetW - 110, barY - 2);
-          text(data.map.mapper, ox + widgetW - 86, barY - 2, 10.5, "#fff", m.bottomMap.opacity * a);
-          text("mapper", ox + widgetW - 86, barY + 10, 8, palette.muted, m.bottomMap.opacity * a, 600, "left", false);
+        if (flags.onlineMap && Math.max(data.map.retries?.fail.length ?? 0, data.map.retries?.exit.length ?? 0) < 2) {
+          text("Map retry data unavailable", ox + widgetW / 2, my + 95, 11, "#fff", m.bottomMap.opacity * a * 0.5, 400, "center", false);
         }
+        const barY = oy + topH + gap + bottomH - 33 + m.bottomCard.y;
+        const barA = m.bottomMap.opacity * a;
+        if (flags.onlineMap) {
+          const heartIcon = art("fav-heart", 12, 12, c => drawHeart(c, 0, 0, 12, accent));
+          add(heartIcon, ox + 17, barY + 4, 12, 12, rgb("#ffffff", barA));
+          text("Favs:", ox + 33, barY + 3.5, 11, "rgba(255,255,255,0.85)", barA, 600, "left", false);
+          const favX = ox + 33 + widthOf("Favs:", 11, 600) + 4;
+          text(comma(m.favs), favX, barY + 3.5, 11, "rgba(255,255,255,0.85)", barA, 600, "left", false, { tabular: true });
+          const playX = favX + widthOf(comma(m.favs), 11, 600, '\"Scene Tabular\"') + 14;
+          const playSmall = art("play-icon-sm", 12, 12, c => drawPlay(c, 0, 0, 12, accent));
+          add(playSmall, playX, barY + 4, 12, 12, rgb("#ffffff", barA));
+          text("Plays:", playX + 16, barY + 3.5, 11, "rgba(255,255,255,0.85)", barA, 600, "left", false);
+          text(comma(m.plays), playX + 16 + widthOf("Plays:", 11, 600) + 4, barY + 3.5, 11, "rgba(255,255,255,0.85)", barA, 600, "left", false, { tabular: true });
+        }
+        const mapperW = Math.max(widthOf(data.map.mapper, 10.5), widthOf("mapper", 8));
+        const mapperX = flags.onlineMap ? ox + widgetW - 17 - mapperW : ox + 17;
+        if (flags.mapperAvatar) add(mapper, mapperX - 26, barY, 20, 20, rgb("#ffffff", barA));
+        text(data.map.mapper, mapperX, barY + 0.25, 10.5, "#fff", barA, 700, "left", false, { lineHeight: 10.5 });
+        text("mapper", mapperX, barY + 11.75, 8, palette.muted, barA, 600, "left", false, { lineHeight: 8 });
       }
     }
+    if (m.bottomCard.clipBottom > 0 && layers.length) {
+      const cardY = oy + topH + gap + m.bottomCard.y;
+      const composed = composeLayers(layers, ox, cardY, widgetW, bottomH);
+      const c = composed.getContext("2d")!;
+      c.setTransform(1, 0, 0, 1, 0, 0);
+      c.globalCompositeOperation = "destination-in";
+      roundRect(c, 0, 0, widgetW * 2, bottomH * (1 - m.bottomCard.clipBottom / 100) * 2, 28);
+      c.fill();
+      layers.splice(0, layers.length, { s: save(`reveal:${t}`, composed), x: ox, y: cardY });
+    }
+    cardClip = undefined;
     if (m.topCard.opacity > 0) {
       const chrome = m.showMap ? topMapChrome : topPlayerChrome;
       add(chrome, ox, oy + m.topCard.y, widgetW, topH, rgb("#ffffff", m.topCard.opacity * a));
       const hy = oy + m.topCard.y;
       if (m.topPlayer.opacity > 0) {
-        add(avatar, ox + 14 + m.playerHeaderLeft, hy + 12, 38, 38, rgb("#ffffff", m.topPlayer.opacity * a));
-        text(data.player.username, ox + 62 + m.playerHeaderLeft, hy + 16, 15.5, "#fff", m.topPlayer.opacity * a);
-        if (data.player.isSupporter) add(heart, ox + 62 + widthOf(data.player.username, 15.5) + 6 + m.playerHeaderLeft, hy + 18, 21, 12, rgb("#ffffff", m.topPlayer.opacity * a));
-        if (flag) add(flag, ox + 62 + m.playerHeaderLeft, hy + 36, 16, 11, rgb("#ffffff", m.topPlayer.opacity * a));
-        text(data.player.crank, ox + 82 + m.playerHeaderLeft, hy + 34, 10.5, palette.muted, m.topPlayer.opacity * a, 600);
-        text(data.player.grank, ox + widgetW - 14 + m.playerHeaderRight, hy + 14, 21, "#fff", m.topPlayer.opacity * a, 800, "right");
-        text(data.player.pp, ox + widgetW - 14 + m.playerHeaderRight, hy + 37, 11.5, "rgba(255,255,255,0.85)", m.topPlayer.opacity * a, 600, "right");
+        add(avatar, ox + 15 + m.playerHeaderLeft, hy + 12, 38, 38, rgb("#ffffff", m.topPlayer.opacity * a));
+        text(data.player.username, ox + 63 + m.playerHeaderLeft, hy + (flag || data.player.crank ? 14 : 21), 15.5, "#fff", m.topPlayer.opacity * a);
+        if (data.player.isSupporter) add(heart, ox + 63 + widthOf(data.player.username, 15.5) + 5 + m.playerHeaderLeft, hy + 17.5, 21, 12, rgb("#ffffff", m.topPlayer.opacity * a));
+        if (flag) add(flag, ox + 63 + m.playerHeaderLeft, hy + 34, flagWidth, 14, rgb("#ffffff", m.topPlayer.opacity * a));
+        text(data.player.crank, ox + 63 + flagWidth + 4 + m.playerHeaderLeft, hy + 34, 10.5, palette.muted, m.topPlayer.opacity * a, 600);
+        text(data.player.grank, ox + widgetW - 15 + m.playerHeaderRight, hy + 12.5, 21, "#fff", m.topPlayer.opacity * a, 800, "right", true, { lineHeight: 21 });
+        text(data.player.pp, ox + widgetW - 15 + m.playerHeaderRight, hy + 34.5, 11.5, "rgba(255,255,255,0.85)", m.topPlayer.opacity * a, 600, "right");
       }
       if (m.topMap.opacity > 0) {
-        add(coverThumb, ox + 14, hy + 12, 38, 38, rgb("#ffffff", m.topMap.opacity * a));
-        text(data.map.title, ox + 62, hy + 16, 13.5, "#fff", m.topMap.opacity * a);
-        text(data.map.artist, ox + 62, hy + 35, 10.5, palette.muted, m.topMap.opacity * a, 600);
-        add(status, ox + widgetW - 42, hy + 17 + m.chevronY, 28, 28, rgb("#ffffff", m.topMap.opacity * a));
+        add(coverThumb, ox + 15, hy + 12, 38, 38, rgb("#ffffff", m.topMap.opacity * a));
+        text(data.map.title, ox + 73, hy + 15.5, 13.5, "#fff", m.topMap.opacity * a, 700, "left", true, { spacing: -0.1 });
+        text(data.map.artist, ox + 73, hy + 33.5, 10.5, palette.muted, m.topMap.opacity * a, 600, "left", false, { spacing: 0.1 });
+        if (flags.onlineMap) add(status, ox + widgetW - 42, hy + 17 + m.chevronY, 28, 28, rgb("#ffffff", m.topMap.opacity * a));
       }
     }
     if (m.starFooter.opacity > 0) {
-      const fy = oy + topH + gap + bottomH + gap + m.starFooter.y;
-      const star = art("footer-star", 18, 18, c => drawStar(c, 9, 9, 7.5));
-      add(star, ox + widgetW / 2 - 70, fy, 15 * m.starScale, 15 * m.starScale, rgb("#ffffff", m.starFooter.opacity * a));
-      text(`${data.map.sr}  •  ${data.map.bpm}`, ox + widgetW / 2 + 8, fy, 14, "#fff", m.starFooter.opacity * a, 700, "center");
+      const fy = oy + topH + gap + bottomH + gap - 2 + m.starFooter.y;
+      const star = art("footer-star", 15, 15, c => {
+        c.shadowColor = "rgba(255,183,3,0.9)"; c.shadowBlur = 16;
+        drawStar(c, 7.5, 7.5, 7.5);
+      }, 8);
+      const values = [data.map.sr, "•", data.map.bpm];
+      const widths = values.map(value => widthOf(value, 14, 700, '\"Scene Tabular\"') - value.length * 0.2);
+      let x = ox + (widgetW - 15 - 18 - widths.reduce((a, b) => a + b, 0)) / 2;
+      const starSize = 15 * m.starScale;
+      add(star, x + (15 - starSize) / 2, fy + (18 - starSize) / 2, starSize, starSize, rgb("#ffffff", m.starFooter.opacity * a));
+      x += 21;
+      values.forEach((value, i) => {
+        text(value, x, fy, 14, "#fff", m.starFooter.opacity * a, 700, "left", true, { spacing: -0.2, tabular: true });
+        x += widths[i]! + 6;
+      });
     }
     m.wipes.forEach((wipeState, i) => {
       if (!wipeState.visible) return;
-      const h = (i === 0 ? topH : bottomH) * 1.6;
-      const y = (i === 0 ? oy : oy + topH + gap) + h * (wipeState.yPercent / 100);
-      add(wipe, ox, y, widgetW, h, rgb("#ffffff", a), [ox, i === 0 ? oy : oy + topH + gap, widgetW, i === 0 ? topH : bottomH]);
+      const cardH = i === 0 ? topH : bottomH;
+      const h = (cardH - 2) * 1.6;
+      // The wipe belongs inside the card's padding box, below its border.
+      const clipped = art(`wipe:${i}:${t}`, widgetW, cardH, c => {
+        roundRect(c, 1, 1, widgetW - 2, cardH - 2, 13);
+        c.clip();
+        c.drawImage(wipe(h).canvas!, 1, 1 + h * wipeState.yPercent / 100, widgetW - 2, h);
+      });
+      add(clipped, ox, i === 0 ? oy : oy + topH + gap, widgetW, cardH, rgb("#ffffff", a));
     });
 
     draw = sprite;
@@ -692,23 +802,26 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
       const edge = 24;
       const composed = composeLayers(layers, ox - edge, oy - edge, widgetW + edge * 2, widgetH + 40 + edge * 2);
       const warped = warpClose(composed, t);
-      const s = save(`close:${t.toFixed(4)}`, warped);
-      sprite(s, ox - edge - s.pad, oy - edge - s.pad, s.w / 2 - s.pad * 2, s.h / 2 - s.pad * 2, rgb("#ffffff", a));
+      const s = save(`close:${t.toFixed(4)}`, warped.canvas);
+      sprite(s, warped.x, warped.y);
       return frame;
     }
     for (const item of layers) sprite(item.s, item.x, item.y, item.w, item.h, item.color, item.clip);
     return frame;
   }
 
-  function drawIconRow(x: number, y: number, hours: number, playcount: number, alpha: number, add: (s: Sprite, x: number, y: number, w?: number, h?: number, color?: HudSprite["color"]) => void) {
-    const hourIcon = art("hour-icon", 12, 12, c => drawHourglass(c, 1, 1, 10, accent));
-    add(hourIcon, x, y + 2, 12, 12, rgb("#ffffff", alpha));
-    const hoursText = `${comma(hours)} hours`;
-    text(hoursText, x + 16, y, 11, "rgba(255,255,255,0.85)", alpha, 600);
-    const playX = x + 16 + widthOf(hoursText, 11, 600) + 18;
-    const play = art("play-icon", 12, 12, c => drawPlay(c, 2, 1, 10, accent));
-    add(play, playX, y + 2, 12, 12, rgb("#ffffff", alpha));
-    text(`Playcount: ${comma(playcount)}`, playX + 16, y, 11, "rgba(255,255,255,0.85)", alpha, 600);
+  function drawIconRow(x: number, y: number, hours: number, playcount: number, alpha: number, add: (s: Sprite, x: number, y: number, w?: number, h?: number, color?: HudSprite["color"]) => void, size = 11) {
+    const hourIcon = art("hour-icon", 12, 12, c => drawHourglass(c, 0, 0, 12, accent));
+    add(hourIcon, x, y + (size === 11 ? 0.5 : 3), 12, 12, rgb("#ffffff", alpha));
+    const hoursText = comma(hours);
+    text(hoursText, x + 17, y, size, "rgba(255,255,255,0.85)", alpha, 600, "left", false, { tabular: true });
+    const hoursEnd = x + 17 + widthOf(hoursText, size, 600, '\"Scene Tabular\"') + 5;
+    text("hours", hoursEnd, y, size, "rgba(255,255,255,0.85)", alpha, 600, "left", false);
+    const playX = hoursEnd + widthOf("hours", size, 600) + 18;
+    const play = art("play-icon", 12, 12, c => drawPlay(c, 0, 0, 12, accent));
+    add(play, playX, y + (size === 11 ? 0.5 : 3), 12, 12, rgb("#ffffff", alpha));
+    text("Playcount:", playX + 17, y, size, "rgba(255,255,255,0.85)", alpha, 600, "left", false);
+    text(comma(playcount), playX + 17 + widthOf("Playcount:", size, 600) + 5, y, size, "rgba(255,255,255,0.85)", alpha, 600, "left", false, { tabular: true });
   }
 
   function composeLayers(layers: { s: Sprite; x: number; y: number; w?: number; h?: number; color?: HudSprite["color"]; clip?: HudSprite["clip"] }[], ox: number, oy: number, w: number, h: number) {
@@ -727,7 +840,8 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
       }
       const dw = item.w ?? item.s.w / 2 - item.s.pad * 2;
       const dh = item.h ?? item.s.h / 2 - item.s.pad * 2;
-      x.drawImage(img, item.x - ox - item.s.pad, item.y - oy - item.s.pad, dw + item.s.pad * 2, dh + item.s.pad * 2);
+      const px = item.s.pad * dw / (item.s.w / 2 - item.s.pad * 2), py = item.s.pad * dh / (item.s.h / 2 - item.s.pad * 2);
+      x.drawImage(img, item.x - ox - px, item.y - oy - py, dw + px * 2, dh + py * 2);
       x.restore();
     }
     return c;
@@ -735,23 +849,40 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
 
   function warpClose(src: HTMLCanvasElement, t: number) {
     const { pClose, pull, scaleX, scaleY } = widgetCloseScale(t);
-    const rotate = -65 * Math.sin(pClose * Math.PI / 2) * Math.PI / 180;
-    const persp = 1200 - 900 * pClose;
-    const w = src.width, h = src.height;
-    const outH = Math.ceil(h * 1.2 + 760 * pull * 2);
-    const out = canvas(w, outH);
+    const perspective = (distance: number) => {
+      const matrix = new DOMMatrix();
+      matrix.m34 = -1 / distance;
+      return matrix;
+    };
+    // CSS applies scale before rotation, then the widget and stage perspectives.
+    // The source includes 24px of shadow padding around the widget.
+    const matrix = new DOMMatrix().translate(480, 270)
+      .multiply(perspective(1200)).translate(-480, -270)
+      .translate(widgetX + widgetW / 2, widgetY + 760 * pull)
+      .multiply(perspective(1200 - 900 * pClose))
+      .rotateAxisAngle(1, 0, 0, -65 * Math.sin(pClose * Math.PI / 2))
+      .scale(scaleX, scaleY).translate(-widgetW / 2 - 24, -24);
+    const project = (x: number, y: number) => {
+      const point = matrix.transformPoint({ x, y });
+      return { x: point.x / point.w, y: point.y / point.w };
+    };
+    const sw = src.width / 2, sh = src.height / 2;
+    const corners = [project(0, 0), project(sw, 0), project(0, sh), project(sw, sh)];
+    const x = Math.floor(Math.min(...corners.map(p => p.x)) * 2) / 2;
+    const y = Math.floor(Math.min(...corners.map(p => p.y)) * 2) / 2;
+    const right = Math.ceil(Math.max(...corners.map(p => p.x)) * 2) / 2;
+    const bottom = Math.min(540, Math.ceil(Math.max(...corners.map(p => p.y)) * 2) / 2);
+    const out = canvas((right - x) * 2, Math.max(1, (bottom - y) * 2));
     const c = out.getContext("2d")!;
-    const rows = src.height;
-    for (let y = 0; y < rows; y++) {
-      const dist = y / 2;
-      const z = dist * Math.sin(-rotate);
-      const scale = persp / (persp + Math.max(0, z));
-      const outY = dist * Math.cos(rotate) * scale * scaleY;
-      const outW = (w / 2) * scale * scaleX;
-      const outX = (w / 2 - outW) / 2;
-      c.drawImage(src, 0, y, w, 1, outX * 2, outY * 2, outW * 2, scaleY * 2);
+    // Inverse-map destination rows to avoid gaps and overlapping source strips.
+    for (let row = 0; row < out.height; row++) {
+      const targetY = y + (row + 0.5) / 2;
+      const sourceY = (matrix.m42 - targetY * matrix.m44) / (targetY * matrix.m24 - matrix.m22);
+      if (sourceY < 0 || sourceY >= sh) continue;
+      const left = project(0, sourceY).x, right = project(sw, sourceY).x;
+      c.drawImage(src, 0, sourceY * 2 - 0.5, src.width, 1, (left - x) * 2, row, (right - left) * 2, 1);
     }
-    return out;
+    return { canvas: out, x, y };
   }
 
   function drawOutro(t: number): HudFrame {
@@ -766,37 +897,53 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
     const emerge = (index: number) => -38 * (1 - m.rightItems[index]!);
 
     sprite(playerCard, 180 + leftX, 128, 210, 38, rgb("#ffffff", leftA));
-    sprite(avatar, 192 + leftX, 133, 28, 28, rgb("#ffffff", leftA));
-    text(`${data.player.username} ${data.player.grank}`, 228 + leftX, 131, 12.5, "#fff", leftA);
-    if (flag) sprite(flag, 228 + leftX, 147, 16, 11, rgb("#ffffff", leftA));
-    text(data.player.crank, 248 + leftX, 145, 11, "rgba(255,255,255,0.9)", leftA, 600);
+    sprite(outroAvatar, 192 + leftX, 133, 28, 28, rgb("#ffffff", leftA));
+    const playerNameY = 128 + (38 - 14.75 - (flag || data.player.crank ? 12.1 : 0)) / 2;
+    text(data.player.username, 228 + leftX, playerNameY, 12.5, "#fff", leftA, 700, "left", true, { lineHeight: 13.75 });
+    text(data.player.grank, 230 + leftX + widthOf(`${data.player.username} `, 12.5), playerNameY, 12.5, "#fff", leftA * 0.92, 600, "left", true, { lineHeight: 13.75 });
+    if (flag) sprite(flag, 228 + leftX, playerNameY + 14.75 - 0.95, flagWidth * 11 / 10.5, 14 * 11 / 10.5, rgb("#ffffff", leftA));
+    text(data.player.crank, 228 + flagWidth * 11 / 10.5 + 4 + leftX, playerNameY + 14.75, 11, "rgba(255,255,255,0.9)", leftA * 0.95, 600, "left", true, { lineHeight: 12.1 });
 
     const rows = [[190, 96], [228, 87], [266, 82], [304, 84], [342, 92], [380, 109]] as const;
     (data.topScores ?? []).forEach((play, i) => {
       const [top, left] = rows[i] ?? rows[5];
-      const cover = play.cover && images.has(play.cover) ? roundedImage(`play:${i}`, play.cover, 44, 27, 4) : coverThumb;
-      sprite(cover, left + leftX, top, 44, 27, rgb("#ffffff", leftA));
+      const playCover = art(`play:${i}`, 44, 27, c => {
+        roundRect(c, 0, 0, 44, 27, 4); c.clip();
+        const img = images.get(play.cover ?? data.map.cover);
+        if (img) { c.save(); c.translate(1, 1); cover(c, img, 42, 25, img.width, img.height, 0.5, 0.5); c.restore(); }
+        const dim = c.createLinearGradient(0, 0, 44, 0);
+        dim.addColorStop(0, "rgba(0,0,0,0.75)"); dim.addColorStop(0.45, "rgba(0,0,0,0.4)"); dim.addColorStop(1, "rgba(0,0,0,0.1)");
+        c.fillStyle = dim; c.fillRect(0, 0, 44, 27);
+        c.strokeStyle = "rgba(255,255,255,0.12)"; c.lineWidth = 1;
+        roundRect(c, 0.5, 0.5, 43, 26, 4); c.stroke();
+      });
+      sprite(playCover, left + 2 + leftX, top + 2.5, 44, 27, rgb("#ffffff", leftA));
       const rank = play.rank.toUpperCase().replace(/H$/, "");
-      text(rank, left + 8 + leftX, top + 5, 15, playRankColor(rank, play.mods), leftA, 800);
-      const title = Array.from(play.title);
-      text(title.length > 18 ? `${title.slice(0, 18).join("").trimEnd()}...` : play.title, left + 54 + leftX, top, 11, "#fff", leftA, 600);
-      play.mods.forEach((mod, mi) => sprite(modIcon(mod, 14, 2.3), left + 54 + mi * 16 + leftX, top + 15, 14, 14, rgb("#ffffff", leftA)));
-      text(play.timeAgo, left + 54 + play.mods.length * 16 + 6 + leftX, top + 15, 10, "rgba(255,255,255,0.65)", leftA, 600);
-      text(play.pp, left + 198 + leftX, top + 12, 12, "#fff", leftA, 700, "right");
+      text(rank, left + 8 + leftX, top + 8.5, 15, playRankColor(rank, play.mods), leftA, 800, "left", true, { lineHeight: 15, font: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif' });
+      const chars = Array.from(play.title);
+      let title = chars.length > 18 ? `${chars.slice(0, 18).join("").trimEnd()}...` : play.title;
+      if (widthOf(title, 11, 600) + title.length * 0.1 > 144) {
+        while (title && widthOf(`${title}…`, 11, 600) + (title.length + 1) * 0.1 > 144) title = title.slice(0, -1);
+        title += "…";
+      }
+      text(title, left + 54 + leftX, top + 1, 11, "#fff", leftA, 600, "left", true, { spacing: 0.1 });
+      play.mods.forEach((mod, mi) => sprite(modIcon(mod, 14, 2.3), left + 54 + mi * 15.5 + leftX, top + 16.5, 14, 14, rgb("#ffffff", leftA)));
+      text(play.timeAgo, left + 54 + Math.max(0, play.mods.length * 15.5 - 1.5) + 6 + leftX, top + 17.5, 10, "rgba(255,255,255,0.65)", leftA, 600);
+      text(play.pp, left + 196 + leftX, top + 16, 12, "#fff", leftA, 700, "right", true, { tabular: true });
     });
 
     const itemX = (index: number, base: number) => base + rightX + emerge(index);
     const itemA = (index: number) => m.rightItems[index]! * a;
     if (itemA(0) > 0) {
       sprite(scoreLabel.sprite, itemX(0, 658) - scoreLabel.extra, 184, undefined, undefined, rgb("#ffffff", itemA(0)));
-      text(formatScoreNumber(data.score!.totalScore), itemX(0, 658), 202, 24, "#fff", itemA(0), 500);
+      text(formatScoreNumber(data.score!.totalScore), itemX(0, 658), 203, 24, "#fff", itemA(0), 500, "left", true, { lineHeight: 24, spacing: 0.5, tabular: true });
     }
-    if (itemA(1) > 0) text(`${formatScoreNumber(data.score!.combo)}/${formatScoreNumber(data.score!.maxCombo)}x`, itemX(1, 672), 238, 22, "#a6a6a2", itemA(1), 400);
+    if (itemA(1) > 0) text(`${formatScoreNumber(data.score!.combo)}/${formatScoreNumber(data.score!.maxCombo)}x`, itemX(1, 672), 238, 22, "#a6a6a2", itemA(1), 400, "left", true, { lineHeight: 22, spacing: 0.3, tabular: true });
     if (itemA(2) > 0) {
       sprite(ppBadge, itemX(2, 672), 276, ppW, 32, rgb("#ffffff", itemA(2)));
-      text(ppText, itemX(2, 672) + ppW / 2, 280, 22, "#fff", itemA(2), 500, "center");
+      text(ppText, itemX(2, 672) + ppW / 2, 281, 22, "#fff", itemA(2), 500, "center", true, { lineHeight: 22, spacing: 0.4 });
     }
-    if (itemA(3) > 0) text(data.score!.accuracy, itemX(3, 672), 324, 22, "#a6a6a2", itemA(3), 400);
+    if (itemA(3) > 0) text(data.score!.accuracy, itemX(3, 672), 324, 22, "#a6a6a2", itemA(3), 400, "left", true, { lineHeight: 22, spacing: 0.3, tabular: true });
     if (itemA(4) > 0) sprite(hitsStrip.sprite, itemX(4, 624) - hitsStrip.extra, 358, undefined, undefined, rgb("#ffffff", itemA(4)));
 
     const ls = m.lens.scale;
@@ -804,18 +951,18 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
     const cx = 480, cy = 290 + m.lens.y;
     sprite(lens, cx - 190 * ls, cy - 190 * ls, 380 * ls, 380 * ls, rgb("#ffffff", lensA));
     const gs = ls * m.grade.scale;
-    sprite(grade, cx - 140 * gs, cy - 148 * gs, 280 * gs, 280 * gs, rgb("#ffffff", m.grade.opacity * lensA));
+    sprite(grade, cx - 140 * gs, cy - 140 * gs + m.grade.y * ls, 280 * gs, 280 * gs, rgb("#ffffff", m.grade.opacity * lensA));
     const mods = data.score?.mods ?? [];
     const modSize = 32 * ls, modGap = 2 * ls;
     let mx = cx - (mods.length * modSize + Math.max(0, mods.length - 1) * modGap) / 2;
     mods.forEach(mod => {
-      sprite(modIcon(mod, 32, 5.3), mx, cy + 142 * ls, modSize, modSize, rgb("#ffffff", lensA));
+      sprite(modIcon(mod, 32, 5.3), mx, cy + 140 * ls, modSize, modSize, rgb("#ffffff", lensA));
       mx += modSize + modGap;
     });
 
-    const barY = 18 + m.topBar.y;
+    const barY = 28.5 + m.topBar.y;
     const barA = m.topBar.opacity * a;
-    const srW = Math.max(40, widthOf(data.map.sr, 24, 800));
+    const srW = Math.max(40, widthOf(data.map.sr, 24, 800, '"Scene Tabular"') + data.map.sr.length * 0.3);
     const groupW = 214;
     const totalW = groupW + 28 + srW + 28 + groupW;
     let gx = (960 - totalW) / 2;
@@ -829,19 +976,19 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
         c.fill();
       });
       sprite(track, x, barY, 96, 6, rgb("#ffffff", barA));
-      text(`${name}:`, x, barY + 10, 13, "rgba(255,255,255,0.85)", barA, 600);
-      text(value, x + 96, barY + 10, 13.5, "#fff", barA, 700, "right");
+      text(`${name}:`, x, barY + 10, 13, "rgba(255,255,255,0.85)", barA, 600, "left", true, { spacing: 0.2 });
+      text(value, x + 96, barY + 10, 13.5, "#fff", barA, 700, "right", true, { spacing: 0.2, tabular: true });
     };
     gauge(gx, "#FA5252", Math.min(1, data.map.cs / 10), "CS", data.map.cs.toFixed(2));
     gauge(gx + 118, "#40C057", Math.min(1, data.map.ar / 11), "AR", data.map.ar.toFixed(2));
     const starX = gx + groupW + 28 + (srW - 40) / 2;
-    sprite(starRibbon, starX, barY - 14, 40, 36, rgb("#ffffff", barA));
-    text(data.map.sr, gx + groupW + 28 + srW / 2, barY + 12, 24, "#F8D153", barA, 800, "center");
+    sprite(starRibbon, starX, m.topBar.y, 40, 36, rgb("#ffffff", barA));
+    sprite(starValue, gx + groupW + 28 + (srW - starValueWidth) / 2, 26 + m.topBar.y, undefined, undefined, rgb("#ffffff", barA));
     gx += groupW + 28 + srW + 28;
     gauge(gx, "#B197FC", Math.min(1, data.map.od / 11), "OD", data.map.od.toFixed(2));
     gauge(gx + 118, "#748FFC", Math.min(1, data.map.hp / 10), "HP", data.map.hp.toFixed(2));
 
-    if (data.score?.playedAtAgo) text(data.score.playedAtAgo, 480, 512, 12, "rgba(255,255,255,0.6)", m.bottomTime * a, 600, "center");
+    if (data.score?.playedAtAgo) text(data.score.playedAtAgo, 480, 509, 12, "rgba(255,255,255,0.6)", m.bottomTime * a, 600, "center", true, { spacing: 0.3 });
     return frame;
   }
 
@@ -849,10 +996,11 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
   return {
     batch(kind: "intro" | "outro", start: number, count: number): HudBatch {
       const frames = Array.from({ length: count }, (_, i) => kind === "intro" ? drawIntro((start + i) / fps) : drawOutro((start + i) / fps));
-      const fresh = assets;
-      assets = [];
-      const shared = start === 0 ? baseAssets.filter(asset => !fresh.some(item => item.id === asset.id)) : [];
-      return { frames, assets: [...shared, ...fresh] };
+      // Each scene file is self-contained, including sprites cached by the other scene.
+      const required = new Set(frames.flatMap(frame => frame.sprites.map(sprite => sprite.asset)));
+      const fresh = [...required].filter(id => !sentAssets[kind].has(id)).map(id => assets.get(id)!);
+      fresh.forEach(asset => sentAssets[kind].add(asset.id));
+      return { frames, assets: fresh };
     },
   };
 }
