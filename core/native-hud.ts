@@ -24,6 +24,16 @@ export type PrepareHud = (
   directory: string,
   signal: AbortSignal,
 ) => Promise<string>;
+export type CompositeNativeScene = (
+  scene: string,
+  background: { clear: string; soft: string },
+  kind: "intro" | "outro",
+  frames: number,
+  fps: number,
+  width: number,
+  height: number,
+  signal: AbortSignal,
+) => AsyncIterable<Uint8Array>;
 
 // The current compositor selects the nearest raw frame at the requested cut.
 export function nativeFrameWindow(
@@ -77,11 +87,12 @@ export function nativeSceneBackgroundArgs(
   ];
 }
 
-export function nativeSceneArgs(output: string, frames: number, fps: number) {
+export function nativeSceneArgs(output: string, frames: number, fps: number, width = 1920, height = 1080, raw = false) {
   return [
     "-y",
-    "-f",
-    "image2pipe",
+    ...(raw
+      ? ["-f", "rawvideo", "-pixel_format", "bgra", "-video_size", `${width}x${height}`]
+      : ["-f", "image2pipe"]),
     "-framerate",
     String(fps),
     "-i",

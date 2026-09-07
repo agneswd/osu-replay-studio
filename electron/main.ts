@@ -1,4 +1,5 @@
 import { prepareNativeHud } from "./native-hud.js";
+import { compositeNativeScene } from "./scene-composite.js";
 import { startUpdates } from "./updates.js";
 import { captureThumbnail } from "./thumbnail.js";
 import { videoSettings } from "../core/video-options.js";
@@ -88,7 +89,7 @@ app
         process.once("SIGINT", () => active?.abort());
         process.once("SIGTERM", () => active?.abort());
         await render(options, captureWithWorker(root), active.signal, (p) =>
-          console.log(JSON.stringify(p)), credentials.getClient(), options.thumbnail ? timeline => captureThumbnail(root, timeline, options.output.replace(/\.mp4$/i, ".png"), options.overlayAccent ?? "#d4d7de", active!.signal) : undefined, prepareNativeHud(root),
+          console.log(JSON.stringify(p)), credentials.getClient(), options.thumbnail ? timeline => captureThumbnail(root, timeline, options.output.replace(/\.mp4$/i, ".png"), options.overlayAccent ?? "#d4d7de", active!.signal) : undefined, prepareNativeHud(root), compositeNativeScene,
         );
         app.exit(0);
       } catch (error) {
@@ -308,7 +309,7 @@ app
           }, credentials.getClient(), input.thumbnail ? async timeline => {
             const file = input.output.replace(/\.mp4$/i, ".png");
             await captureThumbnail(root, timeline, file, input.overlayAccent ?? "#d4d7de", signal);
-          } : undefined, prepareNativeHud(root));
+          } : undefined, prepareNativeHud(root), compositeNativeScene);
           return completed;
         });
       });

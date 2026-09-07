@@ -1,5 +1,4 @@
-import { pathToFileURL } from "node:url";
-import { nativeFrameWindow, nativeSceneArgs, nativeSceneBackgroundArgs, nativeAudioArgs, type PrepareHud } from "./native-hud.js";
+import { nativeFrameWindow, nativeSceneArgs, nativeSceneBackgroundArgs, nativeAudioArgs, type PrepareHud, type CompositeNativeScene } from "./native-hud.js";
 import { resolutions, frameRates } from "./video-options.js";
 import { constants, createWriteStream } from "node:fs";
 import {
@@ -155,6 +154,7 @@ export async function render(
   onlineClient?: OsuClient,
   thumbnail?: (timeline: Timeline) => Promise<void>,
   prepareHud?: PrepareHud,
+  compositeScene?: CompositeNativeScene,
 ): Promise<string> {
   const started = performance.now();
   const stages: { stage: string; seconds: number }[] = [];
@@ -321,12 +321,13 @@ export async function render(
       settings.Recording.Filters = window.filter + `,tpad=stop_mode=clone:stop=-1,trim=end_frame=${timing.gameplayFrames}`;
       await writeFile(settingsFile, JSON.stringify(settings));
       danserEnv.STUDIO_NATIVE_FRAME_LIMIT = String(window.end);
-      if (o.overlays.length) {
-        progress({ stage: "HUD", message: "Prepare native HUD artwork and animation" });
-        danserEnv.STUDIO_NATIVE_HUD = await prepareHud!(o, timeline, work, signal);
+      if (o.overlays.length || o.introOutro) {
+        progress({ stage: "HUD", message: o.overlays.length ? "Prepare native HUD artwork and animation" : "Prepare native scene artwork" });
+        const hud = await prepareHud!(o, timeline, work, signal);
+        if (o.overlays.length) danserEnv.STUDIO_NATIVE_HUD = hud;
       }
     }
-    log.write(`Renderer: ${native ? "native HUD, one gameplay encode" : "browser HUD"}\n`);
+    log.write(`Renderer: ${native ? "native HUD and scenes, one gameplay encode" : "browser HUD"}\n`);
     progress({ stage: "Gameplay", message: "Render gameplay with Danser" });
     await run(
       path.join(runtime, danserName),
@@ -398,20 +399,22 @@ export async function render(
       await run(runtimeTool("ffmpeg"), nativeAudioArgs(gameplay, audio, timing, o.fps, leadIn, audioFilter, musicAudio, outroAudio), signal, line => log.write(line));
       let video = gameplay;
       if (o.introOutro) {
+        if (!compositeScene || !work) throw new Error("Native scene compositing is unavailable.");
+        const compose: CompositeNativeScene = compositeScene;
+        const workDir: string = work;
         for (const kind of ["intro", "outro"] as const) {
           progress({ stage: "Scenes", message: `Render ${kind}` });
-          const start = kind === "intro" ? 0 : timing.outroStartFrame;
-          const clear = path.join(work, `${kind}-clear.png`), soft = path.join(work, `${kind}-soft.png`);
+          const clear = path.join(workDir, `${kind}-clear.png`), soft = path.join(workDir, `${kind}-soft.png`);
           await run(runtimeTool("ffmpeg"), nativeSceneBackgroundArgs(gameplay, clear, soft, kind, timing.gameplayFrames, o.fps), signal, line => log.write(line));
-          const background = { clear: pathToFileURL(clear).href, soft: pathToFileURL(soft).href };
+          const sceneFile = path.join(workDir, `scene-${kind}.json`);
           async function* sceneCapture() {
-            for await (const chunk of capture({ ...o, overlays: [] }, timeline, frames, signal, { start, end: start + timing.sceneFrames, background })) {
+            for await (const chunk of compose(sceneFile, { clear, soft }, kind, timing.sceneFrames, o.fps, o.width, o.height, signal)) {
               overlayFrames++;
               if (overlayFrames % o.fps === 0) progress({ stage: "Scenes", fraction: overlayFrames / (timing.sceneFrames * 2), message: `Render ${kind}` });
               yield chunk;
             }
           }
-          await run(runtimeTool("ffmpeg"), nativeSceneArgs(path.join(work, `${kind}.mp4`), timing.sceneFrames, o.fps), signal, line => log.write(line), work, sceneCapture());
+          await run(runtimeTool("ffmpeg"), nativeSceneArgs(path.join(workDir, `${kind}.mp4`), timing.sceneFrames, o.fps, o.width, o.height, true), signal, line => log.write(line), workDir, sceneCapture());
         }
         await run(runtimeTool("ffmpeg"), ["-y", "-i", gameplay, "-map", "0:v:0", "-an", "-c:v", "copy", path.join(work, "gameplay-video.mp4")], signal, line => log.write(line));
         // Relative fixed names keep the concat file independent of user path quoting.

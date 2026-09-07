@@ -7,6 +7,13 @@ export const introPause = 0;
 export const outroPause = 0;
 export const endFadeStart = 4.65;
 export const endFadeDuration = .6;
+
+export function sceneBlur(kind: "intro" | "outro", time: number) {
+  return Math.min(1, kind === "intro" ? 1 : time / .25, Math.max(0, (sceneDuration - time) / .45));
+}
+export function sceneFade(kind: "intro" | "outro", time: number) {
+  return kind === "intro" ? Math.max(0, 1 - time / .6) : Math.max(0, Math.min(1, (time - endFadeStart) / endFadeDuration));
+}
 export const outroMusicVolume = .5;
 export const outroMusicTransition = .25;
 

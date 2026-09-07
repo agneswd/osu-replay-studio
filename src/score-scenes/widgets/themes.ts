@@ -51,6 +51,22 @@ function mixHex(a: string, b: string, amount: number): string {
     const left = hexToRgb(a), right = hexToRgb(b);
     return "#" + left.map((channel, i) => Math.round(channel * (1 - amount) + right[i]! * amount).toString(16).padStart(2, "0")).join("");
 }
+export function scenePalette(accent: string) {
+  const palette = customAccentPalette(accent);
+  return {
+    ...palette,
+    wipeLight: mixHex(accent, "#ffffff", 0.48),
+    wipeEdge: mixHex(accent, "#121619", 0.62),
+    wipeMiddle: mixHex(accent, "#090c0f", 0.76),
+    plateTop: mixHex(accent, "#70777b", 0.38),
+    plateBottom: mixHex(accent, "#30383c", 0.52),
+    border: `${accent}55`,
+    glow: `${accent}28`,
+    overlayRgb: hexToRgb(palette.bottom),
+    ...accentTextColors(accent),
+  };
+}
+
 export function customAccentPalette(color: string): OverlayTheme {
     const r = parseInt(color.slice(1, 3), 16);
     const g = parseInt(color.slice(3, 5), 16);
