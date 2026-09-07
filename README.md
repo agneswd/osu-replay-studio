@@ -21,6 +21,9 @@ An OpenGL 3.3 graphics driver is required.
 4. Set the skin, background dim, cursor size, and video options beside the preview.
 5. Select **Render video**.
 
+Use **Layout** to position and scale the playfield independently of the background.
+You can also move, scale, and order each overlay. See the [layout guide](docs/layout.md) for examples.
+
 Videos go to your Videos folder by default. Change the folder in **Settings**.
 Select **Export thumbnail** to save a PNG to your output folder. This does not render a video.
 The outro includes short entrance sounds. Preview volume affects only the app. Export audio uses a fixed loudness target.

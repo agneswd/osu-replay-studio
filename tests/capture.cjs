@@ -44,6 +44,20 @@ app.whenReady().then(async () => {
     count++;
   }
   assert.equal(count, 2);
+  const { defaultLayout: browserLayout } = await import(pathToFileURL(path.join(root, "dist/core/layout.js")).href);
+  const movedLayout = browserLayout();
+  movedLayout.overlays["health-bar"] = { x: 120, y: 180, scale: .5, z: 3 };
+  for await (const png of captureOverlay(root)({ width: 1920, height: 1080, fps: 60, overlays: ["health-bar"], layout: movedLayout },
+    { ...timeline, health: [{ time: 0, value: .5 }] }, 1, new AbortController().signal)) {
+    const bitmap = nativeImage.createFromBuffer(png).toBitmap();
+    let inside = 0, outside = 0;
+    for (let y = 0; y < 1080; y++) for (let x = 0; x < 1920; x++) {
+      if (bitmap[(y * 1920 + x) * 4 + 3] === 0) continue;
+      if (x >= 119 && x <= 681 && y >= 179 && y <= 216) inside++; else outside++;
+    }
+    assert.ok(inside > 1000, "The browser export draws the moved, scaled health bar.");
+    assert.equal(outside, 0, "No health bar pixels remain at the default position.");
+  }
   console.log("First captured frame contains loaded replay assets.");
   const { captureWithWorker } = await import(pathToFileURL(path.join(root, "dist/electron/capture-process.js")).href);
   const isolated = captureWithWorker(root)({ width: 1920, height: 1080, fps: 60, overlays: overlayIds }, timeline, 2, new AbortController().signal);
@@ -102,6 +116,26 @@ app.whenReady().then(async () => {
     }
     assert.ok(widths[1] > widths[2] * .45 && widths[1] < widths[2] * .6, "Half HP fills half the curved bar, not the whole bar.");
     console.log("Native HUD preserves the HP percentage scale.");
+    const { defaultLayout } = await import(pathToFileURL(path.join(root, "dist/core/layout.js")).href);
+    const layout = defaultLayout();
+    layout.overlays["health-bar"] = { x: 100, y: 200, scale: .5, z: 5 };
+    const shifted = await nativeWindow.webContents.executeJavaScript(`window.createNativeHud(${JSON.stringify({ ...timeline, health: [{ time: 0, value: .5 }] })},${JSON.stringify({ fps: 60, overlays: ["health-bar"], layout })}).then(hud=>hud.batch(0,1).frames[0])`);
+    assert.equal(shifted.sprites[0].x, 100);
+    assert.equal(shifted.sprites[0].y, 200);
+    assert.equal(shifted.sprites[0].w, 560);
+    assert.equal(shifted.sprites[1].clip[1], 200);
+    assert.equal(shifted.sprites[1].clip[3], 35);
+    layout.overlays["hit-error-bar"] = { x: 50, y: 200, scale: .5, z: 1 };
+    layout.overlays["health-bar"].z = 2;
+    const timed = { ...timeline, snapshots: [{ ...timeline.snapshots[0], errors: [10] }],
+      timingHits: [{ time: 0, error: 10 }] };
+    const ordered = await nativeWindow.webContents.executeJavaScript(`window.createNativeHud(${JSON.stringify(timed)},${JSON.stringify({ fps: 60, overlays: ["hit-error-bar", "health-bar"], layout })}).then(hud=>hud.batch(1,1).frames[0])`);
+    assert.ok(ordered.ticks.length > 0, "Fixture contains timing ticks.");
+    assert.equal(ordered.tickPlacement.x, 50);
+    assert.equal(ordered.tickPlacement.y, 226);
+    assert.equal(ordered.tickPlacement.scale, .5);
+    assert.ok(ordered.tickPlacement.after < ordered.sprites.length, "Higher layers draw after the timing ticks.");
+    console.log("Native layout transforms sprites, clipping and timing ticks in layer order.");
   } finally { nativeWindow.destroy(); }
   const { captureThumbnail } = await import(pathToFileURL(path.join(root, "dist/electron/thumbnail.js")).href);
   timeline.playerCountry = "SE";

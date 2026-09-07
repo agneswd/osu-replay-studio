@@ -1,19 +1,8 @@
-const layout = {
-  "health-bar": [400, 15.75, 1280, 72, .875],
-  "player-info": [400, 14, 1280, 120, .875],
-  "pp-counter": [1166, 1008, 380, 60],
-  "accuracy-counter": [1362.5, 42.875, 180, 38, .875],
-  "combo-counter": [404, 1008, 350, 60],
-  "hit-counts": [768, 976, 384, 52],
-  "hit-error-bar": [768, 976, 384, 98],
-  leaderboard: [4, 434, 365, 414],
-  "key-overlay": [1694, 394, 226, 110],
-  "progress-graph": [8, 214, 300, 206],
-};
+const layout = window.studioLayout.overlayBounds;
 const stage = document.getElementById("stage");
 const frames = new Map();
 const endFade = document.createElement("div");
-endFade.style.cssText = "position:absolute;inset:0;background:black;z-index:100;pointer-events:none;opacity:0";
+endFade.style.cssText = "position:absolute;inset:0;background:black;z-index:101;pointer-events:none;opacity:0";
 stage.append(endFade);
 const outroBackground = document.createElement("img");
 outroBackground.alt = "";
@@ -69,7 +58,7 @@ window.prepareScenes = (timeline) => {
   if (!sceneFrame) {
     sceneFrame = document.createElement("iframe");
     sceneFrame.title = "Score intro and outro";
-    sceneFrame.style.cssText = "left:0;top:0;width:960px;height:540px;transform:scale(2);transform-origin:top left;display:none";
+    sceneFrame.style.cssText = "left:0;top:0;width:960px;height:540px;transform:scale(2);transform-origin:top left;display:none;z-index:100";
     sceneReady = new Promise((resolve, reject) => {
       sceneFrame.onload = () => { lastAccent = undefined; resolve(); };
       sceneFrame.onerror = () => reject(new Error("Could not load score animations."));
@@ -96,10 +85,15 @@ window.setReplayFrame = async (data, enabled, theme) => {
     sceneFrame.style.display = theme?.scene ? "block" : "none";
     if (theme?.scene) sceneFrame.contentWindow.seekScene(theme.scene.kind, theme.scene.time);
   }
+  const custom = window.studioLayout.normalizeLayout(theme?.layout);
   for (const [id, iframe] of frames) {
     iframe.style.display = enabled.includes(id) && hide < 1 ? "block" : "none";
     iframe.style.opacity = String(1 - hideEase);
-    const [x, y, , , scale = 1] = layout[id];
+    const [x, y, , , baseScale] = layout[id];
+    const item = custom.overlays[id], scale = baseScale * item.scale;
+    iframe.style.left = `${item.x}px`;
+    iframe.style.top = `${item.y}px`;
+    iframe.style.zIndex = String(item.z);
     iframe.style.transform = `translate(${x < 320 ? -hideEase * 35 : 0}px,${y > 900 ? hideEase * 25 : x >= 320 ? -hideEase * 25 : 0}px) scale(${scale})`;
     iframe.style.filter = `blur(${strength * 2.5}px) brightness(${1 - strength * .75})`;
     if (enabled.includes(id) && hide < 1) iframe.contentWindow.renderReplayFrame(data);
@@ -121,6 +115,7 @@ addEventListener("message", async (event) => {
   if (number !== messageNumber) return;
   if (event.source === parent && event.data?.type === "replay-frame")
     window.setReplayFrame(event.data.frame ?? window.sampleReplayFrame(window.replayTimeline, event.data.time, event.data.leaderboardSize, event.data.leaderboardSort), event.data.enabled, {
+      layout: event.data.layout,
       accent: event.data.accent,
       scene: event.data.scene,
       backgroundDim: event.data.backgroundDim,

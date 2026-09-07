@@ -1,3 +1,4 @@
+import type { VideoLayout } from "./layout.js";
 export const overlayIds = [
   "player-info",
   "pp-counter",
@@ -30,6 +31,7 @@ export interface AnalyzeInput {
   beatmap?: string;
 }
 export interface RenderOptions extends AnalyzeInput {
+  layout?: VideoLayout;
   backgroundDim?: number;
   cursorSize?: number;
   skinPath?: string;
@@ -56,6 +58,7 @@ export interface ThumbnailOptions extends ThumbnailTextOptions {
   accent: string;
 }
 export interface SavedSettings {
+  layout?: VideoLayout;
   backgroundDim?: number;
   cursorSize?: number;
   skinPath?: string;
@@ -72,6 +75,7 @@ export interface SavedSettings {
   leaderboardSort?: "pp" | "score";
 }
 export interface StudioDefaults {
+  layout?: VideoLayout;
   backgroundDim: number;
   cursorSize: number;
   skinPath: string;

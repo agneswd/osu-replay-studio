@@ -1,7 +1,8 @@
 import { displayMods } from "../core/mods.js";
+import { normalizeLayout, overlayBounds } from "../core/layout.js";
 import { timelineHitWindows } from "../core/hit-timing.js";
 import { frameAt } from "../core/timeline.js";
-import { normalizeOverlayAccent, type CounterFrame, type RenderOptions, type Timeline } from "../core/types.js";
+import { normalizeOverlayAccent, type OverlayId, type CounterFrame, type RenderOptions, type Timeline } from "../core/types.js";
 import type { HudBatch, HudFrame, HudSprite } from "../core/native-hud.js";
 
 interface Sprite {
@@ -339,6 +340,11 @@ async function create(t: Timeline, o: RenderOptions) {
       c.roundRect(2, 2, w - 4, 46, 7);
       c.stroke();
     });
+  const layout = normalizeLayout(o.layout);
+  const order = Object.keys(overlayBounds) as OverlayId[];
+  order.sort((a, b) => layout.overlays[a].z - layout.overlays[b].z);
+  let component: OverlayId = "health-bar";
+  let layers: { id: OverlayId; sprite: HudSprite }[] = [];
   let frame: HudFrame;
   const sprite = (
     s: Sprite,
@@ -351,7 +357,7 @@ async function create(t: Timeline, o: RenderOptions) {
     ticks = false,
   ) => {
     if (w <= 0 || h <= 0 || color[3] <= 0) return;
-    (ticks ? frame.ticks : frame.sprites).push({
+    const command: HudSprite = {
       asset: s.id,
       x,
       y,
@@ -359,7 +365,12 @@ async function create(t: Timeline, o: RenderOptions) {
       h,
       color,
       clip,
-    });
+    };
+    if (ticks) frame.ticks.push(command);
+    else {
+      frame.sprites.push(command);
+      layers.push({ id: component, sprite: command });
+    }
   };
   const rect = (
     x: number,
@@ -449,10 +460,28 @@ async function create(t: Timeline, o: RenderOptions) {
       (w, c) => w + size * (/\d/.test(c) ? 0.62 : 0.25),
       0,
     );
+  function applyLayout(frame: HudFrame): HudFrame {
+    layers.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
+    frame.sprites = layers.map(({ id, sprite: item }) => {
+      const target = layout.overlays[id], [x, y] = overlayBounds[id], scale = target.scale;
+      return { ...item, x: target.x + (item.x - x) * scale, y: target.y + (item.y - y) * scale,
+        w: item.w * scale, h: item.h * scale,
+        clip: item.clip ? [target.x + (item.clip[0] - x) * scale, target.y + (item.clip[1] - y) * scale,
+          item.clip[2] * scale, item.clip[3] * scale] : undefined };
+    });
+    if (frame.ticks.length) {
+      const target = layout.overlays["hit-error-bar"];
+      frame.tickPlacement = { x: target.x, y: target.y + 52 * target.scale, scale: target.scale,
+        after: layers.findLastIndex(layer => layer.id === "hit-error-bar") + 1 };
+    }
+    return frame;
+  }
   function draw(seconds: number): HudFrame {
     const f = frameAt(t, seconds, o.leaderboardSize, o.leaderboardSort),
       g = f.gameplay;
     frame = { sprites: [], ticks: [] };
+    layers = [];
+    component = "health-bar";
     if (enabled.has("health-bar")) {
       sprite(
         g.hp.normal === null ? hpUnavailable : hpTrack,
@@ -475,6 +504,7 @@ async function create(t: Timeline, o: RenderOptions) {
       if (g.hp.normal === null)
         text("HP unavailable", 1504, 72.625, 10.5, muted, 1, "right");
     }
+    component = "player-info";
     if (enabled.has("player-info")) {
       const x = (v: number) => 400 + v * 0.875,
         y = (v: number) => 14 + v * 0.875;
@@ -506,6 +536,7 @@ async function create(t: Timeline, o: RenderOptions) {
         31,
       ]);
     }
+    component = "accuracy-counter";
     if (enabled.has("accuracy-counter")) {
       text(
         gradeLabel(g.grade),
@@ -533,6 +564,7 @@ async function create(t: Timeline, o: RenderOptions) {
       );
       text("%", 1475, 47, size, white, 1, "right");
     }
+    component = "combo-counter";
     if (enabled.has("combo-counter")) {
       const w = Math.max(
           92,
@@ -544,6 +576,7 @@ async function create(t: Timeline, o: RenderOptions) {
       const end = digits(g.combo.current, x + (w - contentWidth) / 2, 1025, 30, f.counters?.combo);
       text("x", end, 1027, 28);
     }
+    component = "pp-counter";
     if (enabled.has("pp-counter")) {
       const suffix = ` / ${number(g.pp.fc)}pp`,
         w = 36 + digitWidth(g.pp.current, 30) + width(suffix, 28);
@@ -551,6 +584,7 @@ async function create(t: Timeline, o: RenderOptions) {
       const end = digits(g.pp.current, 1194, 1021, 30, f.counters?.pp);
       text(suffix, end, 1023, 28);
     }
+    component = "hit-counts";
     if (enabled.has("hit-counts")) {
       const values = [
         g.hits.sliderBreaks,
@@ -583,6 +617,7 @@ async function create(t: Timeline, o: RenderOptions) {
         );
       });
     }
+    component = "hit-error-bar";
     if (enabled.has("hit-error-bar")) {
       text("UR", 960, 976, 16, white, 1, "center");
       const ur = Math.round(f.play.unstableRate);
@@ -625,6 +660,7 @@ async function create(t: Timeline, o: RenderOptions) {
         1053,
       );
     }
+    component = "progress-graph";
     if (enabled.has("progress-graph")) {
       sprite(density, 8, 214, 300, 160, rgb(accent, 0.32));
       const progress = Math.max(0, Math.min(1, seconds / t.duration));
@@ -653,6 +689,7 @@ async function create(t: Timeline, o: RenderOptions) {
           p * m.progress,
         );
     }
+    component = "key-overlay";
     if (enabled.has("key-overlay"))
       for (const [i, lane] of (f.keys ?? []).entries()) {
         const y = 398 + i * 54;
@@ -671,6 +708,7 @@ async function create(t: Timeline, o: RenderOptions) {
         text(String(lane.count), 1880, y + 3, 15);
         text(`k${i + 1}`, 1880, y + 19, 12, muted);
       }
+    component = "leaderboard";
     if (enabled.has("leaderboard")) {
       const rows = f.leaderboard?.rows ?? [],
         pinned = rows.some((r) => r.current && r.slot === 7),
@@ -787,7 +825,7 @@ async function create(t: Timeline, o: RenderOptions) {
   return {
     batch(start: number, count: number): HudBatch {
       const frames = Array.from({ length: count }, (_, i) =>
-        draw((start + i) / o.fps),
+        applyLayout(draw((start + i) / o.fps)),
       );
       const fresh = assets;
       assets = [];
