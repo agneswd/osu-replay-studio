@@ -1,24 +1,33 @@
 # Video layout
 
-Open **Layout** below the overlay controls. Select the playfield or an overlay from **Element**.
-Enter a value, then press Enter or leave the field to apply it.
-The preview updates when you apply a value. The app saves the layout for later replays and exports.
+Choose **Edit layout** below the preview. Playback pauses so you can select and edit gameplay elements.
+If an intro or outro is visible, the editor moves to gameplay.
 
-![Layout controls](images/layout-controls.png)
+Click an element and drag to move it. Drag a corner handle to resize it without changing its proportions.
+The preview updates while you drag. The app saves the layout when you release the pointer.
+Choose **Done editing** to return to normal preview controls.
 
-All coordinates use a 1920 x 1080 design canvas. The app scales these coordinates to the selected video resolution.
+**Player info** includes accuracy during editing. **Hit error** includes hit counts.
+Moving, resizing, resetting, or changing the layer applies to both overlays in each group.
+Their visibility checkboxes remain separate.
 
-For the playfield, **X position** and **Y position** set the center. **Scale** accepts 10% to 200%.
-The background keeps its aspect ratio and fills the canvas. Playfield changes do not move or scale the background.
-Background videos and storyboards remain disabled.
+![Visual layout editor](images/layout-editor.png)
 
-For an overlay, X and Y set the top-left corner of its container. Content can have internal alignment and padding.
-Scale accepts 25% to 300%. **Layer** accepts 0 to 99. Higher layers appear in front of lower layers.
-Elements on the same layer use their default draw order. Overlays stay above gameplay and below score scenes.
-Use the existing **Overlays** checkboxes to show or hide each element.
+Right-click for **Reset element**, **Reset layout**, **Bring to front**, and **Send to back**.
+The reset action uses the selected element's name. Resetting a layout does not change overlay visibility.
+Use **Select element** in the same menu to reach an overlapping or off-canvas element.
+Alt-click cycles through overlapping elements. Arrow keys move the selection by one design pixel; Shift uses ten pixels.
+Escape cancels an active drag. Shift+F10 opens the selection menu from the keyboard.
 
-**Reset element** restores only the selected element. **Reset layout** restores all positions, scales, and layers.
-Neither reset changes overlay visibility.
+![Layout context menu](images/layout-context.png)
+
+The background fills the canvas independently of playfield position and scale.
+Background videos and storyboards remain disabled. Overlays stay above gameplay and below score scenes.
+Use the existing **Overlays** checkboxes to show or hide elements.
+
+Layouts retain the 1920 x 1080 design canvas across preview and export resolutions.
+Playfield scale supports 10% to 200%; overlay scale supports 25% to 300%.
+Existing saved layouts continue to work.
 
 ## Example
 
