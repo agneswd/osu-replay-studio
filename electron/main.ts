@@ -1,3 +1,4 @@
+import { normalizeLayout } from "../core/layout.js";
 import { prepareNativeHud } from "./native-hud.js";
 import { startUpdates } from "./updates.js";
 import { captureThumbnail } from "./thumbnail.js";
@@ -141,6 +142,7 @@ app
       function writeSettings(patch: SavedSettings): Promise<SavedSettings> {
         const write = settingsWrite.catch(() => {}).then(async () => {
           const next = { ...(await loadSettings()), ...patch };
+          if (patch.layout !== undefined) next.layout = normalizeLayout(patch.layout);
           await mkdir(path.dirname(settingsFile), { recursive: true });
           await writeFile(`${settingsFile}.tmp`, JSON.stringify(next, null, 2));
           await rename(`${settingsFile}.tmp`, settingsFile);
@@ -194,6 +196,7 @@ app
           danserFound: Boolean(danser),
           outputDir,
           ...videoSettings(saved),
+          layout: normalizeLayout(saved.layout),
           overlays: Array.isArray(saved.overlays)
             ? saved.overlays.filter((id) => overlayIds.includes(id))
             : [...defaultOverlayIds],

@@ -24,7 +24,14 @@ type studioSprite struct {
 	Color      [4]float32
 	Clip       []float64
 }
-type studioFrame struct{ Sprites, Ticks []studioSprite }
+type studioTickPlacement struct {
+	X, Y, Scale float64
+	After       int
+}
+type studioFrame struct {
+	Sprites, Ticks []studioSprite
+	TickPlacement  *studioTickPlacement
+}
 type studioData struct {
 	FPS, Speed float64
 	Assets     []string
@@ -48,6 +55,7 @@ var studioHUD *studioRenderer
 func init() {
 	if os.Getenv("STUDIO_NATIVE_PROBE") == "1" {
 		fmt.Println("STUDIO_NATIVE_HUD 1")
+		fmt.Println("STUDIO_LAYOUT 1")
 	}
 }
 
@@ -147,7 +155,12 @@ func (player *Player) drawStudioHUD() {
 	b.SetAdditive(false)
 	b.SetCamera(mgl32.Ortho(0, 1920, 1080, 0, 1, -1))
 	b.Begin()
-	draw(r.frame.Sprites, settings.Graphics.GetWidthF()/1920, settings.Graphics.GetHeightF()/1080, 1080)
+	split := len(r.frame.Sprites)
+	placement := r.frame.TickPlacement
+	if placement != nil {
+		split = max(0, min(placement.After, split))
+	}
+	draw(r.frame.Sprites[:split], settings.Graphics.GetWidthF()/1920, settings.Graphics.GetHeightF()/1080, 1080)
 	b.End()
 	if len(r.frame.Ticks) > 0 {
 		var viewport [4]int32
@@ -165,8 +178,17 @@ func (player *Player) drawStudioHUD() {
 		b.SetCamera(mgl32.Ortho(0, 1920, 1080, 0, 1, -1))
 		b.Begin()
 		b.SetPremultiplied(true)
-		b.DrawStObject(vector.NewVec2d(768, 1028), vector.TopLeft, vector.NewVec2d(.5, .5), false, true, 0, color.NewRGBA(1, 1, 1, 1), false, r.ticks.Texture().GetRegion())
+		x, y, scale := 768.0, 1028.0, .5
+		if placement != nil {
+			x, y, scale = placement.X, placement.Y, placement.Scale*.5
+		}
+		b.DrawStObject(vector.NewVec2d(x, y), vector.TopLeft, vector.NewVec2d(scale, scale), false, true, 0, color.NewRGBA(1, 1, 1, 1), false, r.ticks.Texture().GetRegion())
 		b.SetPremultiplied(false)
+		b.End()
+	}
+	if split < len(r.frame.Sprites) {
+		b.Begin()
+		draw(r.frame.Sprites[split:], settings.Graphics.GetWidthF()/1920, settings.Graphics.GetHeightF()/1080, 1080)
 		b.End()
 	}
 	b.ResetTransform()

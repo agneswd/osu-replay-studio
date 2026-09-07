@@ -43,7 +43,7 @@ export function captureOverlay(root: string): Capture {
         signal.throwIfAborted();
         const position = presentationAt(timeline, i / options.fps, options.fps, options.introOutro, Math.min(options.duration ?? timeline.duration, timeline.duration));
         await win.webContents.executeJavaScript(
-          `window.setReplayFrame(window.sampleReplayFrame(window.replayTimeline,${position.gameplayTime},${options.leaderboardSize ?? 50},${JSON.stringify(options.leaderboardSort ?? "pp")}),${JSON.stringify(options.overlays)},${JSON.stringify({ accent: normalizeOverlayAccent(options.overlayAccent ?? defaultOverlayAccent), scene: position.scene, backgroundDim: options.backgroundDim })})`,
+          `window.setReplayFrame(window.sampleReplayFrame(window.replayTimeline,${position.gameplayTime},${options.leaderboardSize ?? 50},${JSON.stringify(options.leaderboardSort ?? "pp")}),${JSON.stringify(options.overlays)},${JSON.stringify({ layout: options.layout, accent: normalizeOverlayAccent(options.overlayAccent ?? defaultOverlayAccent), scene: position.scene, backgroundDim: options.backgroundDim })})`,
         );
         if (i === (range?.start ?? 0)) {
           // The first update creates player rows and starts their image and font loads.

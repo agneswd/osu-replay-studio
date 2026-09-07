@@ -3,6 +3,15 @@ import { readFile, writeFile } from "node:fs/promises";
 const file = "node_modules/replayviewer-js/dist/index.js";
 let source = await readFile(file, "utf8");
 const changes = [
+  ['    this._ruleset.draw(ctx, this._session, timeMs, options);', `    ctx.save();
+    const field = options.studioPlayfield;
+    if (field) {
+      ctx.translate(field.x, field.y);
+      ctx.scale(field.scale, field.scale);
+      ctx.translate(-640, -360);
+    }
+    this._ruleset.draw(ctx, this._session, timeMs, options);
+    ctx.restore();`],
   ['function drawJudgements(ctx, results, timeMs, skin, mode = "std", circleRadiusOsuPx) {', `const popupCache = new WeakMap();
 function drawJudgements(
   ctx, results, timeMs, skin, mode = "std", circleRadiusOsuPx) {
@@ -28,7 +37,8 @@ function drawJudgements(
   ['ctx.fillStyle = "#1a1a2e";', 'ctx.fillStyle = "#000000";'],
 ];
 for (const [before, after] of changes) {
+  if (source.includes(after)) continue;
   if (source.includes(before)) source = source.replace(before, after);
-  else if (!source.includes(after)) throw new Error("The replay renderer changed. Review its preview patch.");
+  else throw new Error("The replay renderer changed. Review its preview patch.");
 }
 await writeFile(file, source);

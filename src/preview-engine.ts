@@ -1,3 +1,4 @@
+import { normalizeLayout, type VideoLayout } from "../core/layout.js";
 import { AudioSync, Renderer, Player, TimeMapper, parseReplay, parseBeatmap, computeModDifficulty, applyStacking, loadSkin, buildSkin, type SkinAssets } from "replayviewer-js";
 import { unzipSync, strFromU8 } from "fflate";
 import { cursorExpansion } from "../core/cursor.js";
@@ -61,6 +62,10 @@ export class PreviewEngine {
     }
   }
   cursorSize(size: number) { this.size = size; }
+  layout(value?: VideoLayout) {
+    const field = normalizeLayout(value).playfield;
+    Object.assign(this.renderer.options, { studioPlayfield: { x: field.x / 1.5, y: field.y / 1.5, scale: field.scale } });
+  }
   draw(seconds: number, speed: number, dim: number) {
     if (this.disposed) return;
     // Danser uses a 768 px playfield at 720p. The preview uses 720 px.

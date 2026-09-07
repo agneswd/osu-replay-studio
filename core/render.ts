@@ -1,3 +1,4 @@
+import { danserPlayfield, validateLayout } from "./layout.js";
 import { pathToFileURL } from "node:url";
 import { nativeFrameWindow, nativeSceneArgs, nativeSceneBackgroundArgs, nativeAudioArgs, type PrepareHud } from "./native-hud.js";
 import { resolutions, frameRates } from "./video-options.js";
@@ -32,6 +33,7 @@ import {
 } from "./types.js";
 
 export function validateOptions(o: RenderOptions) {
+  validateLayout(o?.layout);
   if (
     !o ||
     typeof o.danser !== "string" ||
@@ -268,6 +270,7 @@ export async function render(
           libx264: { CRF: 18, Preset: "fast" },
         },
         Playfield: {
+          ...danserPlayfield(o.layout),
           LeadInTime: 0,
           LeadInHold: 0,
           FadeOutTime: 1,
@@ -312,7 +315,7 @@ export async function render(
         "This render clock requires Danser 0.11.0.",
       );
     const leadIn = 1 + timeline.preempt / 1000 / timeline.speed;
-    native = !!prepareHud && version.includes("STUDIO_NATIVE_HUD 1");
+    native = !!prepareHud && version.includes("STUDIO_NATIVE_HUD 1") && (!o.layout || version.includes("STUDIO_LAYOUT 1"));
     if (native) {
       const window = nativeFrameWindow(leadIn, timing.startFrame, timing.gameplayFrames, o.fps);
       const settingsFile = path.join(runtime, "settings", "studio.json");
