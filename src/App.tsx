@@ -1,3 +1,4 @@
+import { LayoutControls } from "./LayoutControls.js";
 import { ThumbnailDialog } from "./ThumbnailDialog.js";
 import type { ThumbnailTextOptions } from "../core/types.js";
 import type { UpdateStatus } from "../electron/updates.js";
@@ -275,6 +276,7 @@ export function App() {
           leaderboardSort: options.leaderboardSort,
           leaderboardSize: options.leaderboardSize,
           backgroundDim: options.backgroundDim,
+          layout: options.layout,
           scene: position?.scene,
           enabled: options.overlays,
           accent: options.overlayAccent || defaultOverlayAccent,
@@ -282,10 +284,13 @@ export function App() {
         "*",
       );
   };
-  useEffect(sendFrame, [timeline, time, options?.overlays, options?.overlayAccent, options?.introOutro, options?.fps, options?.leaderboardSize, options?.leaderboardSort, options?.backgroundDim]);
+  useEffect(sendFrame, [timeline, time, options?.overlays, options?.overlayAccent, options?.introOutro, options?.fps, options?.leaderboardSize, options?.leaderboardSort, options?.backgroundDim, options?.layout]);
   useEffect(() => {
-    if (engine && timeline) engine.draw(position?.gameplayTime ?? time, timeline.speed, options?.backgroundDim ?? .95);
-  }, [time, timeline, engine, options?.introOutro, options?.fps, options?.backgroundDim]);
+    if (engine && timeline) {
+      engine.layout(options?.layout);
+      engine.draw(position?.gameplayTime ?? time, timeline.speed, options?.backgroundDim ?? .95);
+    }
+  }, [time, timeline, engine, options?.introOutro, options?.fps, options?.backgroundDim, options?.layout]);
 
   function patch(next: Partial<StudioDefaults>) {
     setOptions((old) => old && { ...old, ...next });
@@ -294,6 +299,7 @@ export function App() {
   async function persist(next: Partial<StudioDefaults>) {
     patch(next);
     const saved: SavedSettings = {};
+    if (next.layout !== undefined) saved.layout = next.layout;
     if (next.backgroundDim !== undefined) saved.backgroundDim = next.backgroundDim;
     if (next.cursorSize !== undefined) saved.cursorSize = next.cursorSize;
     if (next.skinPath !== undefined) saved.skinPath = next.skinPath;
@@ -436,6 +442,7 @@ export function App() {
         skinPath: current.skinPath,
         backgroundDim: current.backgroundDim,
         cursorSize: current.cursorSize,
+        layout: current.layout,
         output: target,
         width: current.width,
         height: current.height,
@@ -611,6 +618,7 @@ export function App() {
                   </Select>
                 </Hint>
                 </div>
+                <LayoutControls value={options.layout} disabled={busy} labels={labels} onChange={layout => void persist({ layout })} />
       </aside>
   ) : null, [options, busy, skins]);
 

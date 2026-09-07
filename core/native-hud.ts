@@ -13,6 +13,7 @@ export interface HudSprite {
 export interface HudFrame {
   sprites: HudSprite[];
   ticks: HudSprite[];
+  tickPlacement?: { x: number; y: number; scale: number; after: number };
 }
 export interface HudBatch {
   frames: HudFrame[];
