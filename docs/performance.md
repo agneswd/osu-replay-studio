@@ -194,3 +194,20 @@ Run `benchmarks/capture-responsiveness.cjs` with Electron, selecting `direct` or
 
 Scene background PNGs use an explicit sRGB transfer tag. A capture test checks that Chromium preserves their brightness.
 The bundled renderer keeps background dim constant while gameplay objects fade. Scene joins no longer pass through black.
+
+### Native composition and app response
+
+Native composition now runs in the separate capture process. Both the desktop app and CLI use this path.
+One frame crosses the process boundary at a time. Cancellation stops the worker and removes its temporary profile.
+
+A 324-frame intro check at 1080p60 compared direct composition with the isolated worker:
+
+| Composition location | Time including pixel hashing | 99th-percentile main-thread delay | Maximum delay |
+| --- | ---: | ---: | ---: |
+| App process | 5.85 s | 772.80 ms | 772.80 ms |
+| Separate process | 8.40 s | 5.91 ms | 30.85 ms |
+
+The decoded frame hashes matched. Cancellation after three frames also passed.
+Process startup and frame transfer add time, but the pixel loops no longer block the app process.
+These results supersede direct-composition timings for app response. They exclude asset preparation and video encoding.
+Run `benchmarks/native-scene-responsiveness.cjs` with Electron for a repeatable comparison.
