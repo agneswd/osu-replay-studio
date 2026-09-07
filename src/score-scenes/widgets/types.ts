@@ -25,6 +25,7 @@ export interface OverlayScoreDetails {
     count300: number;
     count100: number;
     count50: number;
+    sliderBreaks?: number;
     countMiss: number;
     playedAtAgo: string;
     mods: string[];

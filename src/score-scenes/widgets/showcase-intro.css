@@ -312,7 +312,10 @@
 }
 
 .showcase-player-flag {
-  line-height: 1;
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+  display: block;
 }
 
 .showcase-player-crank {
@@ -666,4 +669,5 @@
   z-index: 3;
 }
 
-.showcase-hit-box.h50 { background: #65b9df; }
+.showcase-hit-box.h50 { background: #E8C547; }
+.showcase-hit-box.hsb { background: #8B8F98; }
