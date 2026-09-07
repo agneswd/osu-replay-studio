@@ -63,7 +63,7 @@ export function nativeSceneBackgroundArgs(
     "-i",
     gameplay,
     "-filter_complex",
-    `[0:v]fps=${fps},trim=end_frame=1,split[clear][source];[source]gblur=sigma=8,lutrgb=r=val*0.55:g=val*0.55:b=val*0.55[soft]`,
+    `[0:v]fps=${fps},trim=end_frame=1,setparams=color_trc=iec61966-2-1,split[clear][source];[source]gblur=sigma=8,lutrgb=r=val*0.55:g=val*0.55:b=val*0.55[soft]`,
     "-map",
     "[clear]",
     "-frames:v",

@@ -107,6 +107,26 @@ app.whenReady().then(async () => {
   timeline.playerCountry = "SE";
   const work = await fs.mkdtemp(path.join(os.tmpdir(), "studio-thumbnail-"));
   try {
+    const { spawnSync } = require("node:child_process");
+    const { runtimeTool } = await import(pathToFileURL(path.join(root, "dist/core/runtime.js")).href);
+    const { nativeSceneBackgroundArgs } = await import(pathToFileURL(path.join(root, "dist/core/native-hud.js")).href);
+    const ffmpeg = args => {
+      const result = spawnSync(runtimeTool("ffmpeg"), ["-v", "error", ...args], { timeout: 15000 });
+      assert.equal(result.status, 0, result.stderr.toString());
+      return result.stdout;
+    };
+    const source = path.join(work, "background.mp4"), clear = path.join(work, "clear.png"), soft = path.join(work, "soft.png");
+    ffmpeg(["-f", "lavfi", "-i", "color=0x404040:s=16x16:r=30:d=1", "-c:v", "libx264", source]);
+    const expected = ffmpeg(["-i", source, "-frames:v", "1", "-f", "rawvideo", "-pix_fmt", "rgb24", "-"])[0];
+    ffmpeg(nativeSceneBackgroundArgs(source, clear, soft, "intro", 30, 30));
+    for await (const png of captureWithWorker(root)(
+      { width: 320, height: 180, fps: 30, overlays: [] }, timeline, 1, new AbortController().signal,
+      { start: 0, end: 1, background: { clear: pathToFileURL(clear).href, soft: pathToFileURL(soft).href } },
+    )) {
+      const actual = nativeImage.createFromBuffer(Buffer.from(png)).toBitmap()[(90 * 320 + 160) * 4];
+      assert.ok(Math.abs(actual - expected) <= 1, `Scene backgrounds retain video brightness: ${actual} vs ${expected}.`);
+    }
+    console.log("Scene backgrounds retain their brightness through Chromium.");
     const file = path.join(work, "score.png");
     await captureThumbnail(root, { ...timeline, sceneInfo: { title: "Capture check", artist: "Artist", maxCombo: 12, score: timeline.snapshots[0] } }, file, "#d4d7de", new AbortController().signal);
     const image = nativeImage.createFromPath(file);

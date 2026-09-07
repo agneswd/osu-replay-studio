@@ -17,7 +17,7 @@ endFade.style.cssText = "position:absolute;inset:0;background:black;z-index:100;
 stage.append(endFade);
 const outroBackground = document.createElement("img");
 outroBackground.alt = "";
-outroBackground.style.cssText = "position:absolute;inset:-20px;width:1960px;height:1120px;object-fit:cover;display:none;pointer-events:none";
+outroBackground.style.cssText = "position:absolute;inset:0;width:1920px;height:1080px;object-fit:cover;display:none;pointer-events:none";
 stage.append(outroBackground);
 const requestedOverlays = new URLSearchParams(location.search).get("overlays")?.split(",");
 window.overlayReady = Promise.all(
@@ -87,9 +87,9 @@ window.setReplayFrame = async (data, enabled, theme) => {
   if (heldBackground) heldBackground.style.opacity = String(strength);
   const hide = scene?.kind === "outro" ? Math.min(1, scene.time / .3) : 0;
   const dim = theme?.backgroundDim ?? .95;
-  outroBackground.style.display = scene && outroBackground.getAttribute("src") ? "block" : "none";
-  outroBackground.style.opacity = String(scene?.kind === "intro" ? strength * Math.max(0, (dim - .72) / .28) : Math.min(1, (scene?.time ?? 0) / .25));
-  outroBackground.style.filter = `blur(${strength * 8}px) brightness(${scene?.kind === "intro" ? .12 : 1 - dim})`;
+  outroBackground.style.display = !heldBackground && scene && outroBackground.getAttribute("src") ? "block" : "none";
+  outroBackground.style.opacity = String(scene?.kind === "intro" ? 1 : Math.min(1, (scene?.time ?? 0) / .25));
+  outroBackground.style.filter = `blur(${strength * 8}px) brightness(${(1 - dim) * (1 - strength * .45)})`;
   endFade.style.opacity = String(scene?.kind === "intro" ? Math.max(0, 1 - scene.time / .6) : scene?.kind === "outro" ? Math.max(0, Math.min(1, (scene.time - 4.65) / .6)) : 0);
   const hideEase = 1 - (1 - hide) ** 3;
   if (sceneFrame) {

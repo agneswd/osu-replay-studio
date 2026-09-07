@@ -172,3 +172,11 @@ func (player *Player) drawStudioHUD() {
 	b.ResetTransform()
 	b.SetColor(1, 1, 1, 1)
 }
+
+// Studio controls the video fades. Keep the gameplay background at its selected dim.
+func studioBackgroundAlpha(value float64) float64 {
+	if os.Getenv("STUDIO_NATIVE_FRAME_LIMIT") != "" {
+		return 1 - settings.Playfield.Background.Dim.Normal
+	}
+	return value
+}

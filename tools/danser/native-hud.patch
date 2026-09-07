@@ -18,9 +18,18 @@ index 76376c5..dcaa00f 100644
  				errorMsg := err2.Error()
  
 diff --git a/app/states/player.go b/app/states/player.go
-index 9d674ba..e6b722b 100644
+index 9d674ba..1f5bde4 100644
 --- a/app/states/player.go
 +++ b/app/states/player.go
+@@ -844,7 +844,7 @@ func (player *Player) DrawMain(float64) {
+ 	objectCameras := player.objectCamera.GenRotated(settings.DIVIDES, -2*math.Pi/float64(settings.DIVIDES))
+ 	cursorCameras := player.mainCamera.GenRotated(settings.DIVIDES, -2*math.Pi/float64(settings.DIVIDES))
+ 
+-	bgAlpha := player.dimGlider.GetValue()
++	bgAlpha := studioBackgroundAlpha(player.dimGlider.GetValue())
+ 	if settings.Playfield.Background.FlashToTheBeat {
+ 		bgAlpha = mutils.Clamp(bgAlpha*player.Scl, 0, 1)
+ 	}
 @@ -963,6 +963,7 @@ func (player *Player) Draw(d float64) {
  	profiler.StartGroup("Player.Draw", profiler.PDraw)
  

@@ -129,3 +129,6 @@ A 120-frame scene test at 1080p60 measured main-thread delays with a 1 ms sampli
 
 These results measure event-loop response, not input-to-display latency. Shared CPU and GPU load can still affect the desktop.
 Run `benchmarks/capture-responsiveness.cjs` with Electron, selecting `direct` or `isolated`, then a timeline JSON and background PNG.
+
+Scene background PNGs use an explicit sRGB transfer tag. A capture test checks that Chromium preserves their brightness.
+The bundled renderer keeps background dim constant while gameplay objects fade. Scene joins no longer pass through black.
