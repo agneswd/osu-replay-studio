@@ -14,6 +14,8 @@ Replay Studio is licensed under GPL-3.0-only. Separate components retain their o
 | fflate | MIT | [101arrowz/fflate](https://github.com/101arrowz/fflate) |
 | Plus Jakarta Sans | OFL-1.1 | [Tokotype](https://github.com/tokotype/PlusJakartaSans) |
 | Teko | OFL-1.1 | [Google Fonts](https://github.com/googlefonts/teko) |
+| Fredoka | OFL-1.1 | [Fredoka Project](https://github.com/hafontia/Fredoka-One) |
+| Montserrat | OFL-1.1 | [Montserrat Project](https://github.com/JulietaUla/Montserrat) |
 | Baloo 2 | OFL-1.1 | [Ek Type](https://github.com/EkType/Baloo2) |
 | Electron | MIT | [electron/electron](https://github.com/electron/electron) |
 | React | MIT | [facebook/react](https://github.com/facebook/react) |

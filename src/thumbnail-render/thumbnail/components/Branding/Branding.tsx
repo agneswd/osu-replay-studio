@@ -1,14 +1,39 @@
+import { EditableText, useEditingText } from "../../../editable-text.js";
 import { fitFontSize } from "../Text/fit";
 import type { CSSProperties, ReactNode } from "react";
-import type { BottomMessageConfig } from "../../types";
+import { resolveAssetUrl } from "../../../shared/assets/assetUrl";
+import type { TwitchLogoConfig, BottomMessageConfig } from "../../types";
 import { layerStyle } from "../Layer";
 import { softGlow, TEXT_SHADOW_3D } from "../../../shared/formatting/color";
+export function TwitchLogo({ config }: {
+    config: TwitchLogoConfig;
+}) {
+    if (!config.visible)
+        return null;
+    const asset = resolveAssetUrl(config.asset);
+    return (<div style={layerStyle(config, {
+            width: config.size,
+            height: config.size,
+            borderRadius: config.radius,
+            background: config.background,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+        })} data-layer="twitch-logo">
+      {asset ? (<img src={asset} alt="Twitch" style={{
+                width: "58%",
+                height: "58%",
+                filter: config.tint ? "none" : "brightness(0) invert(1)",
+            }}/>) : null}
+    </div>);
+}
 export function BottomMessage({ text, accentRange, config, }: {
     text: string;
     accentRange?: { start: number; end: number };
     config: BottomMessageConfig;
 }) {
-    if (!config.visible || text === "")
+    const editing = useEditingText("bottom-message");
+    if (!config.visible || (text === "" && !editing))
         return null;
     const glow = config.highlightedGlow
         ? softGlow(config.highlightedGlow.color ?? config.highlightedColor, config.highlightedGlow.blur, config.highlightedGlow.layers ?? 3)
@@ -31,9 +56,16 @@ export function BottomMessage({ text, accentRange, config, }: {
     else {
         content = <span style={{ color: config.prefixColor, textShadow: TEXT_SHADOW_3D }}>{text}</span>;
     }
-    return (<div style={layerStyle(config, {
+    return (<EditableText id="bottom-message" onInput={event => {
+        // Text edits clear the accent range without replacing the caret's text nodes.
+        for (const span of Array.from(event.currentTarget.querySelectorAll("span"))) {
+            span.style.color = "inherit"; span.style.textShadow = "inherit";
+        }
+    }} style={layerStyle(config, {
             width: config.width,
             textAlign: "center",
+            color: config.prefixColor,
+            textShadow: TEXT_SHADOW_3D,
             fontFamily: config.fontFamily,
             fontSize: config.width ? fitFontSize(text, config, config.width, 12) : config.fontSize,
             fontWeight: config.fontWeight,
@@ -41,5 +73,5 @@ export function BottomMessage({ text, accentRange, config, }: {
             whiteSpace: "pre",
         })} data-layer="bottom-message">
       {content}
-    </div>);
+    </EditableText>);
 }

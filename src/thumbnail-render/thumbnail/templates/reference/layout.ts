@@ -263,6 +263,15 @@ export const referenceLayout: ReferenceTemplateComponents = {
             NC: { bg: "#7A5CFF", fg: "light" },
         },
     },
+    twitchLogo: {
+        visible: true,
+        x: 28,
+        y: 610,
+        size: 94,
+        radius: 20,
+        asset: "/assets/twitch/twitch-glitch.svg",
+        background: c.twitch,
+    },
     bottomMessage: {
         visible: true,
         x: 140,

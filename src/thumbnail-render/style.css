@@ -1,5 +1,16 @@
 @font-face { font-family: "Baloo 2"; src: url("../../overlays/thumbnail/baloo-2-latin-400-normal.woff2"); font-weight: 400; }
 @font-face { font-family: "Baloo 2"; src: url("../../overlays/thumbnail/baloo-2-latin-700-normal.woff2"); font-weight: 600 700; }
-html, body { margin: 0; background: #141414; overflow: hidden; }
+
 #thumbnail-root { position: relative; width: 1280px; height: 720px; overflow: hidden; -webkit-font-smoothing: antialiased; }
 #thumbnail-root, #thumbnail-root * { box-sizing: border-box; }
+
+#thumbnail-root { user-select: none; }
+#thumbnail-root * { animation: none !important; transition: none !important; }
+@font-face { font-family: "Fredoka"; src: url("../../overlays/thumbnail/fredoka-latin-400-normal.woff2"); font-weight: 400; }
+@font-face { font-family: "Fredoka"; src: url("../../overlays/thumbnail/fredoka-latin-600-normal.woff2"); font-weight: 600; }
+@font-face { font-family: "Fredoka"; src: url("../../overlays/thumbnail/fredoka-latin-700-normal.woff2"); font-weight: 700; }
+@font-face { font-family: "Montserrat"; src: url("../../overlays/thumbnail/montserrat-latin-400-normal.woff2"); font-weight: 400; }
+@font-face { font-family: "Montserrat"; src: url("../../overlays/thumbnail/montserrat-latin-600-normal.woff2"); font-weight: 600; }
+@font-face { font-family: "Montserrat"; src: url("../../overlays/thumbnail/montserrat-latin-700-normal.woff2"); font-weight: 700; }
+
+.thumbnail-scene { font-size: 16px; font-family: Arial, sans-serif; line-height: normal; letter-spacing: normal; color: #fff; }
