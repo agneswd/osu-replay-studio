@@ -25,3 +25,7 @@ await compile({
   entryPoints: ["src/native-hud.ts"], outfile: "overlays/native-hud.js",
   bundle: true, minify: true, format: "iife", target: "chrome120",
 });
+await compile({
+  entryPoints: ["src/native-scenes.ts"], outfile: "overlays/native-scenes.js",
+  bundle: true, minify: true, format: "iife", target: "chrome120",
+});

@@ -1,34 +1,12 @@
 import type { OverlayData } from "./types";
 import type { OverlayNode } from "./OverlayWidget";
 import type { ShowcaseNode } from "./ShowcaseIntroWidget";
+export { easeMotionDecel, OVERLAY_TOTAL_CYCLE, SHOWCASE_INTRO_TOTAL_CYCLE } from "./motion";
+import { easeMotionDecel, clampProgress, easeOutCubic } from "./motion";
 
 export interface OverlayNodeSource {
     get(name: OverlayNode): Element | null;
 }
-
-export const OVERLAY_TOTAL_CYCLE = 5.4;
-
-// Evaluate cubic-bezier(0.16, 1, 0.3, 1).
-export function easeMotionDecel(t: number): number {
-    if (t <= 0) return 0;
-    if (t >= 1) return 1;
-    let s = t;
-    for (let i = 0; i < 5; i++) {
-        const s2 = s * s;
-        const s3 = s2 * s;
-        const oneMinus = 1 - s;
-        const currentX = 3 * oneMinus * oneMinus * s * 0.16 + 3 * oneMinus * s2 * 0.3 + s3;
-        const dx = 3 * oneMinus * oneMinus * 0.16 + 6 * oneMinus * s * (0.3 - 0.16) + 3 * s2 * (1 - 0.3);
-        if (Math.abs(dx) < 1e-6) break;
-        s -= (currentX - t) / dx;
-        s = clampProgress(s);
-    }
-    const oneMinusS = 1 - s;
-    return 1 - oneMinusS * oneMinusS * oneMinusS;
-}
-
-const clampProgress = (value: number): number => Math.min(1, Math.max(0, value));
-const easeOutCubic = (x: number): number => 1 - Math.pow(1 - x, 3);
 
 function styled(nodes: OverlayNodeSource, name: OverlayNode): HTMLElement | SVGElement | null {
     return nodes.get(name) as HTMLElement | SVGElement | null;
@@ -395,8 +373,6 @@ export function seekOverlay(t: number, nodes: OverlayNodeSource, data: OverlayDa
     }
 
 }
-
-export const SHOWCASE_INTRO_TOTAL_CYCLE = 5.4;
 
 export interface ShowcaseNodeSource {
     get(name: ShowcaseNode): Element | null;

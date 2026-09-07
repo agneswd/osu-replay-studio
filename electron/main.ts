@@ -29,7 +29,7 @@ import {
 } from "../core/types.js";
 import { Credentials } from "./credentials.js";
 import { registerMedia } from "./media.js";
-import { captureWithWorker } from "./capture-process.js";
+import { captureWithWorker, nativeSceneWithWorker } from "./capture-process.js";
 import { listSkins } from "../core/skins.js";
 import { ppEngineStatus } from "../core/pp.js";
 
@@ -88,7 +88,7 @@ app
         process.once("SIGINT", () => active?.abort());
         process.once("SIGTERM", () => active?.abort());
         await render(options, captureWithWorker(root), active.signal, (p) =>
-          console.log(JSON.stringify(p)), credentials.getClient(), options.thumbnail ? timeline => captureThumbnail(root, timeline, options.output.replace(/\.mp4$/i, ".png"), options.overlayAccent ?? "#d4d7de", active!.signal) : undefined, prepareNativeHud(root),
+          console.log(JSON.stringify(p)), credentials.getClient(), options.thumbnail ? timeline => captureThumbnail(root, timeline, options.output.replace(/\.mp4$/i, ".png"), options.overlayAccent ?? "#d4d7de", active!.signal) : undefined, prepareNativeHud(root), nativeSceneWithWorker(root),
         );
         app.exit(0);
       } catch (error) {
@@ -308,7 +308,7 @@ app
           }, credentials.getClient(), input.thumbnail ? async timeline => {
             const file = input.output.replace(/\.mp4$/i, ".png");
             await captureThumbnail(root, timeline, file, input.overlayAccent ?? "#d4d7de", signal);
-          } : undefined, prepareNativeHud(root));
+          } : undefined, prepareNativeHud(root), nativeSceneWithWorker(root));
           return completed;
         });
       });

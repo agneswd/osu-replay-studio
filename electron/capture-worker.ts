@@ -1,12 +1,8 @@
 import { app, session } from "electron";
 import { once } from "node:events";
 import { captureOverlay } from "./capture.js";
-import type { Capture } from "../core/types.js";
-
-type Request = {
-  options: Parameters<Capture>[0]; timeline: Parameters<Capture>[1];
-  frames: number; range?: Parameters<Capture>[4];
-};
+import { compositeNativeScene } from "./scene-composite.js";
+import type { WorkerRequest } from "./capture-process.js";
 
 export async function runCaptureWorker(root: string) {
   if (!process.send) throw new Error("Capture worker requires a parent process.");
@@ -22,8 +18,12 @@ export async function runCaptureWorker(root: string) {
   try {
     const request = once(process, "message");
     await send({ ready: true });
-    const [job] = await request as [Request];
-    for await (const frame of captureOverlay(root)(job.options, job.timeline, job.frames, new AbortController().signal, job.range)) {
+    const [job] = await request as [WorkerRequest];
+    const signal = new AbortController().signal;
+    const frames = job.kind === "native"
+      ? compositeNativeScene(job.scene, job.background, job.sceneKind, job.frames, job.fps, job.width, job.height, signal)
+      : captureOverlay(root)(job.options, job.timeline, job.frames, signal, job.range);
+    for await (const frame of frames) {
       const next = once(process, "message");
       await send({ frame });
       await next;

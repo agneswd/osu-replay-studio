@@ -53,6 +53,7 @@ test("native scene segments join without extra frames or a second gameplay encod
       nativeSceneArgs(intro, 6, 30),
       Buffer.concat(Array(6).fill(fixture("opaque-red"))),
     );
+    assert.ok(nativeSceneArgs(intro, 6, 30, 16, 16, true).includes("rawvideo"));
     run(
       nativeSceneArgs(outro, 6, 30),
       Buffer.concat(Array(6).fill(fixture("opaque-blue"))),

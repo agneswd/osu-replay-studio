@@ -1,3 +1,4 @@
+import { displayMods } from "../core/mods.js";
 import { timelineHitWindows } from "../core/hit-timing.js";
 import { frameAt } from "../core/timeline.js";
 import { normalizeOverlayAccent, type CounterFrame, type RenderOptions, type Timeline } from "../core/types.js";
@@ -59,7 +60,7 @@ const rgb = (hex: string, alpha = 1): HudSprite["color"] => [
 // Rasterize reusable artwork once. Export frames contain only sprite positions and colors.
 async function create(t: Timeline, o: RenderOptions) {
   const enabled = new Set(o.overlays);
-  await document.fonts.load('700 32px "Exo 2"');
+  await document.fonts.load('700 32px "Exo 2 Tabular"');
   let assets: HudBatch["assets"] = [],
     nextId = 0;
   const cache = new Map<string, Sprite>();
@@ -85,7 +86,7 @@ async function create(t: Timeline, o: RenderOptions) {
   };
   const measure = canvas(1, 1).getContext("2d")!;
   const width = (value: string, size: number) => {
-    measure.font = `700 ${size}px "Exo 2"`;
+    measure.font = `700 ${size}px "Exo 2 Tabular"`;
     return measure.measureText(value).width;
   };
   const textArt = (value: string, size: number) =>
@@ -94,7 +95,7 @@ async function create(t: Timeline, o: RenderOptions) {
       width(value, size) + 8,
       size * 1.3 + 8,
       (c) => {
-        c.font = `700 ${size}px "Exo 2"`;
+        c.font = `700 ${size}px "Exo 2 Tabular"`;
         c.textBaseline = "top";
         c.fillStyle = "white";
         c.shadowColor = "black";
@@ -334,6 +335,8 @@ async function create(t: Timeline, o: RenderOptions) {
       c.fill();
       c.globalAlpha = 0.09;
       c.lineWidth = 4;
+      c.beginPath();
+      c.roundRect(2, 2, w - 4, 46, 7);
       c.stroke();
     });
   let frame: HudFrame;
@@ -533,12 +536,13 @@ async function create(t: Timeline, o: RenderOptions) {
     if (enabled.has("combo-counter")) {
       const w = Math.max(
           92,
-          36 + digitWidth(g.combo.current, 30) + width("x", 30),
+          36 + digitWidth(g.combo.current, 30) + width("x", 28),
         ),
         x = 744 - w;
       sprite(plate(w, false), x - 14, 1013);
-      const end = digits(g.combo.current, x + 18, 1021, 30, f.counters?.combo);
-      text("x", end, 1021, 30);
+      const contentWidth = digitWidth(g.combo.current, 30) + width("x", 28);
+      const end = digits(g.combo.current, x + (w - contentWidth) / 2, 1025, 30, f.counters?.combo);
+      text("x", end, 1027, 28);
     }
     if (enabled.has("pp-counter")) {
       const suffix = ` / ${number(g.pp.fc)}pp`,
@@ -742,12 +746,7 @@ async function create(t: Timeline, o: RenderOptions) {
           clip,
         );
         let mx = 312;
-        for (const mod of r.mods.match(/.{1,2}/g) ?? []) {
-          if (
-            (mod === "DT" && r.mods.includes("NC")) ||
-            (mod === "SD" && r.mods.includes("PF"))
-          )
-            continue;
+        for (const mod of displayMods(r.mods)) {
           const image = images.get(
             `../shared/assets/mods/mod-${modNames[mod]}.svg:24:24`,
           );
@@ -766,6 +765,22 @@ async function create(t: Timeline, o: RenderOptions) {
         1,
         "center",
       );
+    }
+    if (o.introOutro) {
+      const end = Math.min(o.duration ?? t.duration, t.duration);
+      const last = (Math.max(1, Math.ceil(end * o.fps)) - 1) / o.fps;
+      const hide = Math.min(1, Math.max(0, (seconds - (last - 0.3)) / 0.3));
+      if (hide > 0) {
+        const e = 1 - (1 - hide) ** 3;
+        const apply = (s: HudSprite) => {
+          s.color = [s.color[0], s.color[1], s.color[2], s.color[3] * (1 - e)];
+          if (s.x < 320) s.x -= e * 35;
+          else if (s.y > 900) s.y += e * 25;
+          else s.y -= e * 25;
+        };
+        frame.sprites.forEach(apply);
+        frame.ticks.forEach(apply);
+      }
     }
     return frame;
   }

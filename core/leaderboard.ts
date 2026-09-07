@@ -1,3 +1,4 @@
+import { displayMods } from "./mods.js";
 import type { LeaderboardRow, Snapshot, Timeline } from "./types.js";
 
 const boards = new WeakMap<Timeline, Map<string, { rows: LeaderboardRow[]; count: number }>>();
@@ -16,14 +17,14 @@ export function leaderboardAt(timeline: Timeline, snapshot: Snapshot, limit: 50 
       (!timeline.replayId || (timeline.replayFormat === "lazer"
         ? score.id !== timeline.replayId : (score.legacyId ?? score.id) !== timeline.replayId)) &&
       !(score.userId === timeline.online?.playerId && score.score === timeline.sceneInfo?.score.score && score.combo === timeline.sceneInfo?.score.maxCombo)
-    ).map(score => ({ ...score, position: 0, current: false })).sort((a, b) => compare(sort, a, b));
+    ).map(score => ({ ...score, mods: displayMods(score.mods).join("") || "NM", position: 0, current: false })).sort((a, b) => compare(sort, a, b));
     board = { rows, count: pool.length }; byLimit.set(cacheKey, board);
   }
   const replay: LeaderboardRow = {
     id: "replay", userId: timeline.online?.playerId ?? 0, name: timeline.player,
     avatar: timeline.playerAvatar, pp: snapshot.pp, accuracy: snapshot.accuracy,
     combo: snapshot.combo, score: snapshot.score, misses: snapshot.hits["0"], grade: snapshot.grade,
-    mods: timeline.mods, playedAt: "", title: timeline.title, difficulty: "", position: 0, current: true,
+    mods: displayMods(timeline.mods).join("") || "NM", playedAt: "", title: timeline.title, difficulty: "", position: 0, current: true,
   };
   let low = 0, high = board.rows.length;
   while (low < high) {

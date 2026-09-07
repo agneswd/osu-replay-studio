@@ -1,3 +1,4 @@
+import { displayMods } from "../core/mods.js";
 const MOD_ASSET_NAMES: Record<string, string> = {
   EZ: "easy",
   NF: "no-fail",
@@ -47,7 +48,7 @@ export function ModBadgeList({ modStr }: { modStr?: string }) {
   if (!modStr || modStr === "NM" || modStr === "None") {
     return <span className="text-sm text-muted">None</span>;
   }
-  const mods = modStr.match(/.{1,2}/g) || [];
+  const mods = displayMods(modStr);
   return (
     <div className="inline-flex items-center">
       {mods.map((mod, i) => {

@@ -127,6 +127,26 @@ app.whenReady().then(async () => {
       assert.ok(Math.abs(actual - expected) <= 1, `Scene backgrounds retain video brightness: ${actual} vs ${expected}.`);
     }
     console.log("Scene backgrounds retain their brightness through Chromium.");
+    const { compositeNativeScene } = await import(pathToFileURL(path.join(root, "dist/electron/scene-composite.js")).href);
+    const { nativeSceneWithWorker } = await import(pathToFileURL(path.join(root, "dist/electron/capture-process.js")).href);
+    const scene = path.join(work, "native-scene.json"), commands = path.join(work, "native-frames.jsonl.gz");
+    await fs.writeFile(commands, require("node:zlib").gzipSync(Array.from({ length: 3 }, () => JSON.stringify({ sprites: [], ticks: [] }) + "\n").join("")));
+    await fs.writeFile(scene, JSON.stringify({ fps: 30, assets: [], frames: commands }));
+    const sceneArgs = [scene, { clear, soft }, "intro", 3, 30, 16, 16];
+    const reference = [];
+    for await (const frame of compositeNativeScene(...sceneArgs, new AbortController().signal)) reference.push(Buffer.from(frame));
+    let nativeCount = 0;
+    for await (const frame of nativeSceneWithWorker(root)(...sceneArgs, new AbortController().signal))
+      assert.deepEqual(Buffer.from(frame), reference[nativeCount++]);
+    assert.equal(nativeCount, 3);
+    const cancelled = new AbortController();
+    const iterator = nativeSceneWithWorker(root)(...sceneArgs, cancelled.signal)[Symbol.asyncIterator]();
+    await iterator.next();
+    cancelled.abort();
+    await assert.rejects(iterator.next());
+    const missing = nativeSceneWithWorker(root)(path.join(work, "missing.json"), ...sceneArgs.slice(1), new AbortController().signal)[Symbol.asyncIterator]();
+    await assert.rejects(missing.next(), /ENOENT/);
+    console.log("Native scene worker preserves pixels, cancels, and reports failures.");
     const file = path.join(work, "score.png");
     await captureThumbnail(root, { ...timeline, sceneInfo: { title: "Capture check", artist: "Artist", maxCombo: 12, score: timeline.snapshots[0] } }, file, "#d4d7de", new AbortController().signal);
     const image = nativeImage.createFromPath(file);

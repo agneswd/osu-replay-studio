@@ -67,8 +67,7 @@ The native HUD keeps all ten components. It uses the existing timeline sampler a
 Text rasterization can differ from the browser preview. Gameplay no longer passes through an intermediate CRF-18 encode.
 This change does not add hardware encoding or GPU-to-encoder transfer. FFmpeg still uses software x264 encoding.
 
-Intro and outro scenes still use Chromium. Their held clear and blurred backgrounds are prepared once.
-Chromium blends those images on the GPU. Opaque scene capture uses native PNG encoding.
+Intro and outro scenes use the same sprite path. Chromium rasterizes artwork once. A CPU compositor draws each scene frame over the held gameplay background.
 The final file joins the scene videos and gameplay by stream copy. Audio stays on one continuous presentation clock.
 
 Use the same job and a copy of the previous Danser runtime for a full export comparison:
@@ -95,7 +94,12 @@ Decoded audio matched between paths. A gameplay crop matched the same frame cloc
 The normal desktop session stayed active during these tests. Results on other hardware can differ.
 
 A separate opaque scene PNG test averaged 7.17 ms with native encoding and 35.57 ms with JavaScript conversion and encoding.
-Decoded pixels matched exactly in that test. This does not predict the same speed ratio for a full scene export.
+Decoded pixels matched exactly in that test.
+
+On 2026-09-07, the same 30-second mrekk job with intro and outro enabled spent 91.7-99.1 seconds in Chromium scene capture.
+Native scene compositing of those 648 frames took 9.3 seconds on the same machine, about 10 times the throughput.
+A 30-second export with all ten HUD components plus intro and outro finished in 23.5 seconds.
+A previous full-map export of the same replay with native HUD and browser scenes took 132 seconds.
 
 A confirmation export after the timing-window and slider-head fixes took 14.18 seconds with the same 30-second job.
 The first timing tick appeared at 0.668 seconds. DT windows were ±16 ms, ±43.33 ms, and ±71.33 ms.
@@ -115,6 +119,64 @@ Native composition:
 
 ![Native HUD at 20 seconds](images/native-hud.png)
 
+These frames show the intro player card and the outro score scene for the same replay.
+The images below include the native scene alignment fixes. Text edges and shadows still differ slightly from Chromium CSS.
+
+Browser intro:
+
+![Browser intro](images/browser-intro.png)
+
+Native intro:
+
+![Native intro](images/native-intro.png)
+
+Browser outro:
+
+![Browser outro](images/browser-outro.png)
+
+Native outro:
+
+![Native outro](images/native-outro.png)
+
+### Native scene refinement check (2026-09-07)
+
+Matched captures use the same frozen timeline, background, dimensions, and animation time.
+The review covered opening, player details, the player-to-map wipe, map details, closing, and the outro reveal.
+Additional fixtures cover missing profile data, retry charts, NM, and an SS grade.
+
+The fixes align text baselines, tabular digits, badge rows, mod artwork, hit counts, and the grade.
+The wipe now clips inside each rounded card. Closing transforms follow the browser perspective and transform order.
+Single-digit combo values use the same centered number-and-suffix group as longer values.
+
+The comparison sheets show browser and native frames above a 50% overlap and an amplified difference image.
+
+![Intro comparison](images/scene-intro-overlap.png)
+
+![Outro comparison](images/scene-outro-overlap.png)
+
+![Wipe overlap](images/scene-wipe-overlap.png)
+
+![Combo alignment](images/combo-alignment.png)
+
+The final native pass prepared and composited 648 frames at 1080p60 in 10.66 seconds:
+1.61 seconds for preparation and 9.06 seconds for composition.
+Browser capture of the same timeline and backgrounds took 67.35 seconds, about 6.3 times longer.
+These timings exclude video encoding and gameplay rendering. They are local measurements, not a general throughput guarantee.
+The finer interpolation adds work compared with the original native port, but removes visible scaling artifacts.
+
+The compositor reuses unchanged frames. A full 648-frame hash comparison confirmed identical output with this cache enabled and disabled.
+Missing sprites now fail explicitly. Background dimensions and frame rates are checked before composition.
+The review export contains all 648 frames at 1080p60. The build and 51 tests passed.
+
+To repeat the visual comparison with a saved timeline:
+
+```sh
+env -u ELECTRON_RUN_AS_NODE bunx electron benchmarks/scene-parity.cjs /path/to/timeline.json /path/to/output
+```
+
+The command writes browser, native, overlap, and difference PNGs for selected animation times.
+Inspect the images: whole-frame error averages include large background areas and do not establish visual equivalence.
+
 ### App response during scene capture
 
 Scene capture runs in a separate Electron process. It prepares and compresses one requested frame at a time.
@@ -132,3 +194,20 @@ Run `benchmarks/capture-responsiveness.cjs` with Electron, selecting `direct` or
 
 Scene background PNGs use an explicit sRGB transfer tag. A capture test checks that Chromium preserves their brightness.
 The bundled renderer keeps background dim constant while gameplay objects fade. Scene joins no longer pass through black.
+
+### Native composition and app response
+
+Native composition now runs in the separate capture process. Both the desktop app and CLI use this path.
+One frame crosses the process boundary at a time. Cancellation stops the worker and removes its temporary profile.
+
+A 324-frame intro check at 1080p60 compared direct composition with the isolated worker:
+
+| Composition location | Time including pixel hashing | 99th-percentile main-thread delay | Maximum delay |
+| --- | ---: | ---: | ---: |
+| App process | 5.85 s | 772.80 ms | 772.80 ms |
+| Separate process | 8.40 s | 5.91 ms | 30.85 ms |
+
+The decoded frame hashes matched. Cancellation after three frames also passed.
+Process startup and frame transfer add time, but the pixel loops no longer block the app process.
+These results supersede direct-composition timings for app response. They exclude asset preparation and video encoding.
+Run `benchmarks/native-scene-responsiveness.cjs` with Electron for a repeatable comparison.
