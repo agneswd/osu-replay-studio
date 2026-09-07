@@ -29,7 +29,7 @@ import {
 } from "../core/types.js";
 import { Credentials } from "./credentials.js";
 import { registerMedia } from "./media.js";
-import { captureOverlay } from "./capture.js";
+import { captureWithWorker } from "./capture-process.js";
 import { listSkins } from "../core/skins.js";
 import { ppEngineStatus } from "../core/pp.js";
 
@@ -42,13 +42,15 @@ app.commandLine.appendSwitch("force-device-scale-factor", "1");
 if (process.platform === "linux" && !app.commandLine.hasSwitch("password-store") &&
     !/kde/i.test(process.env.XDG_CURRENT_DESKTOP ?? process.env.DESKTOP_SESSION ?? ""))
   app.commandLine.appendSwitch("password-store", "gnome-libsecret");
+const captureIndex = process.argv.indexOf("--capture-worker");
+if (captureIndex >= 0) app.setPath("userData", process.argv[captureIndex + 1]);
 const cliIndex = process.argv.indexOf("--render");
 const devUrl = !app.isPackaged && process.env.STUDIO_DEV === "1" && /^http:\/\/127\.0\.0\.1:\d+\/$/.test(process.env.STUDIO_DEV_URL ?? "")
   ? process.env.STUDIO_DEV_URL : undefined;
 let active: AbortController | undefined;
 let completed: string | undefined;
 let main: BrowserWindow | undefined;
-const primary = cliIndex >= 0 || app.requestSingleInstanceLock();
+const primary = captureIndex >= 0 || cliIndex >= 0 || app.requestSingleInstanceLock();
 if (!primary) app.quit();
 app.on("second-instance", () => {
   if (main?.isMinimized()) main.restore();
@@ -59,6 +61,10 @@ app
   .whenReady()
   .then(async () => {
     if (!primary) return;
+    if (captureIndex >= 0) {
+      await (await import("./capture-worker.js")).runCaptureWorker(root);
+      return;
+    }
     const credentials = new Credentials();
     await credentials.load();
     const mediaUrl = registerMedia();
@@ -81,7 +87,7 @@ app
         active = new AbortController();
         process.once("SIGINT", () => active?.abort());
         process.once("SIGTERM", () => active?.abort());
-        await render(options, captureOverlay(root), active.signal, (p) =>
+        await render(options, captureWithWorker(root), active.signal, (p) =>
           console.log(JSON.stringify(p)), credentials.getClient(), options.thumbnail ? timeline => captureThumbnail(root, timeline, options.output.replace(/\.mp4$/i, ".png"), options.overlayAccent ?? "#d4d7de", active!.signal) : undefined, prepareNativeHud(root),
         );
         app.exit(0);
@@ -297,7 +303,7 @@ app
       ipcMain.handle("render", (event, input: RenderOptions) => {
         trusted(event);
         return job(async (signal) => {
-          completed = await render(input, captureOverlay(root), signal, (p) => {
+          completed = await render(input, captureWithWorker(root), signal, (p) => {
             if (!main?.isDestroyed()) main?.webContents.send("progress", p);
           }, credentials.getClient(), input.thumbnail ? async timeline => {
             const file = input.output.replace(/\.mp4$/i, ".png");
@@ -327,7 +333,7 @@ app
     app.exit(1);
   });
 app.on("window-all-closed", () => {
-  if (cliIndex < 0) {
+  if (cliIndex < 0 && captureIndex < 0) {
     active?.abort();
     if (!active) app.quit();
   }

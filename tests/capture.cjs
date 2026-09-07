@@ -45,6 +45,24 @@ app.whenReady().then(async () => {
   }
   assert.equal(count, 2);
   console.log("First captured frame contains loaded replay assets.");
+  const { captureWithWorker } = await import(pathToFileURL(path.join(root, "dist/electron/capture-process.js")).href);
+  const isolated = captureWithWorker(root)({ width: 1920, height: 1080, fps: 60, overlays: overlayIds }, timeline, 2, new AbortController().signal);
+  let isolatedCount = 0;
+  for await (const png of isolated) {
+    const image = nativeImage.createFromBuffer(Buffer.from(png));
+    assert.deepEqual(image.getSize(), { width: 1920, height: 1080 });
+    const pixel = image.toBitmap().subarray((50 * 1920 + 960) * 4, (50 * 1920 + 960) * 4 + 4);
+    assert.deepEqual([...pixel], [0, 0, 255, 255], "The isolated frame retains the loaded avatar pixels.");
+    isolatedCount++;
+  }
+  assert.equal(isolatedCount, 2, "The capture process sends one complete PNG per requested frame.");
+  const abortCapture = new AbortController();
+  const cancelled = captureWithWorker(root)({ width: 1920, height: 1080, fps: 60, overlays: [] }, timeline, 120, abortCapture.signal);
+  await cancelled.next();
+  abortCapture.abort();
+  await assert.rejects(cancelled.next());
+  console.log("Isolated capture completes and cancels without blocking the app process.");
+
   for (const value of [0, 1]) {
     const healthTimeline = { ...timeline, health: [{ time: 0, value }] };
     for await (const png of captureOverlay(root)({ width: 1920, height: 1080, fps: 60, overlays: ["health-bar"] }, healthTimeline, 1, new AbortController().signal)) {

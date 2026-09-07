@@ -114,3 +114,18 @@ Browser composition:
 Native composition:
 
 ![Native HUD at 20 seconds](images/native-hud.png)
+
+### App response during scene capture
+
+Scene capture runs in a separate Electron process. It prepares and compresses one requested frame at a time.
+The main process forwards each complete PNG with backpressure. Cancellation closes the capture process and its temporary profile.
+
+A 120-frame scene test at 1080p60 measured main-thread delays with a 1 ms sampling interval:
+
+| Capture location | Export time | 99th-percentile delay | Maximum delay |
+| --- | ---: | ---: | ---: |
+| App process | 19.19 s | 154.66 ms | 161.35 ms |
+| Separate process | 19.42 s | 1.14 ms | 27.26 ms |
+
+These results measure event-loop response, not input-to-display latency. Shared CPU and GPU load can still affect the desktop.
+Run `benchmarks/capture-responsiveness.cjs` with Electron, selecting `direct` or `isolated`, then a timeline JSON and background PNG.
