@@ -767,6 +767,22 @@ async function create(t: Timeline, o: RenderOptions) {
         "center",
       );
     }
+    if (o.introOutro) {
+      const end = Math.min(o.duration ?? t.duration, t.duration);
+      const last = (Math.max(1, Math.ceil(end * o.fps)) - 1) / o.fps;
+      const hide = Math.min(1, Math.max(0, (seconds - (last - 0.3)) / 0.3));
+      if (hide > 0) {
+        const e = 1 - (1 - hide) ** 3;
+        const apply = (s: HudSprite) => {
+          s.color = [s.color[0], s.color[1], s.color[2], s.color[3] * (1 - e)];
+          if (s.x < 320) s.x -= e * 35;
+          else if (s.y > 900) s.y += e * 25;
+          else s.y -= e * 25;
+        };
+        frame.sprites.forEach(apply);
+        frame.ticks.forEach(apply);
+      }
+    }
     return frame;
   }
   return {
