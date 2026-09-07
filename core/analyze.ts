@@ -1,3 +1,4 @@
+import { classifyPlay, sliderBreakEvents } from "./play-status.js";
 import { collectTimingHits, hitWindowsFor } from "./hit-timing.js";
 import { replayFormat, scoreAccuracy } from "./replay-format.js";
 import type { PpScore } from "./pp.js";
@@ -234,13 +235,16 @@ export async function analyze(
     }))
     .sort((a, b) => a.effectiveTime - b.effectiveTime);
 
+  const breaks = sliderBreakEvents(map.hitObjects, parsed.hitResults, format.classic);
+  let breakIndex = 0;
   const nested = { largeTickHit: 0, largeTickMiss: 0, sliderTailHit: 0, sliderTailMiss: 0 };
   const ppSnapshots: PpScore[] = [{ great: 0, ok: 0, meh: 0, miss: 0, combo: 0 }];
   for (let i = 0; i < mainResults.length; i++) {
       signal?.throwIfAborted();
       const result = mainResults[i];
       const hits = { ...snapshots.at(-1)!.hits };
-      if (result.comboBreak) hits.sliderBreaks++;
+      while (breakIndex < breaks.length && breaks[breakIndex] <= result.effectiveTime) breakIndex++;
+      hits.sliderBreaks = breakIndex;
       if (!result.isSliderSub && (
         result.judgement === 300 ||
         result.judgement === 100 ||
@@ -416,6 +420,8 @@ export async function analyze(
       warnings,
       bgImage,
       sceneInfo: {
+        playStatus: classifyPlay(map.hitObjects.length, [300, 100, 50, 0].map(j => parsed.hitResults.filter(r => !r.isSliderSub && r.judgement === j).length),
+          [replay.count300, replay.count100, replay.count50, replay.countMiss], replay.maxCombo, calculated.maxCombo, breaks.length),
         title: `${map.title} [${map.version}]`, artist: map.artist,
         mapper: bytes.toString().match(/^Creator:(.*)$/m)?.[1].trim() ?? "",
         ar: mapAttributes.ar, od: mapAttributes.od, cs: mapAttributes.cs, hp: mapAttributes.hp,
@@ -425,7 +431,7 @@ export async function analyze(
         playedAt: Number.isFinite(playedAtMs) && playedAtMs > 0 ? new Date(playedAtMs).toISOString().slice(0, 10) : "",
         score: { ...last, score: replay.score, combo: replay.maxCombo, maxCombo: replay.maxCombo,
           accuracy, pp: onlinePP ?? scorePP, grade, hits: { "300": replay.count300, "100": replay.count100,
-            "50": replay.count50, "0": replay.countMiss, sliderBreaks: last.hits.sliderBreaks } },
+            "50": replay.count50, "0": replay.countMiss, sliderBreaks: breaks.length } },
       },
       playerStats: online?.stats,
       playerAvatar: online?.avatar ?? defaultAvatar(player),

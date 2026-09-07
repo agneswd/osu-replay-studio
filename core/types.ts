@@ -182,6 +182,7 @@ export interface Timeline {
   snapshots: Snapshot[];
   warnings: string[];
   sceneInfo?: {
+    playStatus?: import("./play-status.js").PlayStatus;
     title: string;
     artist: string;
     mapper: string;
