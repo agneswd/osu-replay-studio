@@ -251,6 +251,8 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
     sheen.addColorStop(0.65, "transparent");
     c.fillStyle = sheen;
     c.fillRect(0, 0, widgetW, bottomH * 1.6);
+    c.fillStyle = "rgba(255,255,255,0.025)";
+    for (let y = 2; y < bottomH * 1.6; y += 3) c.fillRect(0, y, widgetW, 1);
   });
 
   const roundedImage = (key: string, url: string, w: number, h: number, r: number) =>
@@ -276,11 +278,14 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
       })
     : undefined;
 
-  const heart = art("heart", 16, 16, c => {
-    roundRect(c, 0, 0, 16, 16, 8);
+  const heart = art("heart", 21, 12, c => {
     c.fillStyle = "#ff5277";
+    c.shadowColor = "rgba(255,82,119,0.5)";
+    c.shadowBlur = 4;
+    roundRect(c, 0, 0, 21, 12, 6);
     c.fill();
-    drawHeart(c, 3, 3, 10);
+    c.shadowBlur = 0;
+    drawHeart(c, 5.5, 1, 10);
   });
 
   const status = art("status", 28, 28, c => {
@@ -436,16 +441,111 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
       const img = images.get(modPath(mod));
       if (img) {
         if (color.fg === "dark") c.filter = "brightness(0.15)";
-        c.drawImage(img, 0, 0, size, size);
+        const scale = Math.min(size / img.width, size / img.height);
+        c.drawImage(img, (size - img.width * scale) / 2, (size - img.height * scale) / 2, img.width * scale, img.height * scale);
         c.filter = "none";
       }
     });
   };
 
+  const playRankColor = (rank: string, mods: string[]) => {
+    const r = rank.toUpperCase().replace(/H$/, "");
+    if (r === "A") return "#51CF66";
+    if (r === "B") return "#339AF0";
+    if (r === "C") return "#CC5DE8";
+    if (r === "D") return "#FF6B6B";
+    return mods.some(mod => mod === "HD" || mod === "FL") ? "#edf3fa" : "#ffdb79";
+  };
+
+  const skewPaint = (key: string, w: number, h: number, deg: number, paint: (c: CanvasRenderingContext2D, w: number, h: number) => void) => {
+    const rad = deg * Math.PI / 180;
+    const extra = Math.ceil(Math.abs(Math.tan(rad)) * h) + 2;
+    const sprite = art(key, w + extra * 2, h, c => {
+      c.translate(extra + w / 2, h / 2);
+      c.transform(1, 0, Math.tan(rad), 1, 0, 0);
+      c.translate(-w / 2, -h / 2);
+      paint(c, w, h);
+    });
+    return { sprite, extra, w, h };
+  };
+
+  const scoreLabel = skewPaint("score-label", widthOf("Score", 12, 500) + 12, 16, -14, (c, w, h) => {
+    c.fillStyle = palette.plateTop;
+    roundRect(c, 0, 0, w, h, 3);
+    c.fill();
+    c.font = '500 12px "Plus Jakarta Sans"';
+    c.fillStyle = "#fff";
+    c.textAlign = "center";
+    c.textBaseline = "middle";
+    c.fillText("Score", w / 2, h / 2);
+  });
+
+  const hitBoxes = [
+    { color: "#61C97D", value: String(data.score!.count300), padLeft: 48 },
+    { color: "#BAD750", value: String(data.score!.count100), padLeft: 12 },
+    ...(data.score!.count50 > 0 ? [{ color: "#65b9df", value: String(data.score!.count50), padLeft: 12 }] : []),
+    { color: "#DE6984", value: String(data.score!.countMiss), padLeft: 12 },
+  ];
+  const hitWidths = hitBoxes.map(box => box.padLeft + widthOf(box.value, 19, 500) + 12);
+  const hitsW = hitWidths.reduce((sum, w) => sum + w, 0);
+  const hitsStrip = skewPaint("hits-strip", hitsW, 29, -18, (c, w, h) => {
+    roundRect(c, 0, 0, w, h, 3);
+    c.clip();
+    let x = 0;
+    const rad = 18 * Math.PI / 180;
+    hitBoxes.forEach((box, i) => {
+      const bw = hitWidths[i]!;
+      c.fillStyle = box.color;
+      c.fillRect(x, 0, bw, h);
+      c.save();
+      c.translate(x + bw / 2, h / 2);
+      c.transform(1, 0, Math.tan(rad), 1, 0, 0);
+      c.font = '500 19px "Plus Jakarta Sans"';
+      c.fillStyle = "#fff";
+      c.textAlign = "center";
+      c.textBaseline = "middle";
+      c.fillText(box.value, 0, 0);
+      c.restore();
+      x += bw;
+    });
+  });
+
+  const ppText = data.score!.pp.trim().toUpperCase().endsWith("PP") ? data.score!.pp.toUpperCase() : `${data.score!.pp}PP`;
+  const ppW = Math.ceil(widthOf(ppText, 22, 500) + 48);
+  const ppBadge = art("pp-badge", ppW, 32, c => {
+    const g = c.createLinearGradient(0, 0, 0, 32);
+    g.addColorStop(0, palette.plateTop);
+    g.addColorStop(1, palette.plateBottom);
+    c.fillStyle = g;
+    c.beginPath();
+    c.moveTo(0, 0);
+    c.lineTo(ppW - 12, 0);
+    c.lineTo(ppW, 16);
+    c.lineTo(ppW - 12, 32);
+    c.lineTo(0, 32);
+    c.lineTo(9, 16);
+    c.closePath();
+    c.fill();
+  });
+
+  const playerCard = art("player-card", 210, 38, c => {
+    c.save();
+    c.shadowColor = "rgba(0,0,0,0.5)";
+    c.shadowBlur = 14;
+    c.shadowOffsetY = 4;
+    const g = c.createLinearGradient(0, 0, 0, 38);
+    g.addColorStop(0, palette.plateTop);
+    g.addColorStop(1, palette.plateBottom);
+    c.fillStyle = g;
+    roundRect(c, 0, 0, 210, 38, 8);
+    c.fill();
+    c.restore();
+  }, 10);
+
   const baseAssets = assets.slice();
   let frame: HudFrame;
   type Draw = (s: Sprite, x: number, y: number, w?: number, h?: number, color?: HudSprite["color"], clip?: HudSprite["clip"]) => void;
-  const sprite: Draw = (s, x, y, w = s.w / 2 - s.pad, h = s.h / 2 - s.pad, color = rgb("#ffffff"), clip) => {
+  const sprite: Draw = (s, x, y, w = s.w / 2 - s.pad * 2, h = s.h / 2 - s.pad * 2, color = rgb("#ffffff"), clip) => {
     if (w <= 0 || h <= 0 || color[3] <= 0) return;
     frame.sprites.push({ asset: s.id, x: (x - s.pad) * S, y: (y - s.pad) * S, w: (w + s.pad * 2) * S, h: (h + s.pad * 2) * S, color, clip: clip ? [clip[0] * S, clip[1] * S, clip[2] * S, clip[3] * S] : undefined });
   };
@@ -473,21 +573,39 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
       const clip: HudSprite["clip"] | undefined = m.bottomCard.clipBottom > 0
         ? [ox, oy + topH + gap, widgetW, bottomH * (1 - m.bottomCard.clipBottom / 100)]
         : undefined;
-      add(bottomChrome, ox, oy + topH + gap + m.bottomCard.y, undefined, undefined, rgb("#ffffff", m.bottomCard.opacity * a), clip);
+      add(bottomChrome, ox, oy + topH + gap + m.bottomCard.y, widgetW, bottomH, rgb("#ffffff", m.bottomCard.opacity * a), clip);
       if (m.bottomPlayer.opacity > 0 && flags.history) {
         const bx = ox + 16, by = oy + topH + gap + 16 + m.bottomCard.y;
-        text(String(data.player.badgeCount), bx, by, 11, accent, m.bottomPlayer.opacity * a, 700);
-        text("badges", bx, by + 12, 7.5, "rgba(255,255,255,0.45)", m.bottomPlayer.opacity * a, 700, "left", false);
+        const count = String(data.player.badgeCount);
+        const stackW = Math.max(widthOf(count, 11), widthOf("badges", 7.5));
+        text(count, bx + stackW / 2, by, 11, accent, m.bottomPlayer.opacity * a, 700, "center");
+        text("badges", bx + stackW / 2, by + 11, 7.5, "rgba(255,255,255,0.45)", m.bottomPlayer.opacity * a, 700, "center", false);
+        let badgeX = bx + stackW + 10;
         data.player.badges.slice(0, 5).forEach((badge, i) => {
           const img = images.get(badge.url);
           if (!img) return;
-          const b = art(`badge:${i}`, 37, 19, c => { c.drawImage(img, 0, 0, 37, 19); });
-          add(b, bx + 28 + i * 41, by, 37, 19, rgb("#ffffff", m.bottomPlayer.opacity * a));
+          const b = art(`badge:${i}`, 37, 19, c => {
+            const scale = Math.min(37 / img.width, 19 / img.height);
+            c.drawImage(img, (37 - img.width * scale) / 2, (19 - img.height * scale) / 2, img.width * scale, img.height * scale);
+          });
+          add(b, badgeX, by + 2, 37, 19, rgb("#ffffff", m.bottomPlayer.opacity * a));
+          badgeX += 41;
         });
-        if (data.player.badges.length > 5) text(`+${data.player.badges.length - 5} more`, bx + 240, by + 4, 9, palette.muted, m.bottomPlayer.opacity * a);
+        if (data.player.badges.length > 5) {
+          const more = `+${data.player.badges.length - 5} more`;
+          const mw = widthOf(more, 9) + 10;
+          const pill = art(`more:${more}`, mw, 16, c => {
+            c.strokeStyle = "rgba(255,255,255,0.18)";
+            c.lineWidth = 1;
+            roundRect(c, 0.5, 0.5, mw - 1, 15, 3);
+            c.stroke();
+          });
+          add(pill, badgeX + 2, by + 2, mw, 16, rgb("#ffffff", m.bottomPlayer.opacity * a));
+          text(more, badgeX + 7, by + 4, 9, palette.muted, m.bottomPlayer.opacity * a);
+        }
         text("Playcount over time", ox + widgetW - 16, by, 9.5, palette.muted, m.bottomPlayer.opacity * a, 600, "right", false);
         text(`peak: ${data.player.peakCount} (${data.player.peakMonth})`, ox + widgetW - 16, by + 12, 8.5, palette.dim, m.bottomPlayer.opacity * a, 600, "right", false);
-        const cx = ox + 20, cy = by + 36;
+        const cx = ox + 20, cy = by + 38;
         add(chart, cx, cy, 430, 140, rgb("#ffffff", m.bottomPlayer.opacity * a), [cx, cy, 430 * Math.max(0.02, m.chartProgress), 140]);
         spline.yTicks.forEach(tick => text(tick.label, cx + 16, cy + tick.y - 6, 8.5, palette.dim, m.bottomPlayer.opacity * a, 600, "right", false));
         spline.yearTicks.forEach((tick, i) => text(String(tick.year), cx + tick.x, cy + 128, 8.5, palette.dim, m.yearProgress * m.bottomPlayer.opacity * a, 600, i === spline.yearTicks.length - 1 ? "right" : "center", false));
@@ -495,11 +613,11 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
           add(peakLine, cx + 20, cy + spline.peakY, 405, 2, rgb("#ffffff", m.peakProgress * a));
           add(peakDot, cx + spline.peakX - 6, cy + spline.peakY - 6, 12, 12, rgb("#ffffff", m.peakProgress * a));
         }
-        const barY = oy + topH + gap + bottomH - 28 + m.bottomCard.y;
+        const barY = oy + topH + gap + bottomH - 20 + m.bottomCard.y;
         drawIconRow(ox + 16, barY, m.hours, m.playcount, m.bottomPlayer.opacity * a, add);
       }
       if (m.bottomMap.opacity > 0 && flags.mapStats) {
-        const mx = ox + 16, my = oy + topH + gap + 12 + m.bottomCard.y;
+        const mx = ox + 16, my = oy + topH + gap + 28 + m.bottomCard.y;
         ([["AR", "ar", data.map.arMs, data.map.ar.toFixed(2), 11], ["CS", "", "", data.map.cs.toFixed(2), 10], ["OD", "od", data.map.odMs, data.map.od.toFixed(2), 11], ["HP", "", "", data.map.hp.toFixed(2), 10]] as const).forEach((row, i) => {
           const x = mx + (i % 2) * 220, y = my + Math.floor(i / 2) * 20;
           const key = row[0].toLowerCase() as "ar" | "cs" | "od" | "hp";
@@ -511,20 +629,24 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
           text(row[3], x + 196, y + 1, 9, "#fff", m.bottomMap.opacity * a, 700, "right");
         });
         if (flags.onlineMap && data.map.retries) {
-          add(mapChart, mx, my + 48, 430, 100, rgb("#ffffff", m.bottomMap.opacity * a), [mx, my + 48, 430 * Math.max(0.02, m.mapPath), 100]);
-          text("Fails and exits by map progress", ox + widgetW - 16, my + 40, 9, palette.muted, m.bottomMap.opacity * a, 600, "right", false);
+          add(mapChart, mx, my + 54, 430, 100, rgb("#ffffff", m.bottomMap.opacity * a), [mx, my + 54, 430 * Math.max(0.02, m.mapPath), 100]);
+          text("Fails and exits by map progress", ox + widgetW - 16, my + 44, 9, palette.muted, m.bottomMap.opacity * a, 600, "right", false);
           const retries = data.map.retries;
           const length = Math.max(retries.fail.length, retries.exit.length);
           const peak = Math.max(1, ...Array.from({ length }, (_, i) => (retries.fail[i] ?? 0) + (retries.exit[i] ?? 0)));
           const unit = 10 ** Math.floor(Math.log10(peak));
           const max = Math.ceil(peak / unit) * unit;
           const fmt = (n: number) => n >= 1e6 ? `${(n / 1e6).toFixed(1)}m` : n >= 1e3 ? `${+(n / 1e3).toFixed(1)}k` : String(Math.round(n));
-          for (const fraction of [0, 0.5, 1]) text(fmt(max * fraction), mx + 22, my + 48 + 78 - fraction * 63 - 6, 8.5, palette.dim, m.bottomMap.opacity * a, 600, "right", false);
-          for (const percent of [0, 25, 50, 75, 100]) text(`${percent}%`, mx + 26 + percent / 100 * 398, my + 48 + 88, 8.5, palette.dim, m.bottomMap.opacity * a, 600, percent === 0 ? "left" : percent === 100 ? "right" : "center", false);
+          for (const fraction of [0, 0.5, 1]) text(fmt(max * fraction), mx + 22, my + 54 + 78 - fraction * 63 - 6, 8.5, palette.dim, m.bottomMap.opacity * a, 600, "right", false);
+          for (const percent of [0, 25, 50, 75, 100]) text(`${percent}%`, mx + 26 + percent / 100 * 398, my + 54 + 88, 8.5, palette.dim, m.bottomMap.opacity * a, 600, percent === 0 ? "left" : percent === 100 ? "right" : "center", false);
         }
-        const barY = oy + topH + gap + bottomH - 28 + m.bottomCard.y;
+        const barY = oy + topH + gap + bottomH - 20 + m.bottomCard.y;
+        const heartIcon = art("fav-heart", 12, 12, c => drawHeart(c, 1, 1, 10, accent));
+        add(heartIcon, ox + 16, barY + 1, 12, 12, rgb("#ffffff", m.bottomMap.opacity * a));
         text(`Favs: ${comma(m.favs)}`, ox + 32, barY, 11, "rgba(255,255,255,0.85)", m.bottomMap.opacity * a);
-        text(`Plays: ${comma(m.plays)}`, ox + 140, barY, 11, "rgba(255,255,255,0.85)", m.bottomMap.opacity * a);
+        const playSmall = art("play-icon-sm", 12, 12, c => drawPlay(c, 2, 1, 10, accent));
+        add(playSmall, ox + 128, barY + 1, 12, 12, rgb("#ffffff", m.bottomMap.opacity * a));
+        text(`Plays: ${comma(m.plays)}`, ox + 144, barY, 11, "rgba(255,255,255,0.85)", m.bottomMap.opacity * a);
         if (flags.mapperAvatar) {
           add(mapper, ox + widgetW - 110, barY - 2);
           text(data.map.mapper, ox + widgetW - 86, barY - 2, 10.5, "#fff", m.bottomMap.opacity * a);
@@ -534,21 +656,22 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
     }
     if (m.topCard.opacity > 0) {
       const chrome = m.showMap ? topMapChrome : topPlayerChrome;
-      add(chrome, ox, oy + m.topCard.y, undefined, undefined, rgb("#ffffff", m.topCard.opacity * a));
+      add(chrome, ox, oy + m.topCard.y, widgetW, topH, rgb("#ffffff", m.topCard.opacity * a));
+      const hy = oy + m.topCard.y;
       if (m.topPlayer.opacity > 0) {
-        add(avatar, ox + 14 + m.playerHeaderLeft, oy + 12 + m.topCard.y, 38, 38, rgb("#ffffff", m.topPlayer.opacity * a));
-        text(data.player.username, ox + 62 + m.playerHeaderLeft, oy + 12 + m.topCard.y, 15.5, "#fff", m.topPlayer.opacity * a);
-        if (data.player.isSupporter) add(heart, ox + 62 + widthOf(data.player.username, 15.5) + 6 + m.playerHeaderLeft, oy + 16 + m.topCard.y, 16, 16, rgb("#ffffff", m.topPlayer.opacity * a));
-        if (flag) add(flag, ox + 62 + m.playerHeaderLeft, oy + 34 + m.topCard.y, 16, 11, rgb("#ffffff", m.topPlayer.opacity * a));
-        text(data.player.crank, ox + 82 + m.playerHeaderLeft, oy + 32 + m.topCard.y, 10.5, palette.muted, m.topPlayer.opacity * a, 600);
-        text(data.player.grank, ox + widgetW - 14 + m.playerHeaderRight, oy + 10 + m.topCard.y, 21, "#fff", m.topPlayer.opacity * a, 800, "right");
-        text(data.player.pp, ox + widgetW - 14 + m.playerHeaderRight, oy + 34 + m.topCard.y, 11.5, "rgba(255,255,255,0.85)", m.topPlayer.opacity * a, 600, "right");
+        add(avatar, ox + 14 + m.playerHeaderLeft, hy + 12, 38, 38, rgb("#ffffff", m.topPlayer.opacity * a));
+        text(data.player.username, ox + 62 + m.playerHeaderLeft, hy + 16, 15.5, "#fff", m.topPlayer.opacity * a);
+        if (data.player.isSupporter) add(heart, ox + 62 + widthOf(data.player.username, 15.5) + 6 + m.playerHeaderLeft, hy + 18, 21, 12, rgb("#ffffff", m.topPlayer.opacity * a));
+        if (flag) add(flag, ox + 62 + m.playerHeaderLeft, hy + 36, 16, 11, rgb("#ffffff", m.topPlayer.opacity * a));
+        text(data.player.crank, ox + 82 + m.playerHeaderLeft, hy + 34, 10.5, palette.muted, m.topPlayer.opacity * a, 600);
+        text(data.player.grank, ox + widgetW - 14 + m.playerHeaderRight, hy + 14, 21, "#fff", m.topPlayer.opacity * a, 800, "right");
+        text(data.player.pp, ox + widgetW - 14 + m.playerHeaderRight, hy + 37, 11.5, "rgba(255,255,255,0.85)", m.topPlayer.opacity * a, 600, "right");
       }
       if (m.topMap.opacity > 0) {
-        add(coverThumb, ox + 14, oy + 12 + m.topCard.y, 38, 38, rgb("#ffffff", m.topMap.opacity * a));
-        text(data.map.title, ox + 62, oy + 14 + m.topCard.y, 13.5, "#fff", m.topMap.opacity * a);
-        text(data.map.artist, ox + 62, oy + 34 + m.topCard.y, 10.5, palette.muted, m.topMap.opacity * a, 600);
-        add(status, ox + widgetW - 42, oy + 17 + m.topCard.y + m.chevronY, 28, 28, rgb("#ffffff", m.topMap.opacity * a));
+        add(coverThumb, ox + 14, hy + 12, 38, 38, rgb("#ffffff", m.topMap.opacity * a));
+        text(data.map.title, ox + 62, hy + 16, 13.5, "#fff", m.topMap.opacity * a);
+        text(data.map.artist, ox + 62, hy + 35, 10.5, palette.muted, m.topMap.opacity * a, 600);
+        add(status, ox + widgetW - 42, hy + 17 + m.chevronY, 28, 28, rgb("#ffffff", m.topMap.opacity * a));
       }
     }
     if (m.starFooter.opacity > 0) {
@@ -566,10 +689,11 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
 
     draw = sprite;
     if (close) {
-      const composed = composeLayers(layers, ox, oy, widgetW, widgetH + 40);
+      const edge = 24;
+      const composed = composeLayers(layers, ox - edge, oy - edge, widgetW + edge * 2, widgetH + 40 + edge * 2);
       const warped = warpClose(composed, t);
       const s = save(`close:${t.toFixed(4)}`, warped);
-      sprite(s, ox - s.pad, oy - s.pad, s.w / 2 - s.pad, s.h / 2 - s.pad, rgb("#ffffff", a));
+      sprite(s, ox - edge - s.pad, oy - edge - s.pad, s.w / 2 - s.pad * 2, s.h / 2 - s.pad * 2, rgb("#ffffff", a));
       return frame;
     }
     for (const item of layers) sprite(item.s, item.x, item.y, item.w, item.h, item.color, item.clip);
@@ -579,10 +703,12 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
   function drawIconRow(x: number, y: number, hours: number, playcount: number, alpha: number, add: (s: Sprite, x: number, y: number, w?: number, h?: number, color?: HudSprite["color"]) => void) {
     const hourIcon = art("hour-icon", 12, 12, c => drawHourglass(c, 1, 1, 10, accent));
     add(hourIcon, x, y + 2, 12, 12, rgb("#ffffff", alpha));
-    text(`${comma(hours)} hours`, x + 16, y, 11, "rgba(255,255,255,0.85)", alpha);
+    const hoursText = `${comma(hours)} hours`;
+    text(hoursText, x + 16, y, 11, "rgba(255,255,255,0.85)", alpha, 600);
+    const playX = x + 16 + widthOf(hoursText, 11, 600) + 18;
     const play = art("play-icon", 12, 12, c => drawPlay(c, 2, 1, 10, accent));
-    add(play, x + 130, y + 2, 12, 12, rgb("#ffffff", alpha));
-    text(`Playcount: ${comma(playcount)}`, x + 146, y, 11, "rgba(255,255,255,0.85)", alpha);
+    add(play, playX, y + 2, 12, 12, rgb("#ffffff", alpha));
+    text(`Playcount: ${comma(playcount)}`, playX + 16, y, 11, "rgba(255,255,255,0.85)", alpha, 600);
   }
 
   function composeLayers(layers: { s: Sprite; x: number; y: number; w?: number; h?: number; color?: HudSprite["color"]; clip?: HudSprite["clip"] }[], ox: number, oy: number, w: number, h: number) {
@@ -599,8 +725,8 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
         x.rect(item.clip[0] - ox, item.clip[1] - oy, item.clip[2], item.clip[3]);
         x.clip();
       }
-      const dw = item.w ?? item.s.w / 2 - item.s.pad;
-      const dh = item.h ?? item.s.h / 2 - item.s.pad;
+      const dw = item.w ?? item.s.w / 2 - item.s.pad * 2;
+      const dh = item.h ?? item.s.h / 2 - item.s.pad * 2;
       x.drawImage(img, item.x - ox - item.s.pad, item.y - oy - item.s.pad, dw + item.s.pad * 2, dh + item.s.pad * 2);
       x.restore();
     }
@@ -630,125 +756,91 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
 
   function drawOutro(t: number): HudFrame {
     frame = { sprites: [], ticks: [] };
+    draw = sprite;
     const m = outroMotion(t);
     const a = m.container;
     if (a <= 0) return frame;
-    const sx = (x: number) => x;
-    text("CS:", sx(188), 36 + m.topBar.y, 13, "rgba(255,255,255,0.85)", m.topBar.opacity * a, 600);
-    text(data.map.cs.toFixed(2), sx(250), 36 + m.topBar.y, 13.5, "#fff", m.topBar.opacity * a);
-    text("AR:", sx(320), 36 + m.topBar.y, 13, "rgba(255,255,255,0.85)", m.topBar.opacity * a, 600);
-    text(data.map.ar.toFixed(2), sx(382), 36 + m.topBar.y, 13.5, "#fff", m.topBar.opacity * a);
-    sprite(starRibbon, 460, 8 + m.topBar.y, 40, 36, rgb("#ffffff", m.topBar.opacity * a));
-    text(data.map.sr, 480, 34 + m.topBar.y, 24, "#F8D153", m.topBar.opacity * a, 800, "center");
-    text("OD:", sx(540), 36 + m.topBar.y, 13, "rgba(255,255,255,0.85)", m.topBar.opacity * a, 600);
-    text(data.map.od.toFixed(2), sx(602), 36 + m.topBar.y, 13.5, "#fff", m.topBar.opacity * a);
-    text("HP:", sx(670), 36 + m.topBar.y, 13, "rgba(255,255,255,0.85)", m.topBar.opacity * a, 600);
-    text(data.map.hp.toFixed(2), sx(732), 36 + m.topBar.y, 13.5, "#fff", m.topBar.opacity * a);
-    const gauge = (x: number, fill: string, t: number) => {
-      const track = art(`gauge:${fill}`, 96, 6, c => {
-        c.fillStyle = "rgba(255,255,255,0.14)";
-        roundRect(c, 0, 0, 96, 6, 3);
-        c.fill();
-        c.fillStyle = fill;
-        roundRect(c, 0, 0, 96 * t, 6, 3);
-        c.fill();
-      });
-      sprite(track, x, 22 + m.topBar.y, 96, 6, rgb("#ffffff", m.topBar.opacity * a));
-    };
-    gauge(188, "#FA5252", Math.min(1, data.map.cs / 10));
-    gauge(320, "#40C057", Math.min(1, data.map.ar / 11));
-    gauge(540, "#B197FC", Math.min(1, data.map.od / 11));
-    gauge(670, "#748FFC", Math.min(1, data.map.hp / 10));
+    const leftA = m.leftFlyout.opacity * a;
+    const leftX = m.leftFlyout.x;
+    const rightX = m.rightFlyout.x;
+    const emerge = (index: number) => -38 * (1 - m.rightItems[index]!);
 
-    const lx = 480 - 190 + (1 - m.lens.scale) * 190, ly = 290 - 190 + m.lens.y;
-    sprite(lens, lx, ly, 380 * m.lens.scale, 380 * m.lens.scale, rgb("#ffffff", m.lens.opacity * a));
-    sprite(grade, 480 - 140, 290 - 144 + m.lens.y - 4, 280 * m.grade.scale, 280 * m.grade.scale, rgb("#ffffff", m.grade.opacity * m.lens.opacity * a));
-    (data.score?.mods ?? []).forEach((mod, i) => {
-      const icon = modIcon(mod, 32, 5.3);
-      const n = data.score!.mods.length;
-      sprite(icon, 480 - (n * 34) / 2 + i * 34, 290 + 140 + m.lens.y, 32, 32, rgb("#ffffff", m.lens.opacity * a));
-    });
-
-    const playerCard = art("player-card", 210, 38, c => {
-      const g = c.createLinearGradient(0, 0, 0, 38);
-      g.addColorStop(0, palette.plateTop);
-      g.addColorStop(1, palette.plateBottom);
-      c.fillStyle = g;
-      roundRect(c, 0, 0, 210, 38, 8);
-      c.fill();
-    });
-    sprite(playerCard, 180 + m.leftFlyout.x, 128, 210, 38, rgb("#ffffff", m.leftFlyout.opacity * a));
-    sprite(avatar, 188 + m.leftFlyout.x, 133, 28, 28, rgb("#ffffff", m.leftFlyout.opacity * a));
-    text(`${data.player.username} ${data.player.grank}`, 222 + m.leftFlyout.x, 132, 12.5, "#fff", m.leftFlyout.opacity * a);
-    if (flag) sprite(flag, 222 + m.leftFlyout.x, 148, 16, 11, rgb("#ffffff", m.leftFlyout.opacity * a));
-    text(data.player.crank, 242 + m.leftFlyout.x, 146, 11, "rgba(255,255,255,0.9)", m.leftFlyout.opacity * a, 600);
+    sprite(playerCard, 180 + leftX, 128, 210, 38, rgb("#ffffff", leftA));
+    sprite(avatar, 192 + leftX, 133, 28, 28, rgb("#ffffff", leftA));
+    text(`${data.player.username} ${data.player.grank}`, 228 + leftX, 131, 12.5, "#fff", leftA);
+    if (flag) sprite(flag, 228 + leftX, 147, 16, 11, rgb("#ffffff", leftA));
+    text(data.player.crank, 248 + leftX, 145, 11, "rgba(255,255,255,0.9)", leftA, 600);
 
     const rows = [[190, 96], [228, 87], [266, 82], [304, 84], [342, 92], [380, 109]] as const;
     (data.topScores ?? []).forEach((play, i) => {
       const [top, left] = rows[i] ?? rows[5];
       const cover = play.cover && images.has(play.cover) ? roundedImage(`play:${i}`, play.cover, 44, 27, 4) : coverThumb;
-      sprite(cover, left + m.leftFlyout.x, top, 44, 27, rgb("#ffffff", m.leftFlyout.opacity * a));
+      sprite(cover, left + leftX, top, 44, 27, rgb("#ffffff", leftA));
       const rank = play.rank.toUpperCase().replace(/H$/, "");
-      const rankCol = rank === "A" ? "#51CF66" : rank === "B" ? "#339AF0" : rank === "C" ? "#CC5DE8" : rank === "D" ? "#FF6B6B" : "#fff";
-      text(rank, left + 8 + m.leftFlyout.x, top + 5, 15, rankCol, m.leftFlyout.opacity * a, 800);
+      text(rank, left + 8 + leftX, top + 5, 15, playRankColor(rank, play.mods), leftA, 800);
       const title = Array.from(play.title);
-      text(title.length > 18 ? `${title.slice(0, 18).join("").trimEnd()}...` : play.title, left + 54 + m.leftFlyout.x, top, 11, "#fff", m.leftFlyout.opacity * a, 600);
-      play.mods.forEach((mod, mi) => sprite(modIcon(mod, 14, 2.3), left + 54 + mi * 16 + m.leftFlyout.x, top + 15, 14, 14, rgb("#ffffff", m.leftFlyout.opacity * a)));
-      text(play.timeAgo, left + 54 + play.mods.length * 16 + 6 + m.leftFlyout.x, top + 15, 10, "rgba(255,255,255,0.65)", m.leftFlyout.opacity * a, 600);
-      text(play.pp, left + 198 + m.leftFlyout.x, top + 12, 12, "#fff", m.leftFlyout.opacity * a, 700, "right");
+      text(title.length > 18 ? `${title.slice(0, 18).join("").trimEnd()}...` : play.title, left + 54 + leftX, top, 11, "#fff", leftA, 600);
+      play.mods.forEach((mod, mi) => sprite(modIcon(mod, 14, 2.3), left + 54 + mi * 16 + leftX, top + 15, 14, 14, rgb("#ffffff", leftA)));
+      text(play.timeAgo, left + 54 + play.mods.length * 16 + 6 + leftX, top + 15, 10, "rgba(255,255,255,0.65)", leftA, 600);
+      text(play.pp, left + 198 + leftX, top + 12, 12, "#fff", leftA, 700, "right");
     });
 
-    const items = [
-      () => {
-        text("Score", 658 + m.rightFlyout.x, 184, 12, "#fff", m.rightItems[0]! * a, 500);
-        text(formatScoreNumber(data.score!.totalScore), 658 + m.rightFlyout.x, 200, 24, "#fff", m.rightItems[0]! * a, 500);
-      },
-      () => text(`${formatScoreNumber(data.score!.combo)}/${formatScoreNumber(data.score!.maxCombo)}x`, 672 + m.rightFlyout.x, 238, 22, "#a6a6a2", m.rightItems[1]! * a, 400),
-      () => {
-        const pp = art("pp-badge", 140, 32, c => {
-          const g = c.createLinearGradient(0, 0, 0, 32);
-          g.addColorStop(0, palette.plateTop);
-          g.addColorStop(1, palette.plateBottom);
-          c.fillStyle = g;
-          c.beginPath();
-          c.moveTo(0, 0);
-          c.lineTo(128, 0);
-          c.lineTo(140, 16);
-          c.lineTo(128, 32);
-          c.lineTo(0, 32);
-          c.lineTo(9, 16);
-          c.closePath();
-          c.fill();
-        });
-        sprite(pp, 672 + m.rightFlyout.x, 276, 140, 32, rgb("#ffffff", m.rightItems[2]! * a));
-        const ppText = data.score!.pp.trim().toUpperCase().endsWith("PP") ? data.score!.pp.toUpperCase() : `${data.score!.pp}PP`;
-        text(ppText, 742 + m.rightFlyout.x, 280, 22, "#fff", m.rightItems[2]! * a, 500, "center");
-      },
-      () => text(data.score!.accuracy, 672 + m.rightFlyout.x, 324, 22, "#a6a6a2", m.rightItems[3]! * a, 400),
-      () => {
-        const hits = [
-          ["#61C97D", String(data.score!.count300), 48],
-          ["#BAD750", String(data.score!.count100), 12],
-          ...(data.score!.count50 > 0 ? [["#65b9df", String(data.score!.count50), 12] as const] : []),
-          ["#DE6984", String(data.score!.countMiss), 12],
-        ] as const;
-        let x = 624 + m.rightFlyout.x;
-        hits.forEach(([color, value, pad]) => {
-          const box = art(`hit:${color}:${value}`, 40 + pad, 28, c => {
-            c.fillStyle = color;
-            c.fillRect(0, 0, 40 + pad, 28);
-            c.font = '500 19px "Plus Jakarta Sans"';
-            c.fillStyle = "#fff";
-            c.textAlign = "center";
-            c.textBaseline = "middle";
-            c.fillText(value, (40 + pad) / 2, 14);
-          });
-          sprite(box, x, 358, 40 + pad, 28, rgb("#ffffff", m.rightItems[4]! * a));
-          x += 40 + pad;
-        });
-      },
-    ];
-    items.forEach((draw, i) => { if (m.rightItems[i]! > 0) draw(); });
+    const itemX = (index: number, base: number) => base + rightX + emerge(index);
+    const itemA = (index: number) => m.rightItems[index]! * a;
+    if (itemA(0) > 0) {
+      sprite(scoreLabel.sprite, itemX(0, 658) - scoreLabel.extra, 184, undefined, undefined, rgb("#ffffff", itemA(0)));
+      text(formatScoreNumber(data.score!.totalScore), itemX(0, 658), 202, 24, "#fff", itemA(0), 500);
+    }
+    if (itemA(1) > 0) text(`${formatScoreNumber(data.score!.combo)}/${formatScoreNumber(data.score!.maxCombo)}x`, itemX(1, 672), 238, 22, "#a6a6a2", itemA(1), 400);
+    if (itemA(2) > 0) {
+      sprite(ppBadge, itemX(2, 672), 276, ppW, 32, rgb("#ffffff", itemA(2)));
+      text(ppText, itemX(2, 672) + ppW / 2, 280, 22, "#fff", itemA(2), 500, "center");
+    }
+    if (itemA(3) > 0) text(data.score!.accuracy, itemX(3, 672), 324, 22, "#a6a6a2", itemA(3), 400);
+    if (itemA(4) > 0) sprite(hitsStrip.sprite, itemX(4, 624) - hitsStrip.extra, 358, undefined, undefined, rgb("#ffffff", itemA(4)));
+
+    const ls = m.lens.scale;
+    const lensA = m.lens.opacity * a;
+    const cx = 480, cy = 290 + m.lens.y;
+    sprite(lens, cx - 190 * ls, cy - 190 * ls, 380 * ls, 380 * ls, rgb("#ffffff", lensA));
+    const gs = ls * m.grade.scale;
+    sprite(grade, cx - 140 * gs, cy - 148 * gs, 280 * gs, 280 * gs, rgb("#ffffff", m.grade.opacity * lensA));
+    const mods = data.score?.mods ?? [];
+    const modSize = 32 * ls, modGap = 2 * ls;
+    let mx = cx - (mods.length * modSize + Math.max(0, mods.length - 1) * modGap) / 2;
+    mods.forEach(mod => {
+      sprite(modIcon(mod, 32, 5.3), mx, cy + 142 * ls, modSize, modSize, rgb("#ffffff", lensA));
+      mx += modSize + modGap;
+    });
+
+    const barY = 18 + m.topBar.y;
+    const barA = m.topBar.opacity * a;
+    const srW = Math.max(40, widthOf(data.map.sr, 24, 800));
+    const groupW = 214;
+    const totalW = groupW + 28 + srW + 28 + groupW;
+    let gx = (960 - totalW) / 2;
+    const gauge = (x: number, fill: string, amount: number, name: string, value: string) => {
+      const track = art(`gauge:${fill}`, 96, 6, c => {
+        c.fillStyle = "rgba(255,255,255,0.14)";
+        roundRect(c, 0, 0, 96, 6, 3);
+        c.fill();
+        c.fillStyle = fill;
+        roundRect(c, 0, 0, 96 * amount, 6, 3);
+        c.fill();
+      });
+      sprite(track, x, barY, 96, 6, rgb("#ffffff", barA));
+      text(`${name}:`, x, barY + 10, 13, "rgba(255,255,255,0.85)", barA, 600);
+      text(value, x + 96, barY + 10, 13.5, "#fff", barA, 700, "right");
+    };
+    gauge(gx, "#FA5252", Math.min(1, data.map.cs / 10), "CS", data.map.cs.toFixed(2));
+    gauge(gx + 118, "#40C057", Math.min(1, data.map.ar / 11), "AR", data.map.ar.toFixed(2));
+    const starX = gx + groupW + 28 + (srW - 40) / 2;
+    sprite(starRibbon, starX, barY - 14, 40, 36, rgb("#ffffff", barA));
+    text(data.map.sr, gx + groupW + 28 + srW / 2, barY + 12, 24, "#F8D153", barA, 800, "center");
+    gx += groupW + 28 + srW + 28;
+    gauge(gx, "#B197FC", Math.min(1, data.map.od / 11), "OD", data.map.od.toFixed(2));
+    gauge(gx + 118, "#748FFC", Math.min(1, data.map.hp / 10), "HP", data.map.hp.toFixed(2));
+
     if (data.score?.playedAtAgo) text(data.score.playedAtAgo, 480, 512, 12, "rgba(255,255,255,0.6)", m.bottomTime * a, 600, "center");
     return frame;
   }
