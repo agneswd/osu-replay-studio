@@ -1,3 +1,4 @@
+import { UpdateDialog } from "./UpdateDialog.js";
 import { LayoutControls } from "./LayoutControls.js";
 import { ThumbnailDialog } from "./ThumbnailDialog.js";
 import type { ThumbnailTextOptions } from "../core/types.js";
@@ -166,6 +167,8 @@ export function App() {
   const [connecting, setConnecting] = useState(false);
   const [connectionMessage, setConnectionMessage] = useState("");
   const [update, setUpdate] = useState<UpdateStatus>();
+  const [dismissedUpdate, setDismissedUpdate] = useState<string>();
+  const updateKey = `${update?.state}:${update?.nextVersion}`;
   const [thumbnailOpen, setThumbnailOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [connectionPromptOpen, setConnectionPromptOpen] = useState(false);
@@ -783,6 +786,13 @@ export function App() {
         </Button>
       </footer>
 
+      {!busy && !thumbnailOpen && !connectionPromptOpen && update?.nextVersion && ["available", "downloading", "ready", "error"].includes(update.state) && dismissedUpdate !== updateKey &&
+        <UpdateDialog status={update} onDismiss={() => setDismissedUpdate(updateKey)}
+          onDownload={() => {
+            setUpdate({ ...update, state: "downloading", percent: 0 });
+            void window.studio.downloadUpdate().then(setUpdate).catch(e => { setUpdate({ ...update, state: "error" }); setError(String(e)); });
+          }}
+          onInstall={() => { void window.studio.installUpdate().catch(e => setError(String(e))); }} />}
       {(error || previewError || playback.audioError) && (
         <div className="absolute bottom-20 left-6 z-30 max-w-lg">
           <Alert status="danger">
@@ -835,8 +845,12 @@ export function App() {
               <Modal.Body className="flex flex-col gap-6">
                 <div className="flex flex-col gap-2">
                   <p className="text-sm">Replay Studio {update?.version}</p>
-                  <p className="text-sm text-muted">{update?.state === "ready" ? `Update ${update.nextVersion} will install when you close the app.` : update?.state === "downloading" ? `Downloading update ${Math.round(update.percent ?? 0)}%` : update?.state === "checking" ? "Checking for updates" : update?.state === "error" ? "Could not check for updates." : update?.state === "disabled" ? "Updates are available in GitHub release builds." : "Up to date"}</p>
-                  <Button size="sm" variant="secondary" isDisabled={!update || ["disabled", "checking", "downloading", "ready"].includes(update.state)} onPress={() => void window.studio.checkUpdates().then(setUpdate)}>Check for updates</Button>
+                  <p className="text-sm text-muted">{update?.state === "ready" ? `Update ${update.nextVersion} is ready to install.` : update?.state === "available" ? `Version ${update.nextVersion} is available.` : update?.state === "downloading" ? `Downloading update ${Math.round(update.percent ?? 0)}%` : update?.state === "checking" ? "Checking for updates" : update?.state === "error" ? "Could not check for updates." : update?.state === "disabled" ? "Updates are available in GitHub release builds." : "Up to date"}</p>
+                  <Button size="sm" variant="secondary" isDisabled={!update || ["disabled", "checking", "downloading"].includes(update.state)} onPress={() => {
+                    setDismissedUpdate(undefined);
+                    if (["available", "ready"].includes(update!.state)) { setSettingsOpen(false); }
+                    else void window.studio.checkUpdates().then(setUpdate);
+                  }}>{update?.state === "ready" ? "Install update" : update?.state === "available" ? "View update" : "Check for updates"}</Button>
                 </div>
                 <div className="flex flex-col gap-1">
                   <p className="text-sm font-medium">osu! calculator {ppStatus?.version ?? ""}</p>

@@ -13,6 +13,8 @@ contextBridge.exposeInMainWorld("studio", {
   openOsuSettings: () => ipcRenderer.invoke("openOsuSettings"),
   updateStatus: () => ipcRenderer.invoke("updateStatus"),
   checkUpdates: () => ipcRenderer.invoke("checkUpdates"),
+  downloadUpdate: () => ipcRenderer.invoke("downloadUpdate"),
+  installUpdate: () => ipcRenderer.invoke("installUpdate"),
   defaults: () => ipcRenderer.invoke("defaults"),
   ppEngineStatus: () => ipcRenderer.invoke("ppEngineStatus"),
   skins: (songs: string) => ipcRenderer.invoke("skins", songs),

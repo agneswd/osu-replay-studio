@@ -208,6 +208,12 @@ app
       }
       ipcMain.handle("updateStatus", event => { trusted(event); return updates.status(); });
       ipcMain.handle("checkUpdates", event => { trusted(event); return updates.check(); });
+      ipcMain.handle("downloadUpdate", event => { trusted(event); return updates.download(); });
+      ipcMain.handle("installUpdate", event => {
+        trusted(event);
+        if (active) throw new Error("Wait for the current task to finish before restarting.");
+        updates.install();
+      });
       ipcMain.handle("defaults", (event) => {
         trusted(event);
         return studioDefaults();
