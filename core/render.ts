@@ -1,4 +1,3 @@
-import { danserPlayfield, validateLayout } from "./layout.js";
 import { pathToFileURL } from "node:url";
 import { nativeFrameWindow, nativeSceneArgs, nativeSceneBackgroundArgs, nativeAudioArgs, type PrepareHud } from "./native-hud.js";
 import { resolutions, frameRates } from "./video-options.js";
@@ -31,6 +30,7 @@ import {
   type Progress,
   type RenderOptions,
 } from "./types.js";
+import { danserPlayfield, validateLayout } from "./layout.js";
 
 export function validateOptions(o: RenderOptions) {
   validateLayout(o?.layout);

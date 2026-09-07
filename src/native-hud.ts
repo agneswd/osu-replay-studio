@@ -364,7 +364,10 @@ async function create(t: Timeline, o: RenderOptions) {
       clip,
     };
     if (ticks) frame.ticks.push(command);
-    else layers.push({ id: component, sprite: command });
+    else {
+      frame.sprites.push(command);
+      layers.push({ id: component, sprite: command });
+    }
   };
   const rect = (
     x: number,
@@ -454,6 +457,22 @@ async function create(t: Timeline, o: RenderOptions) {
       (w, c) => w + size * (/\d/.test(c) ? 0.62 : 0.25),
       0,
     );
+  function applyLayout(frame: HudFrame): HudFrame {
+    layers.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
+    frame.sprites = layers.map(({ id, sprite: item }) => {
+      const target = layout.overlays[id], [x, y] = overlayBounds[id], scale = target.scale;
+      return { ...item, x: target.x + (item.x - x) * scale, y: target.y + (item.y - y) * scale,
+        w: item.w * scale, h: item.h * scale,
+        clip: item.clip ? [target.x + (item.clip[0] - x) * scale, target.y + (item.clip[1] - y) * scale,
+          item.clip[2] * scale, item.clip[3] * scale] : undefined };
+    });
+    if (frame.ticks.length) {
+      const target = layout.overlays["hit-error-bar"];
+      frame.tickPlacement = { x: target.x, y: target.y + 52 * target.scale, scale: target.scale,
+        after: layers.findLastIndex(layer => layer.id === "hit-error-bar") + 1 };
+    }
+    return frame;
+  }
   function draw(seconds: number): HudFrame {
     const f = frameAt(t, seconds, o.leaderboardSize, o.leaderboardSort),
       g = f.gameplay;
@@ -786,25 +805,12 @@ async function create(t: Timeline, o: RenderOptions) {
         "center",
       );
     }
-    layers.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
-    frame.sprites = layers.map(({ id, sprite: item }) => {
-      const target = layout.overlays[id], [x, y] = overlayBounds[id], scale = target.scale;
-      return { ...item, x: target.x + (item.x - x) * scale, y: target.y + (item.y - y) * scale,
-        w: item.w * scale, h: item.h * scale,
-        clip: item.clip ? [target.x + (item.clip[0] - x) * scale, target.y + (item.clip[1] - y) * scale,
-          item.clip[2] * scale, item.clip[3] * scale] : undefined };
-    });
-    if (frame.ticks.length) {
-      const target = layout.overlays["hit-error-bar"];
-      frame.tickPlacement = { x: target.x, y: target.y + 52 * target.scale, scale: target.scale,
-        after: layers.findLastIndex(layer => layer.id === "hit-error-bar") + 1 };
-    }
     return frame;
   }
   return {
     batch(start: number, count: number): HudBatch {
       const frames = Array.from({ length: count }, (_, i) =>
-        draw((start + i) / o.fps),
+        applyLayout(draw((start + i) / o.fps)),
       );
       const fresh = assets;
       assets = [];
