@@ -1,3 +1,4 @@
+import { displayMods } from "../core/mods.js";
 import { timelineHitWindows } from "../core/hit-timing.js";
 import { frameAt } from "../core/timeline.js";
 import { normalizeOverlayAccent, type CounterFrame, type RenderOptions, type Timeline } from "../core/types.js";
@@ -745,12 +746,7 @@ async function create(t: Timeline, o: RenderOptions) {
           clip,
         );
         let mx = 312;
-        for (const mod of r.mods.match(/.{1,2}/g) ?? []) {
-          if (
-            (mod === "DT" && r.mods.includes("NC")) ||
-            (mod === "SD" && r.mods.includes("PF"))
-          )
-            continue;
+        for (const mod of displayMods(r.mods)) {
           const image = images.get(
             `../shared/assets/mods/mod-${modNames[mod]}.svg:24:24`,
           );

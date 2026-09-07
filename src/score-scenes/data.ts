@@ -1,3 +1,4 @@
+import { displayMods } from "../../core/mods.js";
 import type { Timeline } from "../../core/types";
 import type { OverlayData } from "./widgets/types";
 
@@ -19,7 +20,7 @@ export function overlayData(timeline: Timeline): OverlayData {
   const counts = stats?.monthlyPlaycounts ?? [];
   const peak = counts.reduce((best, entry) => entry.count > best.count ? entry : best, { date: "", count: 0 });
   const country = timeline.playerCountry ?? "";
-  const mods = (timeline.mods.match(/.{1,2}/g) ?? []).filter(mod => mod !== "NM" && !(mod === "DT" && timeline.mods.includes("NC")));
+  const mods = displayMods(timeline.mods);
   return {
     player: {
       username: timeline.player, avatar: timeline.playerAvatar || emptyImage,
@@ -48,7 +49,7 @@ export function overlayData(timeline: Timeline): OverlayData {
     },
     topScores: (online?.topPlays ?? []).slice(0, 6).map(play => ({
       rank: play.grade.replace(/H$/, "").replace(/^X$/, "SS"), title: play.title,
-      mods: play.mods === "NM" ? [] : play.mods.match(/.{1,2}/g) ?? [],
+      mods: displayMods(play.mods),
       timeAgo: timeAgo(play.playedAt, online!.fetchedAt), pp: play.pp == null ? "" : `${Math.round(play.pp)}pp`,
       cover: play.cover ?? timeline.bgImage ?? emptyImage,
     })),

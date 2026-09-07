@@ -1,3 +1,4 @@
+import { displayMods } from "../../core/mods.js";
 import { leaderboardAt } from "../../core/leaderboard.js";
 import { createRoot } from "react-dom/client";
 import { flushSync } from "react-dom";
@@ -26,7 +27,7 @@ function Thumbnail({ timeline, accent, customization }: { timeline: Timeline; ac
     pp: score.pp, accuracy: score.accuracy / 100, grade: score.grade.replace("SSH", "SS").replace("SH", "S"), maxCombo: score.maxCombo,
     status: fullCombo ? { kind: "fc" } : score.hits["0"] ? { kind: "miss", count: score.hits["0"] } : { kind: "unknown" },
     missCount: score.hits["0"], sbCount: fullCombo ? 0 : score.hits.sliderBreaks, isFullCombo: fullCombo,
-    mods: (timeline.mods.match(/.{1,2}/g) ?? []).filter(mod => mod !== "NM" && !(mod === "DT" && timeline.mods.includes("NC"))).map(acronym => ({ acronym })), statistics: {}, beatmapId: timeline.online?.map.id ?? 0, beatmapsetId: 0,
+    mods: displayMods(timeline.mods).map(acronym => ({ acronym })), statistics: {}, beatmapId: timeline.online?.map.id ?? 0, beatmapsetId: 0,
     beatmapStatus: timeline.online?.map.status, artist: info.artist, title: info.title.replace(/\s*\[[^\]]+\]$/, ""),
     difficultyName: difficulty, baseBpm: timeline.bpm / timeline.speed, effectiveBpm: timeline.bpm, clockRate: timeline.speed,
     moddedStarRating: timeline.stars, backgroundUrl: timeline.bgImage };
