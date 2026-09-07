@@ -6,10 +6,11 @@
 4. Create an isolated Danser runtime with only the selected map folder linked into Songs.
 5. Render gameplay with Danser 0.11.0. Disable its HUD, results screen and motion blur.
 6. Trim Danser startup. Start one second before the first note when the intro is enabled.
-7. Sample one complete overlay snapshot per output frame.
-8. Capture transparent PNG frames through an offscreen Electron window.
-9. Stream frames to FFmpeg with backpressure and composite them over gameplay.
+7. Rasterize HUD and scene artwork once. Danser draws HUD sprites during the gameplay encode.
+8. For intro and outro, draw native sprites over a held gameplay background and encode those segments.
+9. Join scene videos and gameplay by stream copy. Mix audio on one presentation clock.
 10. Finish the MP4 at the selected size and frame rate, without overwriting an existing file.
+External Danser builds without native HUD support keep the browser overlay path.
 
 ## Clock
 

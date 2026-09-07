@@ -67,8 +67,7 @@ The native HUD keeps all ten components. It uses the existing timeline sampler a
 Text rasterization can differ from the browser preview. Gameplay no longer passes through an intermediate CRF-18 encode.
 This change does not add hardware encoding or GPU-to-encoder transfer. FFmpeg still uses software x264 encoding.
 
-Intro and outro scenes still use Chromium. Their held clear and blurred backgrounds are prepared once.
-Chromium blends those images on the GPU. Opaque scene capture uses native PNG encoding.
+Intro and outro scenes use the same sprite path. Chromium rasterizes artwork once. A CPU compositor draws each scene frame over the held gameplay background.
 The final file joins the scene videos and gameplay by stream copy. Audio stays on one continuous presentation clock.
 
 Use the same job and a copy of the previous Danser runtime for a full export comparison:
@@ -95,7 +94,12 @@ Decoded audio matched between paths. A gameplay crop matched the same frame cloc
 The normal desktop session stayed active during these tests. Results on other hardware can differ.
 
 A separate opaque scene PNG test averaged 7.17 ms with native encoding and 35.57 ms with JavaScript conversion and encoding.
-Decoded pixels matched exactly in that test. This does not predict the same speed ratio for a full scene export.
+Decoded pixels matched exactly in that test.
+
+On 2026-09-07, the same 30-second mrekk job with intro and outro enabled spent 91.7-99.1 seconds in Chromium scene capture.
+Native scene compositing of those 648 frames took 9.3 seconds on the same machine, about 10 times the throughput.
+A 30-second export with all ten HUD components plus intro and outro finished in 23.5 seconds.
+A previous full-map export of the same replay with native HUD and browser scenes took 132 seconds.
 
 A confirmation export after the timing-window and slider-head fixes took 14.18 seconds with the same 30-second job.
 The first timing tick appeared at 0.668 seconds. DT windows were ±16 ms, ±43.33 ms, and ±71.33 ms.
@@ -114,6 +118,25 @@ Browser composition:
 Native composition:
 
 ![Native HUD at 20 seconds](images/native-hud.png)
+
+These frames show the intro player card and the outro score scene for the same replay.
+Text rasterization and a few layout details can differ from Chromium CSS.
+
+Browser intro:
+
+![Browser intro](images/browser-intro.png)
+
+Native intro:
+
+![Native intro](images/native-intro.png)
+
+Browser outro:
+
+![Browser outro](images/browser-outro.png)
+
+Native outro:
+
+![Native outro](images/native-outro.png)
 
 ### App response during scene capture
 
