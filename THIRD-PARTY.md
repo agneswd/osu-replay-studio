@@ -4,6 +4,7 @@ Replay Studio is licensed under GPL-3.0-only. Separate components retain their o
 
 | Component | License | Source |
 | --- | --- | --- |
+| Country flags | CC-BY-4.0 | [Twemoji 16.0.1](https://github.com/discord/twemoji), as used by [osu-web](https://github.com/ppy/osu-web/blob/61b0a41431395f86ff68fa12744f3266448ec885/webpack.config.js#L111) |
 | osu! calculator | MIT | [ppy/osu](https://github.com/ppy/osu) |
 | Danser 0.11.0 | GPL-3.0 | [Source and build instructions](https://github.com/Wieku/danser-go/tree/0.11.0) |
 | FFmpeg | GPL builds | [FFmpeg source](https://ffmpeg.org/download.html#get-sources) |
@@ -18,7 +19,8 @@ Replay Studio is licensed under GPL-3.0-only. Separate components retain their o
 | React | MIT | [facebook/react](https://github.com/facebook/react) |
 | HeroUI | MIT | [heroui-inc/heroui](https://github.com/heroui-inc/heroui) |
 
-The Linux Danser build includes `tools/danser-pipe.patch`. `tools/build-danser.mjs` downloads its exact source and applies the patch.
+The Danser builds include the native HUD source and patch in `tools/danser/`, plus `tools/danser-pipe.patch`.
+`tools/build-danser.mjs` downloads the pinned upstream source, applies these changes, and builds the Linux or Windows library.
 
 License texts are in `licenses/` and beside bundled fonts.
 Danser includes BASS and other assets with separate terms. See `licenses/danser-credits.md`.
@@ -33,3 +35,6 @@ Custom game artwork, music, skins, and player data are not supplied with the app
 The README screenshot shows a user-loaded replay. Outro sounds are original synthesized audio.
 
 `tools/patch-replayviewer.mjs` applies the local black-background, cursor-scale, and judgement lookup corrections to the pinned preview library.
+
+Country flag SVGs are unmodified Twemoji graphics by Twitter, Inc. and other contributors.
+The filenames use country codes. The graphics license is in `licenses/twemoji-graphics.txt`.

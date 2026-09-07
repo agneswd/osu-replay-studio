@@ -1,3 +1,4 @@
+import { collectTimingHits, hitWindowsFor } from "./hit-timing.js";
 import { replayFormat, scoreAccuracy } from "./replay-format.js";
 import type { PpScore } from "./pp.js";
 import { createHash } from "node:crypto";
@@ -197,11 +198,10 @@ export async function analyze(
       ur: 0,
     },
   ];
-  let count = 0,
-    sum = 0,
-    sumSq = 0;
+  const hitWindows = hitWindowsFor(parsed.modDiff);
+  const timingHits = collectTimingHits(map.hitObjects, parsed.hitResults, parsed.modDiff);
+  let timingIndex = 0;
   const errors: number[] = [];
-  const timingHits: { time: number; error: number }[] = [];
   const totalHits = replay.count300 + replay.count100 + replay.count50 + replay.countMiss;
   let accuracy = totalHits ? (replay.count300 * 300 + replay.count100 * 100 + replay.count50 * 50) / (totalHits * 3) : 100;
   const ratio300 = totalHits ? replay.count300 / totalHits : 1;
@@ -253,14 +253,8 @@ export async function analyze(
         else nested[result.judgement ? "largeTickHit" : "largeTickMiss"]++;
       }
       const score = atTime(parsed.scoreFrames, result.effectiveTime);
-      const object = map.hitObjects[result.objectIndex];
-      if (result.judgement > 0 && object && object.type === "circle") {
-        const error = (result.time - object.time) / parsed.modDiff.speed;
-        count++;
-        sum += error;
-        sumSq += error * error;
-        errors.push(error);
-        timingHits.push({ time: result.effectiveTime, error });
+      while (timingIndex < timingHits.length && timingHits[timingIndex].time <= result.effectiveTime) {
+        errors.push(timingHits[timingIndex++].error);
         if (errors.length > 100) errors.shift();
       }
       const ppState: PpScore = { great: hits["300"], ok: hits["100"], meh: hits["50"], miss: hits["0"], combo: score?.maxCombo ?? 0, ...nested };
@@ -276,9 +270,7 @@ export async function analyze(
         hits,
         pp: 0,
         errors: [...errors],
-        ur: count
-          ? 10 * Math.sqrt(Math.max(0, sumSq / count - (sum / count) ** 2))
-          : 0,
+        ur: timingHits[timingIndex - 1]?.ur ?? 0,
       });
   }
   const stats = replay.scoreInfo?.statistics;
@@ -315,13 +307,12 @@ export async function analyze(
       `Re-simulated totals differ from the replay header. Header: ${replay.count300}/${replay.count100}/${replay.count50}/${replay.countMiss}, ${replay.maxCombo}x, ${replay.score} score. Analysis: ${last.hits["300"]}/${last.hits["100"]}/${last.hits["50"]}/${last.hits["0"]}, ${last.maxCombo}x, ${last.score} score.`,
     );
   warnings.push(
-    "Score and PP are re-simulated estimates. Timing error and UR currently include circles only.",
+    "Score and PP are re-simulated estimates. Timing error and UR include circles and slider heads.",
   );
 
-  const end = Math.max(
-    last.time,
-    ...map.hitObjects.map((o) => ("endTime" in o ? o.endTime : o.time)),
-  );
+  const end = Math.max(...map.hitObjects.map((o) => ("endTime" in o ? o.endTime : o.time)));
+  // Danser finishes the last judgement window, the one-second fade, and its 100 ms tail.
+  const gameplayFadeStart = (end + Math.trunc(200 - 10 * parsed.modDiff.od)) / 1000 / parsed.modDiff.speed;
 
   let health = replay.lifebarGraph
     .split(",")
@@ -409,10 +400,12 @@ export async function analyze(
           .join("") || "NM",
       preservesPitch: format.preservesPitch,
       timingHits,
+      hitWindows,
     replayFormat: format.lazer ? "lazer" : "stable",
       speed: parsed.modDiff.speed,
       preempt: Math.min(1800, parsed.modDiff.preemptMs),
-      duration: (end + 1000) / 1000 / parsed.modDiff.speed,
+      duration: gameplayFadeStart + 1.1 / parsed.modDiff.speed,
+      gameplayFadeStart,
       stars,
       bpm,
       od: parsed.modDiff.od,

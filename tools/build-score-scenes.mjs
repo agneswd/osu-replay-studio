@@ -20,3 +20,8 @@ await compile({
   define: { "process.env.NODE_ENV": '\"production\"' },
   loader: { ".woff2": "file" }, assetNames: "fonts/[name]-[hash]",
 });
+
+await compile({
+  entryPoints: ["src/native-hud.ts"], outfile: "overlays/native-hud.js",
+  bundle: true, minify: true, format: "iife", target: "chrome120",
+});

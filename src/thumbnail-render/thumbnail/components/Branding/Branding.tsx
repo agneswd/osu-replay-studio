@@ -1,10 +1,11 @@
+import { fitFontSize } from "../Text/fit";
 import type { CSSProperties, ReactNode } from "react";
 import type { BottomMessageConfig } from "../../types";
 import { layerStyle } from "../Layer";
 import { softGlow, TEXT_SHADOW_3D } from "../../../shared/formatting/color";
-export function BottomMessage({ text, accentPart, config, }: {
+export function BottomMessage({ text, accentRange, config, }: {
     text: string;
-    accentPart?: string;
+    accentRange?: { start: number; end: number };
     config: BottomMessageConfig;
 }) {
     if (!config.visible || text === "")
@@ -17,8 +18,10 @@ export function BottomMessage({ text, accentPart, config, }: {
         textShadow: [glow, TEXT_SHADOW_3D].filter(Boolean).join(", "),
     };
     let content: ReactNode;
-    const index = accentPart ? text.indexOf(accentPart) : -1;
-    if (accentPart && index >= 0) {
+    const index = accentRange?.start ?? -1;
+    const end = accentRange?.end ?? -1;
+    const accentPart = text.slice(index, end);
+    if (accentPart && index >= 0 && end <= text.length) {
         content = (<>
         <span style={{ color: config.prefixColor, textShadow: TEXT_SHADOW_3D }}>{text.slice(0, index)}</span>
         <span style={accentStyle}>{accentPart}</span>
@@ -32,7 +35,7 @@ export function BottomMessage({ text, accentPart, config, }: {
             width: config.width,
             textAlign: "center",
             fontFamily: config.fontFamily,
-            fontSize: config.fontSize,
+            fontSize: config.width ? fitFontSize(text, config, config.width, 12) : config.fontSize,
             fontWeight: config.fontWeight,
             letterSpacing: config.letterSpacing,
             whiteSpace: "pre",

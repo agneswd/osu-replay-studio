@@ -30,9 +30,10 @@ try {
   } else {
     await cp(out, "runtime/danser", { recursive: true });
     await chmod("runtime/danser/danser-cli", 0o755);
-    const compile = spawnSync(process.execPath, ["tools/build-danser.mjs"], { stdio: "inherit" });
-    if (compile.status !== 0) throw Error("Could not build the Linux renderer.");
+
   }
+  const compile = spawnSync(process.execPath, ["tools/build-danser.mjs"], { stdio: "inherit" });
+  if (compile.status !== 0) throw Error("Could not build the renderer.");
   await rm("runtime/ffmpeg", { recursive: true, force: true });
   if (process.platform === "linux") await rm("runtime/danser/ffmpeg", { recursive: true, force: true });
   await mkdir("runtime/ffmpeg", { recursive: true });

@@ -1,13 +1,13 @@
-import { mkdtemp, writeFile, rm } from "node:fs/promises";
+import { mkdtemp, writeFile, rm, copyFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
 const commit = "8331b0ffb841cc9e0f5e6b756bcf2bba2a9465c0";
 const scratch = await mkdtemp(path.join(os.tmpdir(), "studio-danser-"));
-const output = path.resolve("runtime/danser/libdanser-core.so");
+const output = path.resolve(process.platform === "win32" ? "runtime/danser/danser-core.dll" : "runtime/danser/libdanser-core.so");
 const patch = path.resolve("tools/danser-pipe.patch");
 function run(command, args, cwd = scratch) {
-  const result = spawnSync(command, args, { cwd, stdio: "inherit", env: { ...process.env, CGO_ENABLED: "1" } });
+  const result = spawnSync(command, args, { cwd, stdio: "inherit", env: { ...process.env, CGO_ENABLED: "1", ...(process.platform === "win32" ? { CGO_LDFLAGS: "-static-libstdc++ -static-libgcc -Wl,-Bstatic -lstdc++ -lpthread -Wl,-Bdynamic" } : {}) } });
   if (result.status !== 0) throw Error(`${command} failed.`);
 }
 try {
@@ -18,7 +18,9 @@ try {
   run("tar", ["-xzf", archive]);
   const source = path.join(scratch, `danser-go-${commit}`);
   run("git", ["apply", patch], source);
+  run("git", ["apply", path.resolve("tools/danser/native-hud.patch")], source);
+  await copyFile("tools/danser/studio_hud.go", path.join(source, "app/states/studio_hud.go"));
   run("go", ["build", "-trimpath", "-ldflags", "-s -w -X github.com/wieku/danser-go/build.VERSION=0.11.0 -X github.com/wieku/danser-go/build.Stream=Release",
     "-buildmode=c-shared", "-o", output, "-tags", "exclude_cimgui_glfw exclude_cimgui_sdli"], source);
-  await rm(output.replace(/\.so$/, ".h"), { force: true });
+  await rm(output.replace(/\.(so|dll)$/, ".h"), { force: true });
 } finally { await rm(scratch, { recursive: true, force: true }); }

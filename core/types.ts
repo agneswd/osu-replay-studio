@@ -46,7 +46,11 @@ export interface RenderOptions extends AnalyzeInput {
   leaderboardSort?: "pp" | "score";
   duration?: number;
 }
-export interface ThumbnailOptions {
+export interface ThumbnailTextOptions {
+  bottomText?: string;
+  accentRange?: { start: number; end: number };
+}
+export interface ThumbnailOptions extends ThumbnailTextOptions {
   timeline: Timeline;
   dir: string;
   accent: string;
@@ -144,8 +148,11 @@ export interface OnlineData {
   replayScore?: RankedScore;
 }
 export interface LeaderboardRow extends RankedScore { position: number; current: boolean; slot?: number; opacity?: number }
+export interface HitWindows { great: number; ok: number; meh: number; inclusive: boolean }
+export interface TimingHit { time: number; error: number; ur?: number; average?: number }
 export interface Timeline {
-  timingHits?: { time: number; error: number }[];
+  hitWindows?: HitWindows;
+  timingHits?: TimingHit[];
   replayFormat?: "stable" | "lazer";
   ppInfo?: { engineVersion: string; localFinalPP: number; onlineFinalPP?: number };
   online?: OnlineData;
@@ -161,6 +168,7 @@ export interface Timeline {
   speed: number;
   preempt: number;
   duration: number;
+  gameplayFadeStart?: number;
   stars: number;
   bpm: number;
   od: number;
@@ -220,7 +228,7 @@ export interface KeyLane {
 export interface OverlayFrame {
   judgementHistory?: { markers: { position: number; grade: "100" | "50" | "0"; progress: number }[]; progress: number };
   keys?: KeyLane[];
-  timing?: { ticks: { error: number; opacity: number; height: number }[]; average: number };
+  timing?: { windows?: HitWindows; ticks: { error: number; opacity: number; height: number }[]; average: number };
   leaderboard?: { rows: LeaderboardRow[]; caption: string };
   counters?: {
     combo: CounterFrame;
@@ -272,4 +280,5 @@ export type Capture = (
   timeline: Timeline,
   frames: number,
   signal: AbortSignal,
+  range?: { start: number; end: number; background?: { clear: string; soft: string } },
 ) => AsyncIterable<Uint8Array>;

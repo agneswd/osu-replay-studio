@@ -29,3 +29,18 @@ export function measuredAudioFilter(log: string): string {
   });
   return `${exportLoudness}:${values.join(":")}:linear=true`;
 }
+
+// Keep Danser's hit sounds, then join the original song before Danser fades its music.
+export function outroMusicArgs(gameplay: string, song: string, output: string,
+  start: number, leadIn: number, fadeStart: number, duration: number, speed: number, preservesPitch = true) {
+  const join = Math.max(0, fadeStart - start);
+  const crossfade = .1;
+  const tempo = preservesPitch ? `atempo=${speed}` : `asetrate=${48000 * speed},aresample=48000`;
+  const tailStart = Math.max(0, start + join);
+  return ["-y", "-ss", String(Math.max(0, leadIn + start)), "-i", gameplay, "-i", song,
+    "-filter_complex",
+    `[0:a]aresample=48000,atrim=end=${join + crossfade},asetpts=PTS-STARTPTS[game];` +
+    `[1:a]aresample=48000,${tempo},volume=0.25,apad=whole_dur=${tailStart + duration},atrim=start=${tailStart}:end=${tailStart + duration},asetpts=PTS-STARTPTS[song];` +
+    `[game][song]acrossfade=d=${crossfade}:c1=tri:c2=tri,apad=whole_dur=${duration},atrim=end=${duration}[audio]`,
+    "-map", "[audio]", "-c:a", "pcm_s16le", "-ar", "48000", output];
+}

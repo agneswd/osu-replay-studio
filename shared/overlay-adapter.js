@@ -13,6 +13,35 @@
     if (node) node.style.width = `${value}%`;
   };
 
+  let healthRanks;
+  function fitRankLayout(profile) {
+    const labels = [profile?.countryRank, profile?.rank].map(value => value > 0 ? `#${value.toLocaleString()}` : "");
+    const key = labels.join("|");
+    if (key === healthRanks) return;
+    healthRanks = key;
+    const measure = document.createElement("span");
+    measure.style.cssText = "position:absolute;visibility:hidden;white-space:nowrap";
+    document.body.append(measure);
+    const widths = labels.map(label => {
+      measure.textContent = label;
+      return measure.getBoundingClientRect().width;
+    });
+    measure.remove();
+    // Follow each rank independently. Keep the curves clear of map stats and score.
+    const left = Math.round(Math.max(440, Math.min(540, 560 - widths[0] - 6)));
+    const right = Math.round(Math.min(840, Math.max(740, 724 + widths[1] + 6)));
+    if (id === "player-info") {
+      document.documentElement.style.setProperty("--left-arch", `${left - 86}px`);
+      document.documentElement.style.setProperty("--right-arch", `${right + 86}px`);
+      return;
+    }
+    const leftCurve = `C${left - 40} 12 ${left - 40} 54 ${left} 54`;
+    const rightCurve = `C${right + 40} 54 ${right + 40} 12 ${right + 80} 12`;
+    document.querySelector(".hp-track").setAttribute("d", `M18 12 H${left - 80} ${leftCurve} H${right} ${rightCurve} H1262`);
+    el("healthFill").setAttribute("d", `M640 54 H${left} C${left - 40} 54 ${left - 40} 12 ${left - 80} 12 H18`);
+    el("healthFillRight").setAttribute("d", `M640 54 H${right} ${rightCurve} H1262`);
+  }
+
   const gradeLabel = (grade) => ({ SSH: "SS", SH: "S", X: "SS", XH: "SS" })[grade] || grade;
   const getGradeColor = (grade, mods) => {
     if (["SS", "S", "SSH", "SH", "X", "XH"].includes(grade)) {
@@ -191,7 +220,6 @@
       g.hp.normal === null ? null : Math.max(0, Math.min(100, g.hp.normal));
     const health = el("healthContainer");
     if (health) {
-      health.classList.toggle("low", hp !== null && hp < 25);
       health.classList.toggle("unavailable", hp === null);
       if (el("healthValue")) {
         el("healthValue").style.display = hp === null ? "block" : "none";
@@ -201,6 +229,7 @@
         hp === null ? "HP unavailable" : `Health ${Math.round(hp)} percent`,
       );
       if (el("healthFill")) {
+        fitRankLayout(data.userProfile);
         for (const id of ["healthFill", "healthFillRight"]) {
           el(id).style.strokeDasharray = `${hp ?? 0} 100`;
           el(id).style.opacity = hp > 0 ? "1" : "0";
@@ -238,6 +267,7 @@
 
     // Player Info
     if (id === "player-info") {
+      fitRankLayout(data.userProfile);
       setAvatar(el("playerAvatar"), data.userProfile?.avatar);
       for (const [target, value, container] of [
         ["playerCountryRank", data.userProfile?.countryRank, "playerCountryRank"],
@@ -312,8 +342,15 @@
     // Hit Error Bar
     if (id === "hit-error-bar") {
       const errors = data.hitErrors;
+      const windows = data.timing?.windows ?? { great: 40, ok: 120, meh: 200, inclusive: true };
+      const scale = 192 / windows.meh;
+      const edges = [0, 50 - windows.ok / windows.meh * 50, 50 - windows.great / windows.meh * 50,
+        50 + windows.great / windows.meh * 50, 50 + windows.ok / windows.meh * 50, 100];
+      document.querySelector(".timing-zones").style.background = `linear-gradient(to right, ${
+        ["#e7c80b", "#09ec39", "#2499bc", "#09ec39", "#e7c80b"].map((color, i) => `${color} ${edges[i]}% ${edges[i + 1]}%`).join(",")})`;
+      const within = (error, limit) => windows.inclusive ? error <= limit : error < limit;
       const average = data.timing?.average ?? errors.reduce((a, b) => a + b, 0) / (errors.length || 1);
-      document.querySelector(".pointer").style.left = `${Math.max(0, Math.min(100, 50 + average / 4))}%`;
+      document.querySelector(".pointer").style.left = `${Math.max(0, Math.min(100, 50 + average / windows.meh * 50))}%`;
       odometer("urValue", Math.round(data.play.unstableRate), data.counters?.ur);
       text("earlyValue", errors.filter((e) => e < 0).length);
       text("lateValue", errors.filter((e) => e >= 0).length);
@@ -321,17 +358,34 @@
         "avgValue",
         `${(errors.reduce((a, b) => a + b, 0) / (errors.length || 1)).toFixed(1)}ms`,
       );
-      el("barContainer")
-        .querySelectorAll(".replay-hit")
-        .forEach((node) => node.remove());
-      for (const {error, opacity, height = 1} of data.timing?.ticks ?? errors.map(error => ({error, opacity: .7}))) {
-        const tick = document.createElement("div");
-        tick.className = "replay-hit";
-        const position = Math.max(0, Math.min(100, 50 + error / 4));
-        const zone = Math.abs(position - 50) <= 10 ? "300" : Math.abs(position - 50) <= 30 ? "100" : "50";
-        tick.style.cssText = `background:var(--timing-${zone});left:${position}%;opacity:${opacity};transform:translateX(-50%) scaleY(${height})`;
-        el("barContainer").append(tick);
+      const canvas = el("timingTicks");
+      const context = canvas.getContext("2d");
+      const ticks = data.timing?.ticks ?? errors.map(error => ({ error, opacity: .7, height: 1 }));
+      context.setTransform(2, 0, 0, 2, 0, 0);
+      context.clearRect(0, 0, 384, 32);
+      const shape = tick => {
+        const x = Math.max(2, Math.min(382, 192 + tick.error * scale));
+        const height = 22 * (tick.height ?? 1);
+        context.beginPath(); context.roundRect(x - 2, 16 - height / 2, 4, height, 1);
+      };
+      // Shadows separate ticks from the bar. Additive color makes overlapping ticks approach white.
+      context.globalCompositeOperation = "source-over";
+      context.shadowColor = "#000"; context.shadowBlur = 3; context.shadowOffsetY = 1;
+      context.fillStyle = "#000";
+      // Remove the shadow's solid center before adding color. Fading ticks keep their hue.
+      for (const tick of ticks) { context.globalAlpha = tick.opacity ** 2; shape(tick); context.fill(); }
+      context.shadowBlur = 0; context.shadowOffsetY = 0;
+      context.globalCompositeOperation = "destination-out";
+      context.globalAlpha = 1;
+      for (const tick of ticks) { shape(tick); context.fill(); }
+      context.globalCompositeOperation = "lighter";
+      for (const tick of ticks) {
+        const error = Math.abs(tick.error);
+        context.fillStyle = within(error, windows.great) ? "#45a8c6" : within(error, windows.ok) ? "#30e157" : "#ebd132";
+        context.globalAlpha = tick.opacity; shape(tick); context.fill();
       }
+      context.globalAlpha = 1;
+      context.globalCompositeOperation = "source-over";
     }
 
     // Progress Graph

@@ -1,0 +1,75 @@
+diff --git a/app/ffmpeg/video.go b/app/ffmpeg/video.go
+index 76376c5..dcaa00f 100644
+--- a/app/ffmpeg/video.go
++++ b/app/ffmpeg/video.go
+@@ -274,7 +274,14 @@ func startVideo(fps, _w, _h int) {
+ 	endSyncVideo.Add(1)
+ 
+ 	goroutines.RunOS(func() {
++		submitted := 0
++		limit, _ := strconv.Atoi(os.Getenv("STUDIO_NATIVE_FRAME_LIMIT"))
+ 		for pbo := range videoWriteQueue {
++			if limit > 0 && submitted >= limit {
++				freePBOPool <- pbo
++				continue
++			}
++			submitted++
+ 			if _, err2 := videoPipe.Write(pbo.data); err2 != nil {
+ 				errorMsg := err2.Error()
+ 
+diff --git a/app/states/player.go b/app/states/player.go
+index 9d674ba..1f5bde4 100644
+--- a/app/states/player.go
++++ b/app/states/player.go
+@@ -844,7 +844,7 @@ func (player *Player) DrawMain(float64) {
+ 	objectCameras := player.objectCamera.GenRotated(settings.DIVIDES, -2*math.Pi/float64(settings.DIVIDES))
+ 	cursorCameras := player.mainCamera.GenRotated(settings.DIVIDES, -2*math.Pi/float64(settings.DIVIDES))
+ 
+-	bgAlpha := player.dimGlider.GetValue()
++	bgAlpha := studioBackgroundAlpha(player.dimGlider.GetValue())
+ 	if settings.Playfield.Background.FlashToTheBeat {
+ 		bgAlpha = mutils.Clamp(bgAlpha*player.Scl, 0, 1)
+ 	}
+@@ -963,6 +963,7 @@ func (player *Player) Draw(d float64) {
+ 	profiler.StartGroup("Player.Draw", profiler.PDraw)
+ 
+ 	player.DrawMain(d)
++	player.drawStudioHUD()
+ 	player.drawDebug()
+ 
+ 	profiler.EndGroup()
+diff --git a/framework/graphics/batch/batch.go b/framework/graphics/batch/batch.go
+index e526ecc..4d35c47 100644
+--- a/framework/graphics/batch/batch.go
++++ b/framework/graphics/batch/batch.go
+@@ -13,6 +13,7 @@ import (
+ 	"github.com/wieku/danser-go/framework/math/vector"
+ 	"github.com/wieku/danser-go/framework/profiler"
+ 	"math"
++	"strings"
+ )
+ 
+ const defaultBatchSize = 2000
+@@ -71,6 +72,8 @@ func newQuadBatchSize(maxSprites int, persistent bool) *QuadBatch {
+ 		panic(err)
+ 	}
+ 
++	frag = strings.Replace(frag, "uniform sampler2DArray tex;", "uniform sampler2DArray tex;\nuniform bool studioPremultiplied;", 1)
++	frag = strings.Replace(frag, "color.rgb *= color.a;", "if (!studioPremultiplied) color.rgb *= color.a;", 1)
+ 	rShader := shader.NewRShader(shader.NewSource(vert, shader.Vertex), shader.NewSource(frag, shader.Fragment))
+ 
+ 	vao := buffer.NewVertexArrayObject()
+@@ -411,3 +414,13 @@ func packUV(c1, c2 float32) float32 {
+ 
+ 	return math.Float32frombits(c2I<<16 | c1I)
+ }
++
++// SetPremultiplied selects sprites whose texture already contains premultiplied color.
++func (batch *QuadBatch) SetPremultiplied(value bool) {
++	batch.Flush()
++	var flag int32
++	if value {
++		flag = 1
++	}
++	batch.shader.SetUniform("studioPremultiplied", flag)
++}

@@ -1,3 +1,4 @@
+import { ChartLabel } from "./ChartLabel";
 import type { RefCallback } from "react";
 
 export function MapRetryChart({ retries, pathRef }: {
@@ -17,10 +18,10 @@ export function MapRetryChart({ retries, pathRef }: {
     <svg className="history-svg" viewBox="0 0 430 100" role="img" aria-label="Fail and exit counts across the beatmap">
       {[0, .5, 1].map(fraction => <g key={fraction}>
         <line className="chart-grid-h" x1="26" y1={78 - fraction * 63} x2="424" y2={78 - fraction * 63} />
-        <text className="chart-label-axis" x="22" y={81 - fraction * 63} textAnchor="end">{label(max * fraction)}</text>
+        <ChartLabel x={22} y={81 - fraction * 63}>{label(max * fraction)}</ChartLabel>
       </g>)}
       <path className="chart-curve-path" d={curve} ref={pathRef} />
-      {[0, 25, 50, 75, 100].map(percent => <text key={percent} className="chart-label-axis" x={26 + percent / 100 * 398} y="96" textAnchor={percent === 0 ? "start" : percent === 100 ? "end" : "middle"}>{percent}%</text>)}
+      {[0, 25, 50, 75, 100].map(percent => <ChartLabel key={percent} x={26 + percent / 100 * 398} y={96} align={percent === 0 ? "start" : percent === 100 ? "end" : "middle"}>{percent}%</ChartLabel>)}
     </svg>
   </div>;
 }

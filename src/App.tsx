@@ -1,3 +1,5 @@
+import { ThumbnailDialog } from "./ThumbnailDialog.js";
+import type { ThumbnailTextOptions } from "../core/types.js";
 import type { UpdateStatus } from "../electron/updates.js";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -163,6 +165,7 @@ export function App() {
   const [connecting, setConnecting] = useState(false);
   const [connectionMessage, setConnectionMessage] = useState("");
   const [update, setUpdate] = useState<UpdateStatus>();
+  const [thumbnailOpen, setThumbnailOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [connectionPromptOpen, setConnectionPromptOpen] = useState(false);
   const [skins, setSkins] = useState<SkinChoice[]>([]);
@@ -233,7 +236,7 @@ export function App() {
   useEffect(() => {
     if (engine) {
       engine.cursorSize(options?.cursorSize ?? 1);
-      engine.draw(position?.gameplayTime ?? time, timeline?.speed ?? 1, options?.backgroundDim ?? .72);
+      engine.draw(position?.gameplayTime ?? time, timeline?.speed ?? 1, options?.backgroundDim ?? .95);
     }
   }, [engine, options?.cursorSize]);
 
@@ -281,7 +284,7 @@ export function App() {
   };
   useEffect(sendFrame, [timeline, time, options?.overlays, options?.overlayAccent, options?.introOutro, options?.fps, options?.leaderboardSize, options?.leaderboardSort, options?.backgroundDim]);
   useEffect(() => {
-    if (engine && timeline) engine.draw(position?.gameplayTime ?? time, timeline.speed, options?.backgroundDim ?? .72);
+    if (engine && timeline) engine.draw(position?.gameplayTime ?? time, timeline.speed, options?.backgroundDim ?? .95);
   }, [time, timeline, engine, options?.introOutro, options?.fps, options?.backgroundDim]);
 
   function patch(next: Partial<StudioDefaults>) {
@@ -385,14 +388,15 @@ export function App() {
     }
   }
 
-  async function exportThumbnail() {
+  async function exportThumbnail(customization: ThumbnailTextOptions & { accent: string }) {
     if (!options || !timeline) return;
     cancelRequested.current = false;
+    setThumbnailOpen(false);
     setBusyAction("thumbnail");
     setProgress({ stage: "Exporting thumbnail", message: "Save thumbnail" });
     setBusy(true); setNotice(""); setError(""); setOutput("");
     try {
-      setOutput(await window.studio.exportThumbnail({ timeline, dir: options.outputDir, accent: options.overlayAccent }));
+      setOutput(await window.studio.exportThumbnail({ timeline, dir: options.outputDir, ...customization }));
     } catch (e) {
       if (cancelRequested.current) setNotice("Thumbnail export cancelled");
       else setError((e instanceof Error ? e.message : String(e)).replace(/^Error invoking remote method '[^']+': (?:Error: )?/, ""));
@@ -488,7 +492,7 @@ export function App() {
   }
 
   const videoOptions = useMemo(() => options ? (
-      <aside aria-label="Video options" className="workspace-options flex w-[360px] shrink-0 flex-col gap-4 overflow-y-auto border-l border-border p-4">
+      <aside aria-label="Video options" className="workspace-options flex w-[384px] shrink-0 flex-col gap-4 overflow-y-auto border-l border-border p-4">
                 <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-2">
                   <Hint text="Use this skin for preview gameplay, hit sounds, and the exported video."><Select aria-label="Gameplay skin" value={options.skinPath || "default"} isDisabled={busy}
                     onChange={key => void persist({ skinPath: key === "default" ? "" : String(key) })}>
@@ -504,7 +508,7 @@ export function App() {
                 <div className="grid grid-cols-2 gap-4">
                 <Hint text="Darken the beatmap background in the preview and video. 100% is black."><Slider aria-label="Background dim" minValue={0} maxValue={100} step={1} value={Math.round(options.backgroundDim * 100)}
                   onChange={value => void persist({ backgroundDim: Number(value) / 100 })}>
-                  <div className="flex justify-between gap-2 text-sm"><Label>Background dim</Label><Slider.Output>{() => `${Math.round(options.backgroundDim * 100)}%`}</Slider.Output></div>
+                  <div className="flex justify-between gap-2 text-sm"><Label className="whitespace-nowrap">Background dim</Label><Slider.Output>{() => `${Math.round(options.backgroundDim * 100)}%`}</Slider.Output></div>
                   <Slider.Track><Slider.Fill /><Slider.Thumb /></Slider.Track>
                 </Slider></Hint>
                 <Hint text="Set the cursor size in the preview and exported video."><Slider aria-label="Cursor size" minValue={.5} maxValue={2} step={.05} value={options.cursorSize}
@@ -561,7 +565,7 @@ export function App() {
                 </div>
                 <div className="flex items-center gap-3">
                   <p className="text-sm font-medium">Overlay accent</p>
-                  <Hint text="Set the accent color for overlays, score animations, and the thumbnail."><ColorPicker value={options.overlayAccent || defaultOverlayAccent} onChange={color => void persist({ overlayAccent: color.toString("hex") })}>
+                  <Hint text="Set the accent color for overlays and score animations."><ColorPicker value={options.overlayAccent || defaultOverlayAccent} onChange={color => void persist({ overlayAccent: color.toString("hex") })}>
                     <ColorPicker.Trigger aria-label="Overlay accent" isDisabled={busy}><ColorSwatch /></ColorPicker.Trigger>
                     <ColorPicker.Popover className="flex w-64 flex-col gap-3 p-4">
                       <ColorArea colorSpace="hsb" xChannel="saturation" yChannel="brightness"><ColorArea.Thumb /></ColorArea>
@@ -758,7 +762,7 @@ export function App() {
           </Button>
         )}
         <Hint text="Save a CPOL-style PNG to your output folder without rendering a video.">
-          <Button variant="secondary" isDisabled={busy || !timeline} isPending={busy && busyAction === "thumbnail"} onPress={exportThumbnail}>
+          <Button variant="secondary" isDisabled={busy || !timeline} isPending={busy && busyAction === "thumbnail"} onPress={() => setThumbnailOpen(true)}>
             <ImageDown size={18} />Export thumbnail
           </Button>
         </Hint>
@@ -784,6 +788,7 @@ export function App() {
         </div>
       )}
 
+      {thumbnailOpen && options && <ThumbnailDialog accent={options.overlayAccent || defaultOverlayAccent} onClose={() => setThumbnailOpen(false)} onExport={value => void exportThumbnail(value)} />}
       <Modal.Backdrop isOpen={connectionPromptOpen} onOpenChange={setConnectionPromptOpen}>
         <Modal.Container>
           <Modal.Dialog className="sm:max-w-[420px]">
@@ -828,7 +833,7 @@ export function App() {
                 <div className="flex flex-col gap-1">
                   <p className="text-sm font-medium">osu! calculator {ppStatus?.version ?? ""}</p>
 
-                  {ppStatus?.latest && ppStatus.latest !== ppStatus.version && <p className="text-sm text-warning">Newer osu! calculator available.</p>}
+                  {ppStatus?.latest && ppStatus.latest.localeCompare(ppStatus.version, "en", { numeric: true }) > 0 && <p className="text-sm text-warning">osu! calculator {ppStatus.latest} is available upstream. Calculator updates are included in app releases.</p>}
                   {!ppStatus?.latest && <p className="text-sm text-muted">Update status unavailable.</p>}
                 </div>
                 {timeline?.warnings.filter(message => message.startsWith("Local PP")).map(message => <p key={message} className="text-xs text-muted">{message}</p>)}

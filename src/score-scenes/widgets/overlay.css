@@ -396,6 +396,7 @@
     .chart-label-axis {
       font-size: 8.5px;
       fill: var(--text-dim);
+      color: var(--text-dim);
       font-weight: 600;
       font-family: var(--font-main);
     }

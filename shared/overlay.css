@@ -19,7 +19,6 @@
   --hit-meh: #e8c45a;
   --hit-miss: #e56c82;
   --hit-sb: #c5c9d0;
-  --hp-low: #ff4757;
   --timing-50: #e7c80b;
   --timing-100: #09ec39;
   --timing-300: #2499bc;
@@ -36,19 +35,18 @@ body { text-shadow: 0 1px 4px #000; }
 [hidden] { display: none !important; }
 small { font-size: 15px; }
 
-#healthContainer { position: relative; width: 1000px; height: 72px; }
+#healthContainer { position: relative; width: 1280px; height: 72px; }
 #healthContainer svg { width: 100%; height: 80px; overflow: visible; }
-.hp-track, .hp-channel, .hp-fill { fill: none; stroke-linecap: round; }
+.hp-track, .hp-fill { fill: none; stroke-linecap: round; }
 .hp-track { stroke: rgba(var(--accent-rgb), .44); stroke-width: 14; }
-.hp-channel { stroke: rgba(0, 0, 0, .65); stroke-width: 6; }
-.hp-fill { stroke: rgba(var(--accent-rgb), .22); stroke-width: 6; stroke-dasharray: 100 100; }
-#healthContainer.low .hp-fill { stroke: var(--hp-low); }
+.hp-fill { stroke: rgba(0, 0, 0, .65); stroke-width: 6; stroke-dasharray: 100 100; }
+/* The dark center grows with HP. Empty sections keep the solid outline color. */
 #healthContainer.unavailable .hp-track { stroke-dasharray: 4 8; }
 #healthValue { position: absolute; right: 18px; top: 65px; font-size: 12px; color: var(--text-muted); }
 
-.player { width: 1000px; height: 120px; position: relative; }
-.map-stats { position: absolute; left: 22px; top: 33px; width: 305px; display: flex; justify-content: space-between; font-size: 25px; line-height: 34px; }
-.identity { position: absolute; left: 500px; top: 0; width: 300px; transform: translateX(-50%); text-align: center; }
+.player { width: 1280px; height: 120px; position: relative; }
+.map-stats { position: absolute; left: 22px; top: 33px; width: calc(var(--left-arch, 360px) - 22px); display: flex; justify-content: space-between; font-size: 25px; line-height: 34px; }
+.identity { position: absolute; left: 640px; top: 0; width: 300px; transform: translateX(-50%); text-align: center; }
 .player-avatar-container { position: relative; display: inline-block; width: 74px; height: 74px; vertical-align: top; }
 .player-avatar-circle, .avatar-fallback { width: 74px; height: 74px; border-radius: 7px; object-fit: cover; background: rgba(var(--accent-rgb), .12); display: block; }
 .avatar-fallback { position: absolute; inset: 0; background: #292929; }
@@ -60,7 +58,7 @@ small { font-size: 15px; }
 .player-global-rank svg { width: 26px; height: 26px; transform: translateY(2px); fill: none; stroke: currentColor; stroke-width: 1.5; flex-shrink: 0; }
 .player-global-rank svg circle:last-child { fill: #fff; stroke: none; }
 .player-country { right: 198px; font-size: 22px; }
-.player > .score { position: absolute; left: 676px; top: 33px; width: 172px; white-space: nowrap; font-size: 25px; line-height: 34px; }
+.player > .score { position: absolute; left: var(--right-arch, 920px); top: 33px; width: 172px; white-space: nowrap; font-size: 25px; line-height: 34px; }
 
 .accuracy-counter > .accuracy { display: flex; align-items: center; justify-content: flex-end; white-space: nowrap; font-size: 25px; line-height: 34px; }
 .accuracy-counter .accuracy > span { flex-shrink: 0; }
@@ -104,7 +102,6 @@ small { font-size: 15px; }
 .timing-zones { height: 10px; margin-top: 1px; border-radius: 6px; background: linear-gradient(to right, var(--timing-50) 0% 20%, var(--timing-100) 20% 40%, var(--timing-300) 40% 60%, var(--timing-100) 60% 80%, var(--timing-50) 80%); }
 .timing-center { position: absolute; top: -4px; left: 50%; width: 2px; height: 20px; background: #fff; opacity: .6; transform: translateX(-50%); }
 .pointer { position: absolute; top: 80px; left: 50%; transform: translateX(-50%); border-left: 8px solid transparent; border-right: 8px solid transparent; border-bottom: 15px solid #fff; }
-.replay-hit { position: absolute; top: -5px; height: 22px; width: 4px; border-radius: 1px; transform: translateX(-50%); }
 
 #leaderboard { width: 100%; }
 .score-entry { display: flex; align-items: center; padding: 4px 8px; gap: 8px; height: 48px; position: relative; }
@@ -169,5 +166,6 @@ canvas { width: 300px; height: 160px; display: block; }
 .ur .odometer-digit, .ur .odometer-mark { font-size: inherit; line-height: 1.2; }
 .ur .odometer-ribbon > span { font-size: inherit; line-height: 1.2; }
 .counts .odometer { justify-content: center; }
-.replay-hit { width: 4px; border-radius: 2px; transform-origin: center; }
 .leaderboard .score-entry.replay .score-content { background: rgba(8, 10, 14, .58); }
+
+#timingTicks { position: absolute; left: 0; top: -10px; width: 384px; height: 32px; pointer-events: none; }

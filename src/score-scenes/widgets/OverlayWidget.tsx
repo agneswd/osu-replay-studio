@@ -1,3 +1,4 @@
+import { ChartLabel } from "./ChartLabel";
 import type { RefCallback } from "react";
 import { CheckCheck, ChevronsUp, CircleHelp, Heart, Hourglass, Play, Star } from "lucide-react";
 import type { OverlayData } from "./types";
@@ -123,14 +124,14 @@ export function OverlayWidget({ data, spline, setRef, }: {
             <svg className="history-svg" viewBox="0 0 430 140">
               {spline.yTicks.map((tick) => (<g key={tick.y}>
                 <line className="chart-grid-h" x1="20" y1={tick.y} x2="425" y2={tick.y}/>
-                <text className="chart-label-axis chart-label-y" x="16" y={tick.y}>{tick.label}</text>
+                <ChartLabel x={16} y={tick.y} middle>{tick.label}</ChartLabel>
               </g>))}
               <line id="p-peak-line" x1="20" y1={spline.peakY} x2="425" y2={spline.peakY} stroke="rgba(255,255,255,0.55)" strokeWidth="0.8" ref={setRef("pPeakLine") as RefCallback<SVGLineElement>}/>
               <path id="svg-player-path" className="chart-curve-path" d={spline.d} ref={setRef("svgPlayerPath") as RefCallback<SVGPathElement>}/>
               <circle className="peak-dot-static" id="p-peak-dot" cx={spline.peakX} cy={spline.peakY} r="2.8" ref={setRef("pPeakDot") as RefCallback<SVGCircleElement>}/>
               <g id="chart-years-group" ref={setRef("chartYearsGroup") as RefCallback<SVGGElement>}>
                 {spline.yearTicks.map(({ year, x }, index) => (
-                  <text key={year} className="chart-label-axis chart-label-x" data-year-index={index} x={x} y="139">{year}</text>
+                  <ChartLabel key={year} className="chart-label-x" x={x} y={139} align={index === spline.yearTicks.length - 1 ? "end" : "middle"}>{year}</ChartLabel>
                 ))}
               </g>
             </svg>

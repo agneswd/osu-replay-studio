@@ -60,3 +60,5 @@ overlays/runtime.js
 overlays/thumbnail/player.js
 overlays/thumbnail/player.css
 overlays/thumbnail/fonts/
+
+overlays/native-hud.js

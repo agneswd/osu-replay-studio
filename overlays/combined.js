@@ -1,14 +1,14 @@
 const layout = {
-  "health-bar": [460, 16, 1000, 72],
-  "player-info": [460, 14, 1000, 120],
+  "health-bar": [400, 15.75, 1280, 72, .875],
+  "player-info": [400, 14, 1280, 120, .875],
   "pp-counter": [1166, 1008, 380, 60],
-  "accuracy-counter": [1260, 47, 180, 38],
+  "accuracy-counter": [1362.5, 42.875, 180, 38, .875],
   "combo-counter": [404, 1008, 350, 60],
   "hit-counts": [768, 976, 384, 52],
   "hit-error-bar": [768, 976, 384, 98],
-  leaderboard: [20, 434, 365, 414],
+  leaderboard: [4, 434, 365, 414],
   "key-overlay": [1694, 394, 226, 110],
-  "progress-graph": [24, 214, 300, 206],
+  "progress-graph": [8, 214, 300, 206],
 };
 const stage = document.getElementById("stage");
 const frames = new Map();
@@ -17,15 +17,16 @@ endFade.style.cssText = "position:absolute;inset:0;background:black;z-index:100;
 stage.append(endFade);
 const outroBackground = document.createElement("img");
 outroBackground.alt = "";
-outroBackground.style.cssText = "position:absolute;inset:-20px;width:1960px;height:1120px;object-fit:cover;display:none;pointer-events:none";
+outroBackground.style.cssText = "position:absolute;inset:0;width:1920px;height:1080px;object-fit:cover;display:none;pointer-events:none";
 stage.append(outroBackground);
+const requestedOverlays = new URLSearchParams(location.search).get("overlays")?.split(",");
 window.overlayReady = Promise.all(
-  Object.entries(layout).map(
+  Object.entries(layout).filter(([id]) => !requestedOverlays || requestedOverlays.includes(id)).map(
     ([id, [x, y, w, h]]) =>
       new Promise((resolve) => {
         const iframe = document.createElement("iframe");
         iframe.title = id;
-        iframe.style.cssText = `left:${x}px;top:${y}px;width:${w}px;height:${h}px`;
+        iframe.style.cssText = `left:${x}px;top:${y}px;width:${w}px;height:${h}px;transform-origin:top left`;
         iframe.onload = async () => {
           await iframe.contentDocument.fonts.ready;
           resolve();
@@ -52,6 +53,14 @@ function applyTheme(accent) {
   }
 }
 window.setOverlayTheme = applyTheme;
+let heldBackground;
+window.setSceneBackground = ({ clear, soft }) => {
+  const base = document.createElement("img"), blurred = document.createElement("img");
+  base.src = clear; blurred.src = soft;
+  for (const image of [base, blurred]) image.style.cssText = "position:absolute;inset:0;width:1920px;height:1080px;pointer-events:none";
+  stage.prepend(base, blurred);
+  heldBackground = blurred;
+};
 let lastAccent;
 let sceneFrame;
 let sceneReady;
@@ -75,12 +84,13 @@ window.setReplayFrame = async (data, enabled, theme) => {
   if (theme?.accent) applyTheme(theme.accent);
   const scene = theme?.scene;
   const strength = scene ? Math.min(1, scene.kind === "intro" ? 1 : scene.time / .25, Math.max(0, (5.4 - scene.time) / .45)) : 0;
+  if (heldBackground) heldBackground.style.opacity = String(strength);
   const hide = scene?.kind === "outro" ? Math.min(1, scene.time / .3) : 0;
-  const dim = theme?.backgroundDim ?? .72;
-  outroBackground.style.display = scene && outroBackground.getAttribute("src") ? "block" : "none";
-  outroBackground.style.opacity = String(scene?.kind === "intro" ? strength * Math.max(0, (dim - .72) / .28) : 1);
-  outroBackground.style.filter = `blur(${strength * 8}px) brightness(${scene?.kind === "intro" ? .12 : 1 - Math.min(.85, dim)})`;
-  endFade.style.opacity = String(scene?.kind === "outro" ? Math.max(0, Math.min(1, (scene.time - 4.65) / .6)) : 0);
+  const dim = theme?.backgroundDim ?? .95;
+  outroBackground.style.display = !heldBackground && scene && outroBackground.getAttribute("src") ? "block" : "none";
+  outroBackground.style.opacity = String(scene?.kind === "intro" ? 1 : Math.min(1, (scene?.time ?? 0) / .25));
+  outroBackground.style.filter = `blur(${strength * 8}px) brightness(${(1 - dim) * (1 - strength * .45)})`;
+  endFade.style.opacity = String(scene?.kind === "intro" ? Math.max(0, 1 - scene.time / .6) : scene?.kind === "outro" ? Math.max(0, Math.min(1, (scene.time - 4.65) / .6)) : 0);
   const hideEase = 1 - (1 - hide) ** 3;
   if (sceneFrame) {
     sceneFrame.style.display = theme?.scene ? "block" : "none";
@@ -89,8 +99,8 @@ window.setReplayFrame = async (data, enabled, theme) => {
   for (const [id, iframe] of frames) {
     iframe.style.display = enabled.includes(id) && hide < 1 ? "block" : "none";
     iframe.style.opacity = String(1 - hideEase);
-    const [x, y] = layout[id];
-    iframe.style.transform = `translate(${x < 460 ? -hideEase * 35 : 0}px,${y > 900 ? hideEase * 25 : x >= 460 ? -hideEase * 25 : 0}px)`;
+    const [x, y, , , scale = 1] = layout[id];
+    iframe.style.transform = `translate(${x < 320 ? -hideEase * 35 : 0}px,${y > 900 ? hideEase * 25 : x >= 320 ? -hideEase * 25 : 0}px) scale(${scale})`;
     iframe.style.filter = `blur(${strength * 2.5}px) brightness(${1 - strength * .75})`;
     if (enabled.includes(id) && hide < 1) iframe.contentWindow.renderReplayFrame(data);
   }
