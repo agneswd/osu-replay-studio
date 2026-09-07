@@ -44,7 +44,7 @@ export function overlayData(timeline: Timeline): OverlayData {
     score: {
       totalScore: String(score.score), combo: score.maxCombo, maxCombo: info?.maxCombo ?? score.maxCombo,
       pp: `${Math.round(score.pp)}pp`, accuracy: `${score.accuracy.toFixed(2)}%`, rank: score.grade.replace(/H$/, "").replace(/^X$/, "SS"),
-      count300: score.hits["300"], count100: score.hits["100"], count50: score.hits["50"], countMiss: score.hits["0"],
+      count300: score.hits["300"], count100: score.hits["100"], count50: score.hits["50"], sliderBreaks: score.hits.sliderBreaks, countMiss: score.hits["0"],
       playedAtAgo: info?.playedAt ? `Played ${info.playedAt}` : "", mods,
     },
     topScores: (online?.topPlays ?? []).slice(0, 6).map(play => ({

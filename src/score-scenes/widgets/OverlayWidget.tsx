@@ -62,7 +62,7 @@ export function OverlayWidget({ data, spline, setRef, }: {
                 {data.player.isSupporter ? <span className="heart-pill"><Heart size={10} color="#fff" fill="#fff"/></span> : null}
               </div>
               <div className="player-country-line">
-                <span>{data.player.flag}</span>
+                {/^[A-Z]{2}$/.test(data.player.countryCode) && <img src={`../../shared/assets/flags/${data.player.countryCode}.svg`} alt={data.player.countryCode} style={{ width: 14, height: 14, objectFit: "contain" }} />}
                 <span>{data.player.crank}</span>
               </div>
             </div>

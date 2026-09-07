@@ -208,6 +208,12 @@ app
       }
       ipcMain.handle("updateStatus", event => { trusted(event); return updates.status(); });
       ipcMain.handle("checkUpdates", event => { trusted(event); return updates.check(); });
+      ipcMain.handle("downloadUpdate", event => { trusted(event); return updates.download(); });
+      ipcMain.handle("installUpdate", event => {
+        trusted(event);
+        if (active) throw new Error("Wait for the current task to finish before restarting.");
+        updates.install();
+      });
       ipcMain.handle("defaults", (event) => {
         trusted(event);
         return studioDefaults();
@@ -298,7 +304,7 @@ app
           if (!input?.dir) throw new Error("Missing output folder.");
           await mkdir(input.dir, { recursive: true });
           const file = await uniqueOutputPath(input.dir, outputStem(input.timeline.player, input.timeline.title), "png");
-          await captureThumbnail(root, input.timeline, file, input.accent, signal, { bottomText: input.bottomText, accentRange: input.accentRange });
+          await captureThumbnail(root, input.timeline, file, input.accent, signal, { bottomText: input.bottomText, accentRange: input.accentRange, document: input.document });
           completed = file;
           return file;
         });

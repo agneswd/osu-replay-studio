@@ -105,7 +105,7 @@ export function usePlayback(timeline: Timeline | undefined, time: number, setTim
   useEffect(() => {
     const keydown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement;
-      if (target.closest('input, textarea, button, [role="slider"], [role="dialog"], [contenteditable="true"]')) return;
+      if (target.closest('input, textarea, button, [role="slider"], [role="dialog"], [role="menu"], [data-layout-editor], [data-thumbnail-workspace], [role="tab"], [contenteditable="true"]')) return;
       if (event.code === "Space") { event.preventDefault(); toggle(); }
       if (event.code === "ArrowLeft" || event.code === "ArrowRight") {
         event.preventDefault(); seek(currentTime.current + (event.code === "ArrowRight" ? 5 : -5));

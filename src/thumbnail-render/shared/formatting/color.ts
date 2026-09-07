@@ -19,6 +19,16 @@ export function withAlpha(color: string, alpha: number): string {
         return color;
     return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${alpha})`;
 }
+export function mixColors(a: string, b: string, t: number): string {
+    const pa = parseHex(a);
+    const pb = parseHex(b);
+    if (!pa || !pb)
+        return a;
+    const to = (x: number, y: number) => Math.round(x + (y - x) * t);
+    return `#${[to(pa[0], pb[0]), to(pa[1], pb[1]), to(pa[2], pb[2])]
+        .map((v) => v.toString(16).padStart(2, "0"))
+        .join("")}`;
+}
 export const TEXT_SHADOW_3D = "0 4px 0 rgba(0, 0, 0, 0.35), 0 8px 14px rgba(0, 0, 0, 0.28)";
 export function softGlow(color: string, blur: number, layers = 3): string {
     const step = layers > 1 ? blur / (layers - 1) : 0;

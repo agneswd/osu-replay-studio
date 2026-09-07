@@ -1,3 +1,4 @@
+import { EditableText, useEditingText } from "../../../editable-text.js";
 import type { CSSProperties } from "react";
 import type { TextLayerConfig } from "../../types";
 import { fitFontSize } from "./fit";
@@ -7,7 +8,8 @@ export function TextLayer({ config, children, testId, }: {
     children: string;
     testId?: string;
 }) {
-    if (!config.visible || children === "")
+    const editing = useEditingText(testId);
+    if (!config.visible || (children === "" && !editing))
         return null;
     const fitWidth = config.maxWidth ?? config.width;
     const fitText = config.maxLines
@@ -74,7 +76,7 @@ export function TextLayer({ config, children, testId, }: {
             ? { display: "flex", alignItems: "center", justifyContent: config.align === "center" ? "center" : config.align === "right" ? "flex-end" : "flex-start" }
             : {}),
     };
-    return (<div style={style} data-layer={testId}>
+    return (<EditableText id={testId} style={style} data-layer={testId}>
       {children}
-    </div>);
+    </EditableText>);
 }

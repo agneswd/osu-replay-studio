@@ -10,7 +10,7 @@ Preview gameplay with skins, music, and hit sounds. Add overlays, an intro, an o
 Download the Linux AppImage or Windows installer from [Releases](https://github.com/agneswd/osu-replay-studio/releases/latest).
 On Linux, allow the AppImage to run as a program, then open it.
 The app includes Danser, FFmpeg, and the osu! PP calculator.
-Release builds download updates from GitHub. Updates install when you close the app.
+Release builds check GitHub for updates at launch. Choose whether to download, then restart when you are ready to install.
 An OpenGL 3.3 graphics driver is required.
 
 ## Make a video
@@ -21,11 +21,12 @@ An OpenGL 3.3 graphics driver is required.
 4. Set the skin, background dim, cursor size, and video options beside the preview.
 5. Select **Render video**.
 
-Use **Layout** to position and scale the playfield independently of the background.
+Use **Edit layout** to position and scale the playfield independently of the background.
 You can also move, scale, and order each overlay. See the [layout guide](docs/layout.md) for examples.
 
 Videos go to your Videos folder by default. Change the folder in **Settings**.
-Select **Export thumbnail** to save a PNG to your output folder. This does not render a video.
+Open the **Thumbnail** tab to edit a CPOL or Clean thumbnail, then select **Export PNG**.
+See [the thumbnail editor guide](docs/thumbnails.md) for editing, styles, and replay status.
 The outro includes short entrance sounds. Preview volume affects only the app. Export audio uses a fixed loudness target.
 Video defaults are 1920 × 1080 at 60 FPS. Existing files are kept. Space plays or pauses. Arrow keys seek five seconds. Ctrl+plus and Ctrl+minus change app scale. Ctrl+0 resets it.
 

@@ -50,6 +50,10 @@ export interface TextLayerConfig extends LayerBase, TextEffect {
     padding?: string;
     boxShadow?: string;
 }
+export interface CustomTextLayerConfig extends TextLayerConfig {
+    id: string;
+    text: string;
+}
 export interface BadgeLayerConfig extends TextLayerConfig {
     background: string;
     borderColor: string;
@@ -154,6 +158,13 @@ export interface ModListConfig extends LayerBase {
         fg: "dark" | "light";
     }>;
 }
+export interface TwitchLogoConfig extends LayerBase {
+    asset: string;
+    size: number;
+    radius: number;
+    background: string;
+    tint?: string;
+}
 export interface BottomMessageConfig extends LayerBase {
     width?: number;
     fontFamily: string;
@@ -234,8 +245,17 @@ export interface ReferenceTemplateComponents {
     countryFlag: CountryFlagConfig;
     usernamePanel: BadgeLayerConfig;
     modList: ModListConfig;
+    twitchLogo: TwitchLogoConfig;
     bottomMessage: BottomMessageConfig;
-
+    sparkles?: LayerBase & {
+        color?: string;
+        count?: number;
+    };
+    innerBorder?: LayerBase & {
+        inset?: number;
+        border?: string;
+        borderRadius?: number;
+    };
 }
 export interface ThumbnailTemplate {
     id: string;
@@ -248,4 +268,21 @@ export interface ThumbnailTemplate {
     background: BackgroundConfig;
     dataOptions: TemplateDataOptions;
     components: ReferenceTemplateComponents;
+    bottomHighlightOverride?: string;
+    textOverrides?: Record<string, string>;
+    positionOverrides?: Record<string, {
+        x: number;
+        y: number;
+    }>;
+    sizeOverrides?: Record<string, Record<string, number>>;
+    colorOverrides?: Record<string, string>;
+    fontSizeOverrides?: Record<string, number>;
+    customTexts?: CustomTextLayerConfig[];
 }
+export const RESOLUTION_PRESETS = {
+    "1280x720": { width: 1280, height: 720 },
+    "1920x1080": { width: 1920, height: 1080 },
+    "2560x1440": { width: 2560, height: 1440 },
+    "3840x2160": { width: 3840, height: 2160 },
+} as const;
+export type ResolutionPreset = keyof typeof RESOLUTION_PRESETS;

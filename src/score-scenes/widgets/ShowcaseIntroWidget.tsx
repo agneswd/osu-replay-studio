@@ -143,7 +143,7 @@ export function ShowcaseIntroWidget({
                             {data.player.username} <span className="showcase-player-grank">{data.player.grank}</span>
                         </div>
                         <div className="showcase-player-sub">
-                            <span className="showcase-player-flag">{data.player.flag}</span>
+                            {/^[A-Z]{2}$/.test(data.player.countryCode) && <img className="showcase-player-flag" src={`../../shared/assets/flags/${data.player.countryCode}.svg`} alt={data.player.countryCode} />}
                             <span className="showcase-player-crank">{data.player.crank}</span>
                         </div>
                     </div>
@@ -225,6 +225,7 @@ export function ShowcaseIntroWidget({
                         <span>{score.count100}</span>
                     </div>
                     {score.count50 > 0 && <div className="showcase-hit-box h50"><span>{score.count50}</span></div>}
+                    {!!score.sliderBreaks && <div className="showcase-hit-box hsb"><span>{score.sliderBreaks}</span></div>}
                     <div className="showcase-hit-box h0">
                         <span>{score.countMiss}</span>
                     </div>

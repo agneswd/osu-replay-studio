@@ -1,3 +1,4 @@
+import { EditableText } from "../../../editable-text.js";
 import type { CSSProperties, ReactNode } from "react";
 import { Children } from "react";
 import type { BadgeLayerConfig, BadgeRowConfig, PanelLayerConfig, StarNotchConfig } from "../../types";
@@ -20,7 +21,7 @@ export function BadgeLayer({ config, children, testId, variant = "absolute", }: 
         ? 0
         : (config.width ?? 0) - config.borderWidth * 2 - spineWidth - horizontalPadding;
     const fontSize = available > 0 ? fitFontSize(children, config, available, 22) : config.fontSize;
-    const inner = (<div data-editor-text style={{
+    const inner = (<EditableText id={testId} data-editor-text style={{
             flex: 1,
             display: "flex",
             alignItems: "center",
@@ -39,7 +40,7 @@ export function BadgeLayer({ config, children, testId, variant = "absolute", }: 
             textShadow: TEXT_SHADOW_3D,
         }}>
       {children}
-    </div>);
+    </EditableText>);
     const transform = [
         config.centerX ? "translateX(-50%)" : "",
         config.rotation ? `rotate(${config.rotation}deg)` : "",

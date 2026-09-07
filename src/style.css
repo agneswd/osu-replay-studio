@@ -19,8 +19,8 @@ body {
   width: min(100cqw, calc(100cqh * 16 / 9));
   aspect-ratio: 16 / 9;
   overflow: hidden;
-  background: #09090b;
 }
+.preview-box, .thumbnail-empty-state { background: #09090b; }
 
 .preview-box iframe,
 .preview-gameplay,
@@ -57,3 +57,33 @@ body {
 .has-replay .app-title, .has-replay .app-subtitle { transform: translateY(0); }
 .has-replay .app-subtitle { opacity: 1; }
 @media (prefers-reduced-motion: reduce) { .app-title, .app-subtitle { transition: none; } }
+
+.layout-editor { position: absolute; inset: 0; z-index: 5; touch-action: none; cursor: move; outline: none; overflow: hidden; }
+.layout-guide { position: absolute; border: 1px solid transparent; pointer-events: none; }
+.layout-guide-hover { border-color: #ffffff70; }
+.layout-selection { position: absolute; border: 1px solid #6ca8ff; pointer-events: none; }
+.layout-selection-label { position: absolute; left: -1px; top: -20px; padding: 1px 5px; background: #172c49; color: #fff; font-size: 11px; white-space: nowrap; }
+.layout-handle { position: absolute; width: 10px; height: 10px; background: #fff; border: 1px solid #366ab4; pointer-events: auto; }
+.layout-handle-nw { left: -5px; top: -5px; cursor: nwse-resize; }
+.layout-handle-ne { right: -5px; top: -5px; cursor: nesw-resize; }
+.layout-handle-sw { left: -5px; bottom: -5px; cursor: nesw-resize; }
+.layout-handle-se { right: -5px; bottom: -5px; cursor: nwse-resize; }
+.layout-menu-anchor { position: absolute; width: 1px; height: 1px; opacity: 0; padding: 0; }
+.layout-menu-anchor:focus-visible { width: auto; height: auto; opacity: 1; }
+
+.thumbnail-viewport { min-width: 0; grid-template-columns: minmax(0, 1fr); flex: 1; min-height: 0; overflow: hidden; display: grid; padding: 24px; }
+.thumbnail-stage { position: relative; margin: auto; flex: none; }
+.thumbnail-stage > div:first-child { width: 100%; height: 100%; overflow: hidden; }
+
+.workspace-shell { --workspace-sidebar: 384px; }
+.workspace-options { width: var(--workspace-sidebar); }
+
+.workspace-header { display: grid; grid-template-columns: minmax(0, calc((100% - var(--workspace-sidebar)) / 2 - 122px)) 220px minmax(0, 1fr); }
+
+/* Extend the tab indicator to the top bar's bottom border. */
+.workspace-tabs { align-self: stretch; margin-block: -12px; justify-content: flex-end; }
+.workspace-tabs .tabs__list-container { width: 220px; height: 100%; border-bottom: 0; }
+.workspace-tabs .tabs__list-container__scroller, .workspace-tabs .tabs__list { height: 100%; }
+.workspace-tabs .tabs__tab { height: 100%; display: flex; align-items: center; }
+
+.thumbnail-scene [contenteditable] { outline: none; cursor: text; user-select: text; min-width: 1px; min-height: 1em; caret-color: white; }

@@ -1,9 +1,13 @@
-import { LayoutControls } from "./LayoutControls.js";
-import { ThumbnailDialog } from "./ThumbnailDialog.js";
+import type { ThumbnailDocument } from "../core/thumbnail-document.js";
+import { UpdateDialog } from "./UpdateDialog.js";
+import type { VideoLayout } from "../core/layout.js";
+import { LayoutEditor } from "./LayoutEditor.js";
+import { ThumbnailWorkspace } from "./ThumbnailWorkspace.js";
 import type { ThumbnailTextOptions } from "../core/types.js";
 import type { UpdateStatus } from "../electron/updates.js";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  Tabs,
   Alert,
   Button,
   Checkbox,
@@ -23,7 +27,7 @@ import {
   Spinner,
   Tooltip,
 } from "@heroui/react";
-import { presentationAt, presentationTiming, firstNoteSeconds } from "../core/presentation.js";
+import { presentationAt, presentationTiming, firstNoteSeconds, sceneDuration } from "../core/presentation.js";
 import {
   defaultOverlayAccent,
   overlayIds,
@@ -37,7 +41,7 @@ import { ModBadgeList } from "./mod-badges.js";
 import { usePlayback } from "./use-playback.js";
 import type { PreviewEngine } from "./preview-engine.js";
 import appLogo from "../build/icon.svg";
-import { Play, Pause, RotateCcw, Volume2, X, Settings, FolderOpen, ImageDown } from "lucide-react";
+import { Play, Pause, RotateCcw, Volume2, X, Settings, FolderOpen } from "lucide-react";
 import { resolutions, frameRates } from "../core/video-options.js";
 import type { SkinChoice } from "../core/skins.js";
 import { installBrowserStudio, type ChooseKind } from "./studio-api.js";
@@ -166,7 +170,10 @@ export function App() {
   const [connecting, setConnecting] = useState(false);
   const [connectionMessage, setConnectionMessage] = useState("");
   const [update, setUpdate] = useState<UpdateStatus>();
-  const [thumbnailOpen, setThumbnailOpen] = useState(false);
+  const [dismissedUpdate, setDismissedUpdate] = useState<string>();
+  const updateKey = `${update?.state}:${update?.nextVersion}`;
+  const [workspace, setWorkspace] = useState("video");
+  const [thumbnailExportTarget, setThumbnailExportTarget] = useState<HTMLDivElement | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [connectionPromptOpen, setConnectionPromptOpen] = useState(false);
   const [skins, setSkins] = useState<SkinChoice[]>([]);
@@ -177,6 +184,10 @@ export function App() {
   const [prompt, setPrompt] = useState<PromptKind | null>(null);
   const [pending, setPending] = useState<"inspect" | "render" | null>(null);
   const preview = useRef<HTMLIFrameElement>(null);
+  const [editingLayout, setEditingLayout] = useState(false);
+  const [draftLayout, setDraftLayout] = useState<VideoLayout>();
+  const liveLayout = draftLayout ?? options?.layout;
+  useEffect(() => { setDraftLayout(undefined); setEditingLayout(false); }, [timeline]);
   const playfieldRef = useRef<HTMLCanvasElement>(null);
   const engineResource = useRef<{ timeline: Timeline; skin: string; canvas: HTMLCanvasElement; value: Promise<PreviewEngine>; release?: ReturnType<typeof setTimeout> }>(undefined);
 
@@ -201,11 +212,14 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    if (!settingsOpen) return;
-    void window.studio.updateStatus().then(setUpdate);
-    const timer = setInterval(() => void window.studio.updateStatus().then(setUpdate), 1000);
-    return () => clearInterval(timer);
-  }, [settingsOpen]);
+    let current = true;
+    const read = () => void window.studio.updateStatus().then(next => {
+      if (current) setUpdate(old => JSON.stringify(old) === JSON.stringify(next) ? old : next);
+    }).catch(() => {});
+    read();
+    const timer = setInterval(read, 1000);
+    return () => { current = false; clearInterval(timer); };
+  }, []);
   useEffect(() => {
     if (options) void window.studio.skins(options.songs).then(setSkins).catch(() => setSkins([]));
   }, [options?.songs]);
@@ -276,7 +290,7 @@ export function App() {
           leaderboardSort: options.leaderboardSort,
           leaderboardSize: options.leaderboardSize,
           backgroundDim: options.backgroundDim,
-          layout: options.layout,
+          layout: liveLayout,
           scene: position?.scene,
           enabled: options.overlays,
           accent: options.overlayAccent || defaultOverlayAccent,
@@ -284,13 +298,13 @@ export function App() {
         "*",
       );
   };
-  useEffect(sendFrame, [timeline, time, options?.overlays, options?.overlayAccent, options?.introOutro, options?.fps, options?.leaderboardSize, options?.leaderboardSort, options?.backgroundDim, options?.layout]);
+  useEffect(sendFrame, [timeline, time, options?.overlays, options?.overlayAccent, options?.introOutro, options?.fps, options?.leaderboardSize, options?.leaderboardSort, options?.backgroundDim, liveLayout]);
   useEffect(() => {
     if (engine && timeline) {
-      engine.layout(options?.layout);
+      engine.layout(liveLayout);
       engine.draw(position?.gameplayTime ?? time, timeline.speed, options?.backgroundDim ?? .95);
     }
-  }, [time, timeline, engine, options?.introOutro, options?.fps, options?.backgroundDim, options?.layout]);
+  }, [time, timeline, engine, options?.introOutro, options?.fps, options?.backgroundDim, liveLayout]);
 
   function patch(next: Partial<StudioDefaults>) {
     setOptions((old) => old && { ...old, ...next });
@@ -397,7 +411,7 @@ export function App() {
   async function exportThumbnail(customization: ThumbnailTextOptions & { accent: string }) {
     if (!options || !timeline) return;
     cancelRequested.current = false;
-    setThumbnailOpen(false);
+
     setBusyAction("thumbnail");
     setProgress({ stage: "Exporting thumbnail", message: "Save thumbnail" });
     setBusy(true); setNotice(""); setError(""); setOutput("");
@@ -411,6 +425,8 @@ export function App() {
       cancelRequested.current = false;
     }
   }
+
+  const exportEditedThumbnail = useCallback((document: ThumbnailDocument) => { void exportThumbnail({ document, accent: document.accent }); }, [timeline, options?.outputDir]);
 
   async function startRender(current = options) {
     if (!current || !timeline) return;
@@ -499,7 +515,7 @@ export function App() {
   }
 
   const videoOptions = useMemo(() => options ? (
-      <aside aria-label="Video options" className="workspace-options flex w-[384px] shrink-0 flex-col gap-4 overflow-y-auto border-l border-border p-4">
+      <aside aria-label="Video options" className="workspace-options flex shrink-0 flex-col gap-4 overflow-y-auto border-l border-border p-4">
                 <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-2">
                   <Hint text="Use this skin for preview gameplay, hit sounds, and the exported video."><Select aria-label="Gameplay skin" value={options.skinPath || "default"} isDisabled={busy}
                     onChange={key => void persist({ skinPath: key === "default" ? "" : String(key) })}>
@@ -618,7 +634,6 @@ export function App() {
                   </Select>
                 </Hint>
                 </div>
-                <LayoutControls value={options.layout} disabled={busy} labels={labels} onChange={layout => void persist({ layout })} />
       </aside>
   ) : null, [options, busy, skins]);
 
@@ -632,8 +647,9 @@ export function App() {
   }
 
   return (
-    <div className="relative flex h-full flex-col bg-background text-foreground">
-      <header className="flex shrink-0 flex-wrap items-center gap-3 border-b border-border px-4 py-3 sm:px-6">
+    <div className="workspace-shell relative flex h-full flex-col bg-background text-foreground">
+      <header className="workspace-header shrink-0 gap-3 border-b border-border px-4 py-3 sm:px-6">
+        <div className="flex min-w-0 items-center gap-3">
         <img src={appLogo} alt="" width={36} height={36} className="shrink-0" />
         <div className={`app-heading relative h-11 min-w-0 flex-1${timeline ? " has-replay" : ""}`}>
           <h1 className="app-title text-base font-semibold">osu! Replay Studio</h1>
@@ -641,6 +657,11 @@ export function App() {
             {timeline ? `${timeline.player} · ${timeline.title}` : ""}
           </p>
         </div>
+        </div>
+        <Tabs variant="secondary" selectedKey={workspace} onSelectionChange={key => { setWorkspace(String(key)); playback.setPlaying(false); setEditingLayout(false); }} className="workspace-tabs shrink-0">
+          <Tabs.ListContainer><Tabs.List aria-label="Workspace"><Tabs.Tab id="video">Video<Tabs.Indicator /></Tabs.Tab><Tabs.Tab id="thumbnail">Thumbnail<Tabs.Indicator /></Tabs.Tab></Tabs.List></Tabs.ListContainer>
+        </Tabs>
+        <div className="flex items-center justify-end gap-3">
         <Button isDisabled={busy} onPress={openReplay}>
           Open replay
         </Button>
@@ -648,9 +669,13 @@ export function App() {
           <Settings size={18} aria-hidden="true" />
           Settings
         </Button>
+        </div>
       </header>
 
-      <div className="flex min-h-0 flex-1">
+      <div className="min-h-0 min-w-0 flex-1" style={{ display: workspace === "thumbnail" ? "flex" : "none" }}>
+        <ThumbnailWorkspace key={timeline?.replay ?? "empty"} timeline={timeline} onOpenReplay={openReplay} accent={options.overlayAccent ?? defaultOverlayAccent} busy={busy} onExport={exportEditedThumbnail} exportTarget={thumbnailExportTarget} />
+      </div>
+      <div className="min-h-0 min-w-0 flex-1" style={{ display: workspace === "video" ? "flex" : "none" }}>
       <section className="flex min-w-0 flex-1 flex-col">
         <div className="preview-area flex min-h-0 flex-1 items-center justify-center p-3 sm:p-5">
           <div className="preview-box">
@@ -691,6 +716,8 @@ export function App() {
                   src={overlaySrc}
                   onLoad={() => { prepareScenes(); sendFrame(); }}
                 />
+                {editingLayout && !busy && !previewLoading && !position?.scene && <LayoutEditor value={liveLayout} enabled={options.overlays} preview={preview} labels={labels}
+                  onPreview={setDraftLayout} onCommit={layout => { void persist({ layout }); setDraftLayout(undefined); }} />}
               </>
             ) : (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-6 text-center">
@@ -698,6 +725,7 @@ export function App() {
                 <p className="max-w-sm text-sm text-muted">
                   Open an .osr file to start.
                 </p>
+                <Button isDisabled={busy} isPending={busy && busyAction === "import"} onPress={openReplay}>{busy ? "Importing replay..." : "Open replay"}</Button>
               </div>
             )}
           </div>
@@ -705,10 +733,17 @@ export function App() {
 
 
         <div className="shrink-0 border-t border-border px-4 py-3 sm:px-6">
-          <p className="mb-2 text-xs text-muted">Gameplay preview - exported video may differ.</p>
+          <p className="mb-2 text-xs text-muted">{editingLayout ? "Drag to move. Drag a corner to resize. Right-click for reset and layers. Alt-click selects overlapping elements." : "Gameplay preview - exported video may differ."}</p>
           <div className="mb-3 flex items-center gap-3">
-            <Button isIconOnly aria-label={playback.playing ? "Pause" : "Play"} size="sm" variant="ghost" isDisabled={!engine || busy} onPress={playback.toggle}>{playback.playing ? <Pause size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" />}</Button>
+            <Button isIconOnly aria-label={playback.playing ? "Pause" : "Play"} size="sm" variant="ghost" isDisabled={!engine || busy} onPress={() => { setEditingLayout(false); playback.toggle(); }}>{playback.playing ? <Pause size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" />}</Button>
             <Button isIconOnly aria-label="Restart" size="sm" variant="ghost" isDisabled={!engine} onPress={() => playback.seek(0)}><RotateCcw size={18} /></Button>
+            <Button size="sm" variant={editingLayout ? "primary" : "secondary"} isDisabled={!engine || busy} aria-pressed={editingLayout} onPress={() => {
+              if (!editingLayout) {
+                playback.setPlaying(false);
+                if (position?.scene) playback.seek(options.introOutro ? sceneDuration + Math.min(.5, timeline!.duration) : 0);
+              }
+              setEditingLayout(!editingLayout);
+            }}>{editingLayout ? "Done editing" : "Edit layout"}</Button>
             <Volume2 className="ml-auto" size={18} aria-hidden="true" /><Slider aria-label="Preview volume" className="w-28" minValue={0} maxValue={100} step={1}
               value={Math.round(playback.volume * 100)} onChange={value => playback.setVolume((typeof value === "number" ? value : value[0]) / 100)}>
 
@@ -757,7 +792,7 @@ export function App() {
 
       <footer className="flex shrink-0 flex-wrap items-center gap-3 border-t border-border px-4 py-3 sm:px-6">
         <p role="status" aria-live="polite" className="min-w-0 flex-1 text-sm text-muted">
-          {notice || `${options.width} × ${options.height} · ${options.fps} fps${output ? ` · ${fileName(output)}` : ""}`}
+          {notice || (workspace === "thumbnail" ? "Thumbnail editor" : `${options.width} × ${options.height} · ${options.fps} fps${output ? ` · ${fileName(output)}` : ""}`)}
         </p>
         {busy && (
           <Button variant="danger-soft" onPress={() => { cancelRequested.current = true; void window.studio.cancel(); }}>
@@ -769,20 +804,23 @@ export function App() {
             Show in folder
           </Button>
         )}
-        <Hint text="Save a CPOL-style PNG to your output folder without rendering a video.">
-          <Button variant="secondary" isDisabled={busy || !timeline} isPending={busy && busyAction === "thumbnail"} onPress={() => setThumbnailOpen(true)}>
-            <ImageDown size={18} />Export thumbnail
-          </Button>
-        </Hint>
-        <Button
+        <div ref={setThumbnailExportTarget} className={workspace === "thumbnail" ? "contents" : "hidden"} />
+        {workspace === "video" && <Button
           isDisabled={busy || !timeline}
           isPending={busy && busyAction === "render"}
           onPress={() => startRender()}
         >
           {busy && busyAction !== "thumbnail" ? busyAction === "import" ? "Importing..." : "Rendering" : "Render video"}
-        </Button>
+        </Button>}
       </footer>
 
+      {!busy && !editingLayout && workspace === "video" && !connectionPromptOpen && update?.nextVersion && ["available", "downloading", "ready", "error"].includes(update.state) && dismissedUpdate !== updateKey &&
+        <UpdateDialog status={update} onDismiss={() => setDismissedUpdate(updateKey)}
+          onDownload={() => {
+            setUpdate({ ...update, state: "downloading", percent: 0 });
+            void window.studio.downloadUpdate().then(setUpdate).catch(e => { setUpdate({ ...update, state: "error" }); setError(String(e)); });
+          }}
+          onInstall={() => { void window.studio.installUpdate().catch(e => setError(String(e))); }} />}
       {(error || previewError || playback.audioError) && (
         <div className="absolute bottom-20 left-6 z-30 max-w-lg">
           <Alert status="danger">
@@ -796,7 +834,7 @@ export function App() {
         </div>
       )}
 
-      {thumbnailOpen && options && <ThumbnailDialog accent={options.overlayAccent || defaultOverlayAccent} onClose={() => setThumbnailOpen(false)} onExport={value => void exportThumbnail(value)} />}
+
       <Modal.Backdrop isOpen={connectionPromptOpen} onOpenChange={setConnectionPromptOpen}>
         <Modal.Container>
           <Modal.Dialog className="sm:max-w-[420px]">
@@ -835,8 +873,12 @@ export function App() {
               <Modal.Body className="flex flex-col gap-6">
                 <div className="flex flex-col gap-2">
                   <p className="text-sm">Replay Studio {update?.version}</p>
-                  <p className="text-sm text-muted">{update?.state === "ready" ? `Update ${update.nextVersion} will install when you close the app.` : update?.state === "downloading" ? `Downloading update ${Math.round(update.percent ?? 0)}%` : update?.state === "checking" ? "Checking for updates" : update?.state === "error" ? "Could not check for updates." : update?.state === "disabled" ? "Updates are available in GitHub release builds." : "Up to date"}</p>
-                  <Button size="sm" variant="secondary" isDisabled={!update || ["disabled", "checking", "downloading", "ready"].includes(update.state)} onPress={() => void window.studio.checkUpdates().then(setUpdate)}>Check for updates</Button>
+                  <p className="text-sm text-muted">{update?.state === "ready" ? `Update ${update.nextVersion} is ready to install.` : update?.state === "available" ? `Version ${update.nextVersion} is available.` : update?.state === "downloading" ? `Downloading update ${Math.round(update.percent ?? 0)}%` : update?.state === "checking" ? "Checking for updates" : update?.state === "error" ? "Could not check for updates." : update?.state === "disabled" ? "Updates are available in GitHub release builds." : "Up to date"}</p>
+                  <Button size="sm" variant="secondary" isDisabled={!update || ["disabled", "checking", "downloading"].includes(update.state)} onPress={() => {
+                    setDismissedUpdate(undefined);
+                    if (["available", "ready"].includes(update!.state)) { setSettingsOpen(false); setWorkspace("video"); }
+                    else void window.studio.checkUpdates().then(setUpdate);
+                  }}>{update?.state === "ready" ? "Install update" : update?.state === "available" ? "View update" : "Check for updates"}</Button>
                 </div>
                 <div className="flex flex-col gap-1">
                   <p className="text-sm font-medium">osu! calculator {ppStatus?.version ?? ""}</p>

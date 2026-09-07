@@ -16,6 +16,8 @@ declare global {
       openOsuSettings(): Promise<void>;
       updateStatus(): Promise<UpdateStatus>;
       checkUpdates(): Promise<UpdateStatus>;
+      downloadUpdate(): Promise<UpdateStatus>;
+      installUpdate(): Promise<void>;
       defaults(): Promise<StudioDefaults>;
       ppEngineStatus(): Promise<PpEngineStatus>;
       skins(songs: string): Promise<SkinChoice[]>;
@@ -47,6 +49,8 @@ export function installBrowserStudio() {
     openOsuSettings: async () => { window.open("https://osu.ppy.sh/home/account/edit#oauth", "_blank", "noopener"); },
     updateStatus: async () => ({ state: "disabled", version: "0.1.1" }),
     checkUpdates: async () => ({ state: "disabled", version: "0.1.1" }),
+    downloadUpdate: async () => ({ state: "disabled", version: "0.1.1" }),
+    installUpdate: async () => {},
     defaults: async () => ({
       skinPath: "",
       replay: "",

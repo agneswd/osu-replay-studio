@@ -49,6 +49,7 @@ export interface RenderOptions extends AnalyzeInput {
   duration?: number;
 }
 export interface ThumbnailTextOptions {
+  document?: import("./thumbnail-document.js").ThumbnailDocument;
   bottomText?: string;
   accentRange?: { start: number; end: number };
 }
@@ -182,6 +183,7 @@ export interface Timeline {
   snapshots: Snapshot[];
   warnings: string[];
   sceneInfo?: {
+    playStatus?: import("./play-status.js").PlayStatus;
     title: string;
     artist: string;
     mapper: string;

@@ -154,7 +154,7 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
     data.player.avatar, data.player.banner, data.map.cover, data.map.mapperAvatar,
     ...data.player.badges.slice(0, 5).map(b => b.url),
     ...(data.topScores ?? []).map(p => p.cover ?? ""),
-    flags.profileStats && /^[A-Z]{2}$/.test(data.player.countryCode) ? `../shared/assets/flags/${data.player.countryCode}.svg` : "",
+    /^[A-Z]{2}$/.test(data.player.countryCode) ? `../shared/assets/flags/${data.player.countryCode}.svg` : "",
     ...(data.score?.mods ?? []).map(mod => modPath(mod)),
     ...(data.topScores ?? []).flatMap(p => p.mods.map(mod => modPath(mod))),
   ].filter(Boolean).map(async url => {
@@ -264,11 +264,9 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
   const avatar = roundedImage("avatar", data.player.avatar, 38, 38, 8);
   const coverThumb = roundedImage("cover", data.map.cover, 38, 38, 8);
   const mapper = roundedImage("mapper", data.map.mapperAvatar, 20, 20, 4);
-  const flagWidth = widthOf(data.player.flag, 10.5, 600);
-  const flag = data.player.flag ? art("flag", flagWidth, 14, c => {
-    c.font = '600 10.5px "Plus Jakarta Sans"';
-    c.fillText(data.player.flag, 0, baseline(10.5, 600, '\"Plus Jakarta Sans\"', 0));
-  }) : undefined;
+  const flagWidth = /^[A-Z]{2}$/.test(data.player.countryCode) ? 14 : 0;
+  const flagUrl = /^[A-Z]{2}$/.test(data.player.countryCode) ? `../shared/assets/flags/${data.player.countryCode}.svg` : "";
+  const flag = images.has(flagUrl) ? art("flag", flagWidth, 14, c => { c.drawImage(images.get(flagUrl)!, 0, 0, 14, 14); }) : undefined;
   const outroAvatar = art("outro-avatar", 28, 28, c => {
     roundRect(c, 0, 0, 28, 28, 5); c.clip();
     const img = images.get(data.player.avatar);
@@ -534,7 +532,8 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
   const hitBoxes = [
     { color: "#61C97D", value: String(data.score!.count300), padLeft: 48 },
     { color: "#BAD750", value: String(data.score!.count100), padLeft: 12 },
-    ...(data.score!.count50 > 0 ? [{ color: "#65b9df", value: String(data.score!.count50), padLeft: 12 }] : []),
+    ...(data.score!.count50 > 0 ? [{ color: "#E8C547", value: String(data.score!.count50), padLeft: 12 }] : []),
+    ...(data.score!.sliderBreaks ? [{ color: "#8B8F98", value: String(data.score!.sliderBreaks), padLeft: 12 }] : []),
     { color: "#DE6984", value: String(data.score!.countMiss), padLeft: 12 },
   ];
   const hitWidths = hitBoxes.map(box => box.padLeft + widthOf(box.value, 19, 500, '"Scene Tabular"') + 12);
@@ -898,11 +897,11 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
 
     sprite(playerCard, 180 + leftX, 128, 210, 38, rgb("#ffffff", leftA));
     sprite(outroAvatar, 192 + leftX, 133, 28, 28, rgb("#ffffff", leftA));
-    const playerNameY = 128 + (38 - 14.75 - (flag || data.player.crank ? 12.1 : 0)) / 2;
+    const playerNameY = 128 + (38 - 14.75 - (flag ? 14 : data.player.crank ? 12.1 : 0)) / 2;
     text(data.player.username, 228 + leftX, playerNameY, 12.5, "#fff", leftA, 700, "left", true, { lineHeight: 13.75 });
     text(data.player.grank, 230 + leftX + widthOf(`${data.player.username} `, 12.5), playerNameY, 12.5, "#fff", leftA * 0.92, 600, "left", true, { lineHeight: 13.75 });
-    if (flag) sprite(flag, 228 + leftX, playerNameY + 14.75 - 0.95, flagWidth * 11 / 10.5, 14 * 11 / 10.5, rgb("#ffffff", leftA));
-    text(data.player.crank, 228 + flagWidth * 11 / 10.5 + 4 + leftX, playerNameY + 14.75, 11, "rgba(255,255,255,0.9)", leftA * 0.95, 600, "left", true, { lineHeight: 12.1 });
+    if (flag) sprite(flag, 228 + leftX, playerNameY + 14.75, flagWidth, 14, rgb("#ffffff", leftA));
+    text(data.player.crank, 228 + (flag ? flagWidth + 4 : 0) + leftX, playerNameY + 14.75 + (flag ? .95 : 0), 11, "rgba(255,255,255,0.9)", leftA * 0.95, 600, "left", true, { lineHeight: 12.1 });
 
     const rows = [[190, 96], [228, 87], [266, 82], [304, 84], [342, 92], [380, 109]] as const;
     (data.topScores ?? []).forEach((play, i) => {
