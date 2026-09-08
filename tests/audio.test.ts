@@ -25,6 +25,6 @@ test("outro cues share preview samples and start after gameplay in the export", 
     assert.ok(Math.abs(samples[i]) < .1);
   }
   const args = compositeArgs("in.mp4", "out.mp4", 10, 60, true, 1, 1, "anull", "outro.wav");
-  assert.match(args[args.indexOf("-filter_complex") + 1], /\[2:a\]aresample=48000,adelay=15400:all=1/);
+  assert.match(args[args.indexOf("-filter_complex") + 1], /\[2:a\]aresample=48000,adelay=16400:all=1/);
   assert.ok(!compositeArgs("in.mp4", "out.mp4", 10, 60, false, 1, 1, "anull", "outro.wav").includes("outro.wav"));
 });
