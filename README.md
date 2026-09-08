@@ -38,7 +38,9 @@ The app stores the secret through your system keyring.
 
 After importing a replay, select **YouTube details** beside **Render video**.
 The app generates a title and description from the replay and map data. A completed video is not required.
-Fill any optional **Missing details**, then edit the title or description directly and select its **Copy** button.
+Choose a **Play status** preset and enter a count for misses or slider breaks. Add optional YouTube and Twitch links.
+Open **Player and map details** to correct profile links and account statistics.
+The description groups player links, beatmap information, and player information. Edit either text field directly, then select **Copy**.
 Blank optional fields are omitted. The counters check the title character limit and description UTF-8 byte limit.
 
 Direct edits stay intact when you change the inputs or close the dialog.
