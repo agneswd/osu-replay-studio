@@ -43,7 +43,7 @@ export function scoreAccuracy(state: PpScore, classic: boolean) {
     (classic ? 0 : 30 * (state.largeTickHit ?? 0) + 150 * (state.sliderTailHit ?? 0))) / max * 100 : 100;
 }
 
-// Live HUD rank from objects judged so far. Lazer uses current accuracy, not remaining notes as misses.
+// Live HUD rank from objects judged so far. Matches osu!stable ratios and lazer RankFromScore.
 export function rankGrade(
   hits: Pick<PpScore, "great" | "ok" | "meh" | "miss">,
   accuracy: number,
@@ -53,17 +53,18 @@ export function rankGrade(
   let grade: string;
   if (lazer) {
     grade = accuracy >= 100 ? "SS"
-      : accuracy >= 95 && hits.miss === 0 ? "S"
+      : accuracy >= 95 ? "S"
       : accuracy >= 90 ? "A"
       : accuracy >= 80 ? "B"
       : accuracy >= 70 ? "C"
       : "D";
+    if ((grade === "SS" || grade === "S") && hits.miss > 0) grade = "A";
   } else {
     const total = hits.great + hits.ok + hits.meh + hits.miss;
     const r300 = total ? hits.great / total : 1;
     const r50 = total ? hits.meh / total : 0;
     grade = !total || hits.great === total ? "SS"
-      : r300 > 0.9 && r50 < 0.01 && hits.miss === 0 ? "S"
+      : r300 > 0.9 && r50 <= 0.01 && hits.miss === 0 ? "S"
       : (r300 > 0.8 && hits.miss === 0) || r300 > 0.9 ? "A"
       : (r300 > 0.7 && hits.miss === 0) || r300 > 0.8 ? "B"
       : r300 > 0.6 ? "C" : "D";
