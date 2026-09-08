@@ -34,6 +34,18 @@ Connect an osu! API client in **Settings** for player history, mapper portraits,
 Use **Create osu! client**, then enter the Client ID and Client Secret.
 The app stores the secret through your system keyring.
 
+## Prepare YouTube details
+
+After importing a replay, select **YouTube details** beside **Render video**.
+The app generates a title and description from the replay and map data. A completed video is not required.
+Fill any optional **Missing details**, then edit the title or description directly and select its **Copy** button.
+Blank optional fields are omitted. The counters check the title character limit and description UTF-8 byte limit.
+
+Direct edits stay intact when you change the inputs or close the dialog.
+Select **Regenerate** and confirm **Replace edits** to apply the current inputs again.
+Opening another replay clears those edits and manual inputs. Only **Additional text** is saved for future replays and app restarts.
+Export the finished thumbnail from the **Thumbnail** tab. Upload the MP4 and PNG through YouTube, then paste the copied text.
+
 ## Supported replays
 
 - osu!standard stable replays with common mods, including DT, NC, HT, HD, and HR.
