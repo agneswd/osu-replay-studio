@@ -204,6 +204,24 @@ app.whenReady().then(async () => {
     }
     assert.ok(blue > 100 && yellow > 100, "The thumbnail loads the bundled Swedish flag.");
     console.log("Thumbnail capture contains loaded replay assets.");
+    const { defaultThumbnail } = await import(pathToFileURL(path.join(root, "dist/core/thumbnail-document.js")).href);
+    const document = defaultThumbnail();
+    document.customTexts = ["custom-glow"];
+    document.layers["custom-glow"] = { text: "Glow", color: "#ffffff" };
+    const scoreTimeline = { ...timeline, sceneInfo: { title: "Capture check", artist: "Artist", maxCombo: 12, score: timeline.snapshots[0] } };
+    const plainFile = path.join(work, "plain-text.png"), glowFile = path.join(work, "glow-text.png");
+    await captureThumbnail(root, scoreTimeline, plainFile, document.accent, new AbortController().signal, { document });
+    document.layers["custom-glow"].glow = { color: "#00ff00", blur: 18 };
+    await captureThumbnail(root, scoreTimeline, glowFile, document.accent, new AbortController().signal, { document });
+    const plain = nativeImage.createFromPath(plainFile).toBitmap(), glowing = nativeImage.createFromPath(glowFile).toBitmap();
+    let greenGlow = 0;
+    for (let y = 295; y < 400; y++) for (let x = 395; x < 600; x++) {
+      const at = (y * 1280 + x) * 4;
+      if (glowing[at + 1] > plain[at + 1] + 20 && glowing[at + 1] > glowing[at + 2] + 20) greenGlow++;
+    }
+    assert.ok(greenGlow > 100, "Exported custom text contains the selected green glow.");
+    console.log("Custom text glow survives PNG capture.");
+
   } finally { await fs.rm(work, { recursive: true, force: true }); }
 
   app.exit(0);
