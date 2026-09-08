@@ -10,6 +10,7 @@ export type ChooseKind = "replay" | "beatmap" | "songs" | "danser" | "outputDir"
 declare global {
   interface Window {
     studio: {
+      copyText(value: string): Promise<void>;
       osuStatus(): Promise<{ clientId: string; configured: boolean }>;
       saveOsuCredentials(value: { clientId: string; clientSecret: string }): Promise<{ clientId: string; configured: boolean }>;
       clearOsuCredentials(): Promise<{ clientId: string; configured: boolean }>;
@@ -43,6 +44,7 @@ declare global {
 export function installBrowserStudio() {
   if (window.studio) return;
   window.studio = {
+    copyText: async value => navigator.clipboard.writeText(value),
     osuStatus: async () => ({ clientId: "", configured: false }),
     saveOsuCredentials: async () => { throw new Error("Connect osu! in the desktop app."); },
     clearOsuCredentials: async () => ({ clientId: "", configured: false }),

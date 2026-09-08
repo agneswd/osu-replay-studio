@@ -4,7 +4,7 @@ import { startUpdates } from "./updates.js";
 import { captureThumbnail } from "./thumbnail.js";
 import { videoSettings } from "../core/video-options.js";
 import { previewData, previewSkin } from "../core/preview.js";
-import { app, BrowserWindow, dialog, ipcMain, session, shell } from "electron";
+import { app, BrowserWindow, clipboard, dialog, ipcMain, session, shell } from "electron";
 import { mkdir, readFile, stat, writeFile, rename } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -141,6 +141,8 @@ app
       let settingsWrite: Promise<unknown> = Promise.resolve();
       function writeSettings(patch: SavedSettings): Promise<SavedSettings> {
         const write = settingsWrite.catch(() => {}).then(async () => {
+          if (patch.youtubeAdditionalText !== undefined && (typeof patch.youtubeAdditionalText !== "string" || patch.youtubeAdditionalText.length > 20_000))
+            throw new Error("Additional text must be at most 20,000 characters.");
           const next = { ...(await loadSettings()), ...patch };
           if (patch.layout !== undefined) next.layout = normalizeLayout(patch.layout);
           await mkdir(path.dirname(settingsFile), { recursive: true });
@@ -187,6 +189,7 @@ app
           path.join(app.getPath("videos"), "osu! Replay Studio");
 
         return {
+          youtubeAdditionalText: typeof saved.youtubeAdditionalText === "string" ? saved.youtubeAdditionalText : "",
           skinPath: saved.skinPath || "",
           replay: "",
           beatmap: "",
@@ -227,6 +230,11 @@ app
         return previewData(previewFiles.beatmap, previewFiles.replay);
       });
       ipcMain.handle("previewSkin", (event, folder: string) => { trusted(event); return previewSkin(folder); });
+      ipcMain.handle("copyText", (event, value: unknown) => {
+        trusted(event);
+        if (typeof value !== "string" || value.length > 100_000) throw new Error("Invalid clipboard text.");
+        return clipboard.writeText(value);
+      });
       ipcMain.handle("osuStatus", (event) => { trusted(event); return credentials.status(); });
       ipcMain.handle("saveOsuCredentials", async (event, value) => { trusted(event); return credentials.save(value); });
       ipcMain.handle("clearOsuCredentials", async (event) => { trusted(event); return credentials.clear(); });

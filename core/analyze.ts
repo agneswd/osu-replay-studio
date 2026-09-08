@@ -461,6 +461,8 @@ export async function analyze(
       warnings,
       bgImage,
       sceneInfo: {
+        songTitle: map.title, difficulty: map.version,
+        beatmapId: Number(bytes.toString().match(/^BeatmapID:\s*(\d+)\s*$/m)?.[1]) || undefined,
         playStatus,
         title: `${map.title} [${map.version}]`, artist: map.artist,
         mapper: bytes.toString().match(/^Creator:(.*)$/m)?.[1].trim() ?? "",

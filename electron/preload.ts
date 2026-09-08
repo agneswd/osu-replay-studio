@@ -7,6 +7,7 @@ import type {
   ThumbnailOptions,
 } from "../core/types.js";
 contextBridge.exposeInMainWorld("studio", {
+  copyText: (value: string) => ipcRenderer.invoke("copyText", value),
   osuStatus: () => ipcRenderer.invoke("osuStatus"),
   saveOsuCredentials: (value: { clientId: string; clientSecret: string }) => ipcRenderer.invoke("saveOsuCredentials", value),
   clearOsuCredentials: () => ipcRenderer.invoke("clearOsuCredentials"),

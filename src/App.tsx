@@ -1,4 +1,5 @@
 import type { ThumbnailDocument } from "../core/thumbnail-document.js";
+import { YouTubeDetails } from "./YouTubeDetails.js";
 import { UpdateDialog } from "./UpdateDialog.js";
 import type { VideoLayout } from "../core/layout.js";
 import { LayoutEditor } from "./LayoutEditor.js";
@@ -184,6 +185,7 @@ export function App() {
   const [prompt, setPrompt] = useState<PromptKind | null>(null);
   const [pending, setPending] = useState<"inspect" | "render" | null>(null);
   const preview = useRef<HTMLIFrameElement>(null);
+  const [youtubeOpen, setYoutubeOpen] = useState(false);
   const [editingLayout, setEditingLayout] = useState(false);
   const [draftLayout, setDraftLayout] = useState<VideoLayout>();
   const liveLayout = draftLayout ?? options?.layout;
@@ -805,6 +807,7 @@ export function App() {
           </Button>
         )}
         <div ref={setThumbnailExportTarget} className={workspace === "thumbnail" ? "contents" : "hidden"} />
+        <Button variant="secondary" isDisabled={!timeline} onPress={() => setYoutubeOpen(true)}>YouTube details</Button>
         {workspace === "video" && <Button
           isDisabled={busy || !timeline}
           isPending={busy && busyAction === "render"}
@@ -813,6 +816,12 @@ export function App() {
           {busy && busyAction !== "thumbnail" ? busyAction === "import" ? "Importing..." : "Rendering" : "Render video"}
         </Button>}
       </footer>
+
+      {timeline && <YouTubeDetails key={timeline.replay} timeline={timeline} isOpen={youtubeOpen} onOpenChange={setYoutubeOpen}
+        additionalText={options.youtubeAdditionalText ?? ""} onAdditionalTextChange={async text => {
+          setOptions(old => old ? { ...old, youtubeAdditionalText: text } : old);
+          await window.studio.saveSettings({ youtubeAdditionalText: text });
+        }} />}
 
       {!busy && !editingLayout && workspace === "video" && !connectionPromptOpen && update?.nextVersion && ["available", "downloading", "ready", "error"].includes(update.state) && dismissedUpdate !== updateKey &&
         <UpdateDialog status={update} onDismiss={() => setDismissedUpdate(updateKey)}

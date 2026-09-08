@@ -59,6 +59,7 @@ export interface ThumbnailOptions extends ThumbnailTextOptions {
   accent: string;
 }
 export interface SavedSettings {
+  youtubeAdditionalText?: string;
   layout?: VideoLayout;
   backgroundDim?: number;
   cursorSize?: number;
@@ -76,6 +77,7 @@ export interface SavedSettings {
   leaderboardSort?: "pp" | "score";
 }
 export interface StudioDefaults {
+  youtubeAdditionalText?: string;
   layout?: VideoLayout;
   backgroundDim: number;
   cursorSize: number;
@@ -185,6 +187,9 @@ export interface Timeline {
   warnings: string[];
   sceneInfo?: {
     playStatus?: import("./play-status.js").PlayStatus;
+    songTitle?: string;
+    difficulty?: string;
+    beatmapId?: number;
     title: string;
     artist: string;
     mapper: string;
