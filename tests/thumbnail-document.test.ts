@@ -38,3 +38,14 @@ test("thumbnail text overrides preserve the exact text shown during editing", as
     assert.equal(withTextOverride("pp", { pp: "100PP" }, { ...referenceTemplate, textOverrides: { pp } }), pp);
   }
 });
+
+test("custom text glow survives document serialization and rejects invalid effects", () => {
+  const value = defaultThumbnail();
+  value.customTexts = ["custom-glow"];
+  value.layers["custom-glow"] = { text: "Glow", glow: { color: "#ff8800", blur: 18 } };
+  assert.doesNotThrow(() => validateThumbnailDocument(JSON.parse(JSON.stringify(value))));
+  value.layers["custom-glow"].glow!.blur = 101;
+  assert.throws(() => validateThumbnailDocument(value), /glow/);
+  value.layers["custom-glow"].glow = null;
+  assert.doesNotThrow(() => validateThumbnailDocument(value));
+});

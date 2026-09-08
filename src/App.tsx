@@ -586,9 +586,9 @@ export function App() {
                     </Checkbox.Content>
                   </Checkbox></Hint>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center justify-between gap-2">
                   <p className="text-sm font-medium">Overlay accent</p>
-                  <Hint text="Set the accent color for overlays and score animations."><ColorPicker value={options.overlayAccent || defaultOverlayAccent} onChange={color => void persist({ overlayAccent: color.toString("hex") })}>
+                  <Hint text="Set the shared accent color for video overlays and thumbnails."><ColorPicker value={options.overlayAccent || defaultOverlayAccent} onChange={color => void persist({ overlayAccent: color.toString("hex") })}>
                     <ColorPicker.Trigger aria-label="Overlay accent" isDisabled={busy}><ColorSwatch /></ColorPicker.Trigger>
                     <ColorPicker.Popover className="flex w-64 flex-col gap-3 p-4">
                       <ColorArea colorSpace="hsb" xChannel="saturation" yChannel="brightness"><ColorArea.Thumb /></ColorArea>
@@ -673,7 +673,7 @@ export function App() {
       </header>
 
       <div className="min-h-0 min-w-0 flex-1" style={{ display: workspace === "thumbnail" ? "flex" : "none" }}>
-        <ThumbnailWorkspace key={timeline?.replay ?? "empty"} timeline={timeline} onOpenReplay={openReplay} accent={options.overlayAccent ?? defaultOverlayAccent} busy={busy} onExport={exportEditedThumbnail} exportTarget={thumbnailExportTarget} />
+        <ThumbnailWorkspace key={timeline?.replay ?? "empty"} timeline={timeline} onOpenReplay={openReplay} accent={options.overlayAccent ?? defaultOverlayAccent} onAccentChange={accent => void persist({ overlayAccent: accent })} busy={busy} onExport={exportEditedThumbnail} exportTarget={thumbnailExportTarget} />
       </div>
       <div className="min-h-0 min-w-0 flex-1" style={{ display: workspace === "video" ? "flex" : "none" }}>
       <section className="flex min-w-0 flex-1 flex-col">
