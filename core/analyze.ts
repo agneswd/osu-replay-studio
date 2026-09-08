@@ -1,11 +1,11 @@
 import { classifyPlay, sliderBreakEvents } from "./play-status.js";
 import { collectTimingHits, hitWindowsFor } from "./hit-timing.js";
-import { replayFormat, scoreAccuracy } from "./replay-format.js";
+import { rankGrade, replayFormat, scoreAccuracy } from "./replay-format.js";
 import type { PpScore } from "./pp.js";
 import { createHash } from "node:crypto";
 import { readFile, readdir, stat } from "node:fs/promises";
 import path from "node:path";
-import { analyzeReplay, parseBeatmap, parseReplay } from "replayviewer-js";
+import { analyzeReplay, parseBeatmap, parseReplay, type BeatmapData, type HitObject } from "replayviewer-js";
 import { calculatePP, matchingScore, ppEngineVersion } from "./pp.js";
 import { fetchOnlineData, type OsuClient } from "./online.js";
 import { atTime } from "./timeline.js";
@@ -130,6 +130,26 @@ function simulateHealth(
   return points;
 }
 
+function sliderDurationMs(map: BeatmapData, slider: Extract<HitObject, { type: "slider" }>) {
+  let baseBeatLength = 500;
+  let sv = 1;
+  for (const tp of map.timingPoints) {
+    if (tp.time > slider.time) break;
+    if (!tp.inherited) {
+      baseBeatLength = tp.beatLength;
+      sv = 1;
+    } else sv = Math.max(0.1, Math.min(10, -100 / tp.beatLength));
+  }
+  const velocity = 100 * map.sliderMultiplier * sv / baseBeatLength;
+  return velocity > 0 ? slider.length / velocity : 1000;
+}
+
+function objectEndTime(map: BeatmapData, object: HitObject) {
+  if (object.type === "slider") return object.time + sliderDurationMs(map, object) * object.slides;
+  if (object.type === "spinner") return object.endTime;
+  return object.time;
+}
+
 export async function analyze(
   input: AnalyzeInput,
   signal?: AbortSignal,
@@ -205,12 +225,12 @@ export async function analyze(
   const errors: number[] = [];
   const totalHits = replay.count300 + replay.count100 + replay.count50 + replay.countMiss;
   let accuracy = totalHits ? (replay.count300 * 300 + replay.count100 * 100 + replay.count50 * 50) / (totalHits * 3) : 100;
-  const ratio300 = totalHits ? replay.count300 / totalHits : 1;
-  let grade = ratio300 === 1 ? "SS"
-    : ratio300 > 0.9 && replay.count50 / totalHits < 0.01 && replay.countMiss === 0 ? "S"
-    : (ratio300 > 0.8 && replay.countMiss === 0) || ratio300 > 0.9 ? "A"
-    : (ratio300 > 0.7 && replay.countMiss === 0) || ratio300 > 0.8 ? "B"
-    : ratio300 > 0.6 ? "C" : "D";
+  const silver = format.lazer
+    ? (replay.scoreInfo?.mods ?? []).some(mod => mod.acronym === "HD" || mod.acronym === "FL")
+    : !!(replay.mods & (8 | 1024));
+  let grade = rankGrade(
+    { great: replay.count300, ok: replay.count100, meh: replay.count50, miss: replay.countMiss },
+    accuracy, false, silver);
   const playedAtMs = Number(replay.timestamp / 10000n - 62135596800000n);
   const bpm =
     parsed.modDiff.speed *
@@ -270,7 +290,7 @@ export async function analyze(
         combo: atTime(parsed.comboFrames, result.effectiveTime)?.combo ?? 0,
         maxCombo: score?.maxCombo ?? 0,
         accuracy: ppState.accuracy * 100,
-        grade: score?.grade ?? "SS",
+        grade: rankGrade(ppState, ppState.accuracy * 100, format.lazer, silver),
         hits,
         pp: 0,
         errors: [...errors],
@@ -288,7 +308,7 @@ export async function analyze(
   accuracy = scoreAccuracy(finalState, format.classic);
   finalState.accuracy = accuracy / 100;
   if (format.lazer) grade = replay.scoreInfo?.rank?.replace("XH", "SS").replace("X", "SS").replace("SH", "S") ??
-    (accuracy === 100 ? "SS" : accuracy >= 95 ? "S" : accuracy >= 90 ? "A" : accuracy >= 80 ? "B" : accuracy >= 70 ? "C" : "D");
+    rankGrade(finalState, accuracy, true, silver);
   const calculated = await calculatePP(beatmap, format.mods, finalState, ppSnapshots, signal);
   snapshots.forEach((snapshot, index) => { snapshot.pp = calculated.pp[index]; });
   const { maxPP, scorePP, stars } = calculated;
@@ -314,7 +334,7 @@ export async function analyze(
     "Score and PP are re-simulated estimates. Timing error and UR include circles and slider heads.",
   );
 
-  const end = Math.max(...map.hitObjects.map((o) => ("endTime" in o ? o.endTime : o.time)));
+  const end = Math.max(...map.hitObjects.map((o) => objectEndTime(map, o)));
   // Danser finishes the last judgement window, the one-second fade, and its 100 ms tail.
   const gameplayFadeStart = (end + Math.trunc(200 - 10 * parsed.modDiff.od)) / 1000 / parsed.modDiff.speed;
 

@@ -4,7 +4,7 @@ import { exportLoudness } from "./audio.js";
 // The two built-in animations each run for 5.4 seconds.
 export const sceneDuration = 5.4;
 export const introPause = 0;
-export const outroPause = 0;
+export const outroPause = 1;
 export const endFadeStart = 4.65;
 export const endFadeDuration = .6;
 
@@ -73,7 +73,7 @@ export function compositeArgs(gameplay: string, output: string, duration: number
   const video = enabled
     ? `[0:v]fps=${fps},tpad=stop_mode=clone:stop=-1,trim=end_frame=${timing.gameplayFrames},setpts=PTS-STARTPTS,tpad=start_mode=clone:start=${timing.introFrames}:stop_mode=clone:stop=${timing.outroPauseFrames + timing.sceneFrames},setpts=N/(${fps}*TB),split[clear][soft];[soft]gblur=sigma=8:enable='${scenes}',lutrgb=r=val*0.55:g=val*0.55:b=val*0.55:enable='${scenes}'[blurred];[clear][blurred]blend=all_expr='A*(1-(${blur}))+B*(${blur})':enable='${scenes}'[game];[1:v]format=rgba[hud];[game][hud]overlay=0:0:shortest=1[outv]`
     : "[1:v]format=rgba[hud];[0:v][hud]overlay=0:0:shortest=1[outv]";
-  const duck = musicAudio ? `,volume='1-${1 - outroMusicVolume}*min(1,max(0,(t-${timing.gameplayFrames / fps})/${outroMusicTransition}))':eval=frame` : "";
+  const duck = musicAudio ? `,volume='1-${1 - outroMusicVolume}*min(1,max(0,(t-${(timing.gameplayFrames + timing.outroPauseFrames) / fps})/${outroMusicTransition}))':eval=frame` : "";
   const audio = `atrim=duration=${musicAudio ? end - hold : timing.gameplayFrames / fps},asetpts=PTS-STARTPTS,${audioFilter},aresample=48000${duck}${enabled ? `,adelay=${Math.round(hold * 1000)}:all=1,apad=whole_dur=${timing.duration}` : ""}`;
   const mix = enabled && outroAudio;
   const musicInput = musicAudio ? (mix ? 3 : 2) : 0;

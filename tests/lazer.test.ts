@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import path from "node:path";
 import { readFile, mkdtemp, copyFile, writeFile, rm } from "node:fs/promises";
 import { parseReplay } from "replayviewer-js";
-import { replayFormat, scoreAccuracy } from "../core/replay-format.js";
+import { rankGrade, replayFormat, scoreAccuracy } from "../core/replay-format.js";
 import { calculatePP } from "../core/pp.js";
 import { analyze } from "../core/analyze.js";
 
@@ -13,6 +13,34 @@ test("lazer accuracy includes slider tails and ticks", () => {
   const score = { great: 1, ok: 0, meh: 0, miss: 0, combo: 2, sliderTailMiss: 1, largeTickHit: 1 };
   assert.equal(scoreAccuracy(score, false), 330 / 480 * 100);
   assert.equal(scoreAccuracy(score, true), 100);
+});
+test("live rank uses current judgements, not remaining objects as misses", () => {
+  const hits = { great: 0, ok: 0, meh: 0, miss: 0 };
+  assert.equal(rankGrade(hits, 100, false), "SS");
+  assert.equal(rankGrade(hits, 100, true), "SS");
+  assert.equal(rankGrade({ great: 10, ok: 0, meh: 0, miss: 0 }, 100, false), "SS");
+  assert.equal(rankGrade({ great: 91, ok: 9, meh: 0, miss: 0 }, 97, false), "S");
+  assert.equal(rankGrade({ great: 9, ok: 1, meh: 0, miss: 0 }, 96.67, false), "A");
+  assert.equal(rankGrade({ great: 91, ok: 0, meh: 9, miss: 0 }, 95.5, false), "A");
+  assert.equal(rankGrade({ great: 91, ok: 0, meh: 0, miss: 9 }, 91, false), "A");
+  assert.equal(rankGrade({ great: 81, ok: 19, meh: 0, miss: 0 }, 87.33, false), "A");
+  assert.equal(rankGrade({ great: 81, ok: 0, meh: 0, miss: 19 }, 81, false), "B");
+  assert.equal(rankGrade({ great: 71, ok: 29, meh: 0, miss: 0 }, 80.67, false), "B");
+  assert.equal(rankGrade({ great: 71, ok: 0, meh: 0, miss: 29 }, 71, false), "C");
+  assert.equal(rankGrade({ great: 61, ok: 39, meh: 0, miss: 0 }, 74, false), "C");
+  assert.equal(rankGrade({ great: 60, ok: 40, meh: 0, miss: 0 }, 73.33, false), "D");
+  assert.equal(rankGrade({ great: 10, ok: 0, meh: 0, miss: 0 }, 100, false, true), "SSH");
+  assert.equal(rankGrade({ great: 91, ok: 9, meh: 0, miss: 0 }, 97, false, true), "SH");
+  assert.equal(rankGrade({ great: 81, ok: 19, meh: 0, miss: 0 }, 87.33, false, true), "A");
+  assert.equal(rankGrade({ great: 50, ok: 1, meh: 0, miss: 0 }, 98.3, true), "S");
+  assert.equal(rankGrade({ great: 50, ok: 1, meh: 0, miss: 1 }, 98.3, true), "A");
+  assert.equal(rankGrade({ great: 20, ok: 0, meh: 0, miss: 0 }, 100, true), "SS");
+  assert.equal(rankGrade({ great: 19, ok: 1, meh: 0, miss: 0 }, 94, true), "A");
+  assert.equal(rankGrade({ great: 10, ok: 5, meh: 0, miss: 0 }, 85, true), "B");
+  assert.equal(rankGrade({ great: 10, ok: 0, meh: 0, miss: 5 }, 75, true), "C");
+  assert.equal(rankGrade({ great: 5, ok: 0, meh: 0, miss: 5 }, 60, true), "D");
+  assert.equal(rankGrade({ great: 20, ok: 0, meh: 0, miss: 0 }, 100, true, true), "SSH");
+  assert.equal(rankGrade({ great: 50, ok: 1, meh: 0, miss: 0 }, 98.3, true, true), "SH");
 });
 test("official lazer PP uses the selected mods and slider statistics", async () => {
   const score = { great: 3, ok: 0, meh: 0, miss: 0, combo: 4, sliderTailHit: 1, accuracy: 1 };
@@ -40,6 +68,7 @@ test("lazer import retains head and tail timing and rejects unknown settings", a
   assert.equal(result.replayFormat, "lazer");
   assert.equal(result.snapshots.find(s => s.time === 4000)?.hits["300"], 3);
   assert.equal(result.snapshots.at(-1)?.accuracy, 100);
+  assert.ok(result.snapshots.every(s => s.grade === "SS"));
   assert.equal(result.sceneInfo?.score.accuracy, 100);
   assert.equal(result.sceneInfo?.score.pp, result.maxPP);
 });
