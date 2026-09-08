@@ -44,7 +44,12 @@ Blank optional fields are omitted. The counters check the title character limit 
 Direct edits stay intact when you change the inputs or close the dialog.
 Select **Regenerate** and confirm **Replace edits** to apply the current inputs again.
 Opening another replay clears those edits and manual inputs. Only **Additional text** is saved for future replays and app restarts.
-Export the finished thumbnail from the **Thumbnail** tab. Upload the MP4 and PNG through YouTube, then paste the copied text.
+Render the video and export the finished PNG from the **Thumbnail** tab.
+The dialog then shows **Ready to upload**, with both files under **Exported files**.
+Use **Show file** to locate either export, or **Copy path** to paste its path into a file chooser.
+The panel retains the latest completed exports for the current replay and session. Export again after changing the video or thumbnail.
+Select **Open YouTube Studio** to open the official upload page in your normal browser.
+Choose the MP4 and PNG there, then paste the copied text. The app does not upload files or fill browser fields automatically.
 
 ## Supported replays
 
