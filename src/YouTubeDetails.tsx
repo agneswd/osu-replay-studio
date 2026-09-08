@@ -39,12 +39,32 @@ export function YouTubeDetails({ timeline, files, isOpen, onOpenChange, addition
     catch (error) { setMessage((error instanceof Error ? error.message : String(error)).replace(/^Error invoking remote method '[^']+': (?:Error: )?/, "")); }
   }
   return <Modal.Backdrop isOpen={isOpen} onOpenChange={open => { setConfirmReset(false); setMessage(""); onOpenChange(open); }}>
-    <Modal.Container><Modal.Dialog className="sm:max-w-[720px]">
+    <Modal.Container><Modal.Dialog className="sm:max-w-[1120px]">
       <Modal.CloseTrigger />
       <Modal.Header><Modal.Heading>{files.video && files.thumbnail ? "Ready to upload" : "YouTube details"}</Modal.Heading>
         <p className="text-sm text-muted">Copy the text, then select your files on YouTube's upload page.</p>
       </Modal.Header>
-      <Modal.Body className="gap-4">
+      <Modal.Body>
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+        <div className="flex min-w-0 flex-col gap-4">
+        {(["title", "description"] as const).map(field => {
+          const label = field === "title" ? "Title" : "Description";
+          const error = youtubeTextError(field, text[field]);
+          const inputError = edits[field] === undefined && (field === "description" ? Object.keys(errors).length > 0 : !!errors.pp);
+          return <div key={field} className="flex flex-col gap-1.5">
+            <div className="flex items-center justify-between"><label htmlFor={`youtube-${field}`} className="text-sm font-medium">{label}</label>
+              <Button size="sm" variant="ghost" aria-label={`Copy ${field}`} isDisabled={!!error || inputError} onPress={() => void copy(field)}>Copy</Button></div>
+            <TextArea variant="secondary" id={`youtube-${field}`} aria-label={label} aria-invalid={!!error} aria-describedby={`youtube-${field}-help`}
+              className={field === "title" ? "min-h-20" : "min-h-80"} rows={field === "title" ? 3 : 14}
+              value={text[field]} onChange={event => { setEdits(old => ({ ...old, [field]: event.target.value })); setMessage(""); setConfirmReset(false); }} />
+            <div id={`youtube-${field}-help`} className={`flex justify-between gap-3 text-xs ${error ? "text-danger" : "text-muted"}`}>
+              <span>{error ?? (edits[field] !== undefined ? "Manually edited. Regenerate to apply input changes." : "Generated from replay data and the inputs below.")}</span>
+              <span className="shrink-0">{field === "title" ? `${Array.from(text[field]).length} / 100` : `${new TextEncoder().encode(text[field]).length} / 5000 bytes`}</span>
+            </div>
+          </div>;
+        })}
+        </div>
+        <div className="flex min-w-0 flex-col gap-4">
         <details open={!!files.video || !!files.thumbnail} className="mb-3">
           <summary className="cursor-pointer text-sm font-medium">Exported files</summary>
           <p className="mt-2 text-xs text-muted">Latest completed exports for this replay. Export again after making changes.</p>
@@ -62,28 +82,12 @@ export function YouTubeDetails({ timeline, files, isOpen, onOpenChange, addition
             </div>;
           })}
         </details>
-        {(["title", "description"] as const).map(field => {
-          const label = field === "title" ? "Title" : "Description";
-          const error = youtubeTextError(field, text[field]);
-          const inputError = edits[field] === undefined && (field === "description" ? Object.keys(errors).length > 0 : !!errors.pp);
-          return <div key={field} className="flex flex-col gap-1.5">
-            <div className="flex items-center justify-between"><label htmlFor={`youtube-${field}`} className="text-sm font-medium">{label}</label>
-              <Button size="sm" variant="ghost" aria-label={`Copy ${field}`} isDisabled={!!error || inputError} onPress={() => void copy(field)}>Copy</Button></div>
-            <TextArea id={`youtube-${field}`} aria-label={label} aria-invalid={!!error} aria-describedby={`youtube-${field}-help`}
-              className={field === "title" ? "min-h-16" : "min-h-48"} rows={field === "title" ? 2 : 9}
-              value={text[field]} onChange={event => { setEdits(old => ({ ...old, [field]: event.target.value })); setMessage(""); setConfirmReset(false); }} />
-            <div id={`youtube-${field}-help`} className={`flex justify-between gap-3 text-xs ${error ? "text-danger" : "text-muted"}`}>
-              <span>{error ?? (edits[field] !== undefined ? "Manually edited. Regenerate to apply input changes." : "Generated from replay data and the inputs below.")}</span>
-              <span className="shrink-0">{field === "title" ? `${Array.from(text[field]).length} / 100` : `${new TextEncoder().encode(text[field]).length} / 5000 bytes`}</span>
-            </div>
-          </div>;
-        })}
         {missing.length > 0 && <fieldset className="flex flex-col gap-2">
           <legend className="mb-2 text-sm font-medium">Missing details</legend>
           <p className="text-xs text-muted">These values could not be confirmed. Blank fields are omitted.</p>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">{missing.map(key => <div key={key} className="flex flex-col gap-1">
             <label htmlFor={`youtube-${key}`} className="text-sm">{inputLabels[key]}</label>
-            <Input id={`youtube-${key}`} aria-label={inputLabels[key]} aria-invalid={!!errors[key]} aria-describedby={errors[key] ? `youtube-${key}-error` : undefined}
+            <Input variant="secondary" id={`youtube-${key}`} aria-label={inputLabels[key]} aria-invalid={!!errors[key]} aria-describedby={errors[key] ? `youtube-${key}-error` : undefined}
               inputMode={key === "pp" ? "decimal" : undefined} value={inputs[key]} placeholder={placeholders[key]}
               onChange={event => { setOverrides(old => ({ ...old, [key]: event.target.value })); setMessage(""); }} />
             {errors[key] && <p id={`youtube-${key}-error`} className="text-xs text-danger">{errors[key]}</p>}
@@ -91,13 +95,15 @@ export function YouTubeDetails({ timeline, files, isOpen, onOpenChange, addition
         </fieldset>}
         <div className="flex flex-col gap-1.5">
           <label htmlFor="youtube-additional" className="text-sm font-medium">Additional text</label>
-          <TextArea id="youtube-additional" aria-label="Additional text" rows={2} maxLength={20000} placeholder="Your usual credits or description footer"
+          <TextArea variant="secondary" id="youtube-additional" aria-label="Additional text" rows={2} maxLength={20000} placeholder="Your usual credits or description footer"
             value={additionalText} onChange={event => {
               setMessage("");
               void onAdditionalTextChange(event.target.value).then(() => setSaveError("")).catch(() => setSaveError("Could not save additional text. Try again."));
             }} />
           <p className="text-xs text-muted">Saved for future replays. Leave blank to omit.</p>
           {saveError && <p role="alert" className="text-xs text-danger">{saveError}</p>}
+        </div>
+        </div>
         </div>
         {confirmReset && <div role="alert" className="flex flex-wrap items-center justify-between gap-2 text-sm">
           <p>Replace your title and description edits with generated text?</p>

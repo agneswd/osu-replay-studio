@@ -175,6 +175,7 @@ app.on("window-all-closed", () => {});
       await click("Open YouTube Studio");
       await wait(`document.body.textContent.includes('YouTube Studio opened')`);
       assert.equal(studioOpened, true);
+      assert.ok(await js(`(() => { const body = document.querySelector('.modal__body'); return body.scrollHeight <= body.clientHeight + 1; })()`), "The desktop upload dialog fits without body scrolling.");
       await capture("after-ready");
       await click("Done");
       await click("Video");
