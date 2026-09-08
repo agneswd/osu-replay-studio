@@ -50,6 +50,7 @@ const devUrl = !app.isPackaged && process.env.STUDIO_DEV === "1" && /^http:\/\/1
   ? process.env.STUDIO_DEV_URL : undefined;
 let active: AbortController | undefined;
 let completed: string | undefined;
+const exportedFiles = new Set<string>();
 let main: BrowserWindow | undefined;
 const primary = captureIndex >= 0 || cliIndex >= 0 || app.requestSingleInstanceLock();
 if (!primary) app.quit();
@@ -235,6 +236,16 @@ app
         if (typeof value !== "string" || value.length > 100_000) throw new Error("Invalid clipboard text.");
         return clipboard.writeText(value);
       });
+      ipcMain.handle("openYouTubeStudio", event => {
+        trusted(event);
+        return shell.openExternal("https://www.youtube.com/upload");
+      });
+      ipcMain.handle("revealExport", async (event, file: unknown) => {
+        trusted(event);
+        if (typeof file !== "string" || !exportedFiles.has(file)) throw new Error("Choose a completed export from this session.");
+        if (!await isFile(file)) throw new Error("The exported file is missing. Export it again.");
+        shell.showItemInFolder(file);
+      });
       ipcMain.handle("osuStatus", (event) => { trusted(event); return credentials.status(); });
       ipcMain.handle("saveOsuCredentials", async (event, value) => { trusted(event); return credentials.save(value); });
       ipcMain.handle("clearOsuCredentials", async (event) => { trusted(event); return credentials.clear(); });
@@ -314,6 +325,7 @@ app
           const file = await uniqueOutputPath(input.dir, outputStem(input.timeline.player, input.timeline.title), "png");
           await captureThumbnail(root, input.timeline, file, input.accent, signal, { bottomText: input.bottomText, accentRange: input.accentRange, document: input.document });
           completed = file;
+          exportedFiles.add(file);
           return file;
         });
       });
@@ -326,6 +338,7 @@ app
             const file = input.output.replace(/\.mp4$/i, ".png");
             await captureThumbnail(root, timeline, file, input.overlayAccent ?? "#d4d7de", signal);
           } : undefined, prepareNativeHud(root), nativeSceneWithWorker(root));
+          exportedFiles.add(completed);
           return completed;
         });
       });

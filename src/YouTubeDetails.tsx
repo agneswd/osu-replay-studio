@@ -12,8 +12,9 @@ const placeholders: Record<keyof YouTubeInputs, string> = {
 };
 
 // Keep the component mounted while closed so the current replay retains its edits.
-export function YouTubeDetails({ timeline, isOpen, onOpenChange, additionalText, onAdditionalTextChange }: {
+export function YouTubeDetails({ timeline, files, isOpen, onOpenChange, additionalText, onAdditionalTextChange }: {
   timeline: Timeline; isOpen: boolean; onOpenChange(open: boolean): void;
+  files: { video?: string; thumbnail?: string };
   additionalText: string; onAdditionalTextChange(text: string): Promise<void>;
 }) {
   const [overrides, setOverrides] = useState<Partial<YouTubeInputs>>({});
@@ -33,13 +34,34 @@ export function YouTubeDetails({ timeline, isOpen, onOpenChange, additionalText,
     try { await window.studio.copyText(text[field]); setMessage(`${field === "title" ? "Title" : "Description"} copied.`); }
     catch { setMessage("Could not copy. Select the text and copy it manually."); }
   }
+  async function fileAction(action: () => Promise<void>, success = "") {
+    try { await action(); setMessage(success); }
+    catch (error) { setMessage((error instanceof Error ? error.message : String(error)).replace(/^Error invoking remote method '[^']+': (?:Error: )?/, "")); }
+  }
   return <Modal.Backdrop isOpen={isOpen} onOpenChange={open => { setConfirmReset(false); setMessage(""); onOpenChange(open); }}>
     <Modal.Container><Modal.Dialog className="sm:max-w-[720px]">
       <Modal.CloseTrigger />
-      <Modal.Header><Modal.Heading>YouTube details</Modal.Heading>
-        <p className="text-sm text-muted">Edit and copy the text for your upload. Export your thumbnail from the Thumbnail tab.</p>
+      <Modal.Header><Modal.Heading>{files.video && files.thumbnail ? "Ready to upload" : "YouTube details"}</Modal.Heading>
+        <p className="text-sm text-muted">Copy the text, then select your files on YouTube's upload page.</p>
       </Modal.Header>
       <Modal.Body className="gap-4">
+        <details open={!!files.video || !!files.thumbnail} className="mb-3">
+          <summary className="cursor-pointer text-sm font-medium">Exported files</summary>
+          <p className="mt-2 text-xs text-muted">Latest completed exports for this replay. Export again after making changes.</p>
+          {(["video", "thumbnail"] as const).map(kind => {
+            const file = files[kind], label = kind === "video" ? "Video" : "Thumbnail";
+            return <div key={kind} className="mt-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-sm font-medium">{label}</span>
+                {file && <div className="flex gap-1">
+                  <Button size="sm" variant="ghost" aria-label={`Copy ${kind} path`} onPress={() => void fileAction(() => window.studio.copyText(file), `${label} path copied.`)}>Copy path</Button>
+                  <Button size="sm" variant="secondary" aria-label={`Show ${kind} file`} onPress={() => void fileAction(() => window.studio.revealExport(file), `${label} shown in your file manager.`)}>Show file</Button>
+                </div>}
+              </div>
+              <p className="select-text break-all text-xs text-muted">{file ?? (kind === "video" ? "Render a video to add it here." : "Export a PNG from the Thumbnail tab.")}</p>
+            </div>;
+          })}
+        </details>
         {(["title", "description"] as const).map(field => {
           const label = field === "title" ? "Title" : "Description";
           const error = youtubeTextError(field, text[field]);
@@ -82,9 +104,10 @@ export function YouTubeDetails({ timeline, isOpen, onOpenChange, additionalText,
           <div className="flex gap-2"><Button autoFocus size="sm" variant="secondary" onPress={() => setConfirmReset(false)}>Keep edits</Button>
             <Button size="sm" variant="danger-soft" onPress={regenerate}>Replace edits</Button></div>
         </div>}
-        <p role="status" className="min-h-4 text-xs text-muted">{message}</p>
       </Modal.Body>
-      <Modal.Footer><Button variant="secondary" onPress={() => edited ? setConfirmReset(true) : regenerate()}>Regenerate</Button>
+      <Modal.Footer className="flex-wrap"><p role="status" className="min-h-4 basis-full text-xs text-muted">{message}</p>
+        <Button variant="secondary" onPress={() => edited ? setConfirmReset(true) : regenerate()}>Regenerate</Button>
+        <Button variant="secondary" onPress={() => void fileAction(() => window.studio.openYouTubeStudio(), "YouTube Studio opened in your browser.")}>Open YouTube Studio</Button>
         <Button onPress={() => { setConfirmReset(false); onOpenChange(false); }}>Done</Button></Modal.Footer>
     </Modal.Dialog></Modal.Container>
   </Modal.Backdrop>;

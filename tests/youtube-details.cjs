@@ -19,6 +19,7 @@ app.on("window-all-closed", () => {});
   try {
     session.defaultSession.webRequest.onBeforeRequest({ urls: ["http://*/*", "https://*/*"] }, (_details, callback) => callback({ cancel: true }));
     const { analyze } = await import(pathToFileURL(path.join(root, "dist/core/analyze.js")));
+    const { captureThumbnail } = await import(pathToFileURL(path.join(root, "dist/electron/thumbnail.js")));
     const { previewData, previewSkin } = await import(pathToFileURL(path.join(root, "dist/core/preview.js")));
     const replay = path.join(root, "tests/fixtures/replay.osr");
     const beatmap = path.join(profile, "map.osu");
@@ -30,9 +31,11 @@ app.on("window-all-closed", () => {});
     // Exercise missing fields with a valid replay, without requesting online data.
     timeline.ppInfo = undefined;
     timeline.sceneInfo.playStatus.verified = false;
-    let saved = {}, replayNumber = 0, copyFails = false, saveFails = false;
+    let saved = {}, replayNumber = 0, copyFails = false, saveFails = false, renderFails = false;
+    let shownFile = "", studioOpened = false;
+    const videoFile = path.join(profile, "replay.mp4"), thumbnailFile = path.join(profile, "replay.png");
     const handlers = {
-      defaults: () => ({ replay: "", beatmap: "", songs: path.dirname(beatmap), songsFound: true, danser: "", danserFound: false,
+      defaults: () => ({ replay: "", beatmap: "", songs: path.dirname(beatmap), songsFound: true, danser: "test-renderer", danserFound: true,
         outputDir: profile, width: 1920, height: 1080, fps: 60, overlays: [], overlayAccent: "#d4d7de", backgroundDim: .95,
         cursorSize: 1, skinPath: "", introOutro: false, leaderboardSize: 50, leaderboardSort: "pp", ...saved }),
       osuStatus: () => ({ configured: true, clientId: "" }), updateStatus: () => ({ state: "disabled", version: "test" }),
@@ -40,13 +43,23 @@ app.on("window-all-closed", () => {});
       choose: () => `${replay}-${++replayNumber}`, analyze: () => ({ ...timeline, player: `Replay player ${replayNumber}`, replay: `${replay}-${replayNumber}` }),
       previewData: () => previewData(beatmap, replay), previewSkin: () => previewSkin(""),
       saveSettings: patch => { if (saveFails) throw Error("Disk unavailable"); return saved = { ...saved, ...patch }; },
+      uniqueOutput: () => videoFile,
+      render: async () => { if (renderFails) throw Error("Test render failed"); await fs.writeFile(videoFile, "test video"); return videoFile; },
+      exportThumbnail: async input => {
+        assert.ok(input.document, "Use the editor document for the exported thumbnail.");
+        assert.ok(Object.values(input.document.layers).some(layer => layer.text === "Upload thumbnail"), "Export the edited thumbnail text.");
+        await captureThumbnail(root, input.timeline, thumbnailFile, input.accent, new AbortController().signal, { document: input.document });
+        return thumbnailFile;
+      },
+      reveal: () => {}, revealExport: file => { assert.ok([videoFile, thumbnailFile].includes(file)); shownFile = file; },
+      openYouTubeStudio: () => { studioOpened = true; },
       copyText: text => { if (copyFails) throw Error("Clipboard unavailable"); return clipboard.writeText(text); },
     };
     for (const [name, handler] of Object.entries(handlers)) ipcMain.handle(name, (_event, arg) => handler(arg));
     win = new BrowserWindow({ show: false, width: 1600, height: 1000, useContentSize: true,
       webPreferences: { offscreen: true, sandbox: true, contextIsolation: true, nodeIntegration: false,
         preload: path.join(root, "dist/electron/preload.cjs"), backgroundThrottling: false } });
-    const js = code => win.webContents.executeJavaScript(code);
+    const js = code => win.webContents.executeJavaScript(code).catch(error => { throw Error(`${error.message}\n${code}`); });
     const wait = async code => {
       for (let i = 0; i < 100; i++) {
         if (await js(code)) return;
@@ -55,7 +68,7 @@ app.on("window-all-closed", () => {});
       throw Error(`Timed out: ${code}\n${await js("document.body.innerText")}`);
     };
     const click = async label => {
-      await js(`(() => { const button = [...document.querySelectorAll('button')].find(e => e.getAttribute('aria-label') === ${JSON.stringify(label)} || e.textContent.trim() === ${JSON.stringify(label)}); if (!button) throw Error('Missing button'); button.click(); })()`);
+      await js(`(() => { const button = [...document.querySelectorAll('button,[role="tab"]')].find(e => e.getAttribute('aria-label') === ${JSON.stringify(label)} || e.textContent.trim() === ${JSON.stringify(label)}); if (!button) throw Error('Missing button'); button.click(); })()`);
     };
     const openReplay = async () => {
       const next = replayNumber + 1;
@@ -73,7 +86,10 @@ app.on("window-all-closed", () => {});
       await js("document.fonts.ready");
       await new Promise(resolve => setTimeout(resolve, 400));
       const rect = name === "before" || name === "after-workspace" ? { x: 1040, y: 750, width: 560, height: 250 }
-        : name === "after-dialog" ? { x: 420, y: 50, width: 760, height: 900 } : undefined;
+        : (name === "after-dialog" || name === "after-ready") ? await js(`(() => {
+          const r = document.querySelector('[role="dialog"]').getBoundingClientRect();
+          return { x: Math.floor(r.x) - 16, y: Math.floor(r.y) - 16, width: Math.ceil(r.width) + 32, height: Math.ceil(r.height) + 32 };
+        })()`) : undefined;
       await fs.writeFile(path.join(evidence, `${name}.png`), (await win.webContents.capturePage(rect)).toPNG());
     };
     await win.loadFile(path.join(root, "dist/ui/index.html"));
@@ -132,11 +148,52 @@ app.on("window-all-closed", () => {});
       await fill("youtube-additional", "Saved credits.");
       await wait(`!document.body.textContent.includes('Could not save additional text.')`);
       await click("Done");
+      await click("Render video");
+      await wait(`document.body.textContent.includes('Show in folder')`);
+      await click("Thumbnail");
+      await wait(`!![...document.querySelectorAll('button')].find(e => e.textContent.trim() === 'Export PNG' && !e.disabled)`);
+      await click("Add text");
+      await wait(`!!document.querySelector('input[aria-label="Selected element text"]')`);
+      await js(`(() => { const input = document.querySelector('input[aria-label="Selected element text"]'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, 'Upload thumbnail'); input.dispatchEvent(new Event('input', { bubbles: true })); })()`);
+      await click("Export PNG");
+      await wait(`[...document.querySelectorAll('button')].some(e => e.textContent.trim() === 'Export PNG' && !e.disabled) && document.body.textContent.includes('Show in folder')`);
+      await click("YouTube details");
+      await wait(`document.body.textContent.includes('Ready to upload')`);
+      assert.equal(await value("youtube-title"), "Corrected title");
+      await click("Copy video path");
+      await wait(`document.body.textContent.includes('Video path copied.')`);
+      assert.equal(await clipboard.readText(), videoFile);
+      await click("Copy thumbnail path");
+      await wait(`document.body.textContent.includes('Thumbnail path copied.')`);
+      assert.equal(await clipboard.readText(), thumbnailFile);
+      await click("Show video file");
+      await wait(`document.body.textContent.includes('Video shown in your file manager.')`);
+      assert.equal(shownFile, videoFile);
+      await click("Show thumbnail file");
+      await wait(`document.body.textContent.includes('Thumbnail shown in your file manager.')`);
+      assert.equal(shownFile, thumbnailFile);
+      await click("Open YouTube Studio");
+      await wait(`document.body.textContent.includes('YouTube Studio opened')`);
+      assert.equal(studioOpened, true);
+      await capture("after-ready");
+      await click("Done");
+      await click("Video");
+      renderFails = true;
+      await click("Render video");
+      await wait(`document.body.textContent.includes('Test render failed')`);
+      await click("Dismiss error");
+      await click("YouTube details");
+      await wait(`document.body.textContent.includes('Ready to upload')`);
+      await click("Copy video path");
+      await wait(`document.body.textContent.includes('Video path copied.')`);
+      assert.equal(await clipboard.readText(), videoFile, "A failed render keeps the last completed export.");
+      await click("Done");
       await openReplay();
       await click("YouTube details");
       await wait(`!!document.getElementById('youtube-title')`);
       assert.equal((await value("youtube-title")).includes("Corrected title"), false);
       assert.equal(await value("youtube-playerUrl"), "");
+      assert.equal(await js(`!!document.querySelector('[aria-label="Copy video path"]') || !!document.querySelector('[aria-label="Copy thumbnail path"]')`), false);
       assert.equal(await value("youtube-additional"), "Saved credits.");
       await win.reload();
       await wait(`!![...document.querySelectorAll('button')].find(e => e.textContent.trim() === 'Open replay')`);
@@ -146,7 +203,7 @@ app.on("window-all-closed", () => {});
       assert.equal(await value("youtube-additional"), "Saved credits.");
       win.setContentSize(900, 720);
       await capture("after-small-window");
-      console.log("YouTube details: copy, manual edits, regeneration, replay isolation, saved defaults, and errors passed.");
+      console.log("YouTube details: copy, manual edits, regeneration, replay isolation, saved defaults, exported files, browser handoff, and errors passed.");
     }
   } finally {
     if (win) win.destroy();
