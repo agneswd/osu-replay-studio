@@ -4,7 +4,7 @@ import { startUpdates } from "./updates.js";
 import { captureThumbnail } from "./thumbnail.js";
 import { videoSettings } from "../core/video-options.js";
 import { previewData, previewSkin } from "../core/preview.js";
-import { app, BrowserWindow, dialog, ipcMain, session, shell } from "electron";
+import { app, BrowserWindow, clipboard, dialog, ipcMain, session, shell } from "electron";
 import { mkdir, readFile, stat, writeFile, rename } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -50,6 +50,7 @@ const devUrl = !app.isPackaged && process.env.STUDIO_DEV === "1" && /^http:\/\/1
   ? process.env.STUDIO_DEV_URL : undefined;
 let active: AbortController | undefined;
 let completed: string | undefined;
+const exportedFiles = new Set<string>();
 let main: BrowserWindow | undefined;
 const primary = captureIndex >= 0 || cliIndex >= 0 || app.requestSingleInstanceLock();
 if (!primary) app.quit();
@@ -141,6 +142,8 @@ app
       let settingsWrite: Promise<unknown> = Promise.resolve();
       function writeSettings(patch: SavedSettings): Promise<SavedSettings> {
         const write = settingsWrite.catch(() => {}).then(async () => {
+          if (patch.youtubeAdditionalText !== undefined && (typeof patch.youtubeAdditionalText !== "string" || patch.youtubeAdditionalText.length > 20_000))
+            throw new Error("Additional text must be at most 20,000 characters.");
           const next = { ...(await loadSettings()), ...patch };
           if (patch.layout !== undefined) next.layout = normalizeLayout(patch.layout);
           await mkdir(path.dirname(settingsFile), { recursive: true });
@@ -187,6 +190,7 @@ app
           path.join(app.getPath("videos"), "osu! Replay Studio");
 
         return {
+          youtubeAdditionalText: typeof saved.youtubeAdditionalText === "string" ? saved.youtubeAdditionalText : "",
           skinPath: saved.skinPath || "",
           replay: "",
           beatmap: "",
@@ -227,6 +231,21 @@ app
         return previewData(previewFiles.beatmap, previewFiles.replay);
       });
       ipcMain.handle("previewSkin", (event, folder: string) => { trusted(event); return previewSkin(folder); });
+      ipcMain.handle("copyText", (event, value: unknown) => {
+        trusted(event);
+        if (typeof value !== "string" || value.length > 100_000) throw new Error("Invalid clipboard text.");
+        return clipboard.writeText(value);
+      });
+      ipcMain.handle("openYouTubeStudio", event => {
+        trusted(event);
+        return shell.openExternal("https://www.youtube.com/upload");
+      });
+      ipcMain.handle("revealExport", async (event, file: unknown) => {
+        trusted(event);
+        if (typeof file !== "string" || !exportedFiles.has(file)) throw new Error("Choose a completed export from this session.");
+        if (!await isFile(file)) throw new Error("The exported file is missing. Export it again.");
+        shell.showItemInFolder(file);
+      });
       ipcMain.handle("osuStatus", (event) => { trusted(event); return credentials.status(); });
       ipcMain.handle("saveOsuCredentials", async (event, value) => { trusted(event); return credentials.save(value); });
       ipcMain.handle("clearOsuCredentials", async (event) => { trusted(event); return credentials.clear(); });
@@ -306,6 +325,7 @@ app
           const file = await uniqueOutputPath(input.dir, outputStem(input.timeline.player, input.timeline.title), "png");
           await captureThumbnail(root, input.timeline, file, input.accent, signal, { bottomText: input.bottomText, accentRange: input.accentRange, document: input.document });
           completed = file;
+          exportedFiles.add(file);
           return file;
         });
       });
@@ -318,6 +338,7 @@ app
             const file = input.output.replace(/\.mp4$/i, ".png");
             await captureThumbnail(root, timeline, file, input.overlayAccent ?? "#d4d7de", signal);
           } : undefined, prepareNativeHud(root), nativeSceneWithWorker(root));
+          exportedFiles.add(completed);
           return completed;
         });
       });

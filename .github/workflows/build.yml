@@ -46,9 +46,12 @@ jobs:
           sudo chown root:root node_modules/electron/dist/chrome-sandbox
           sudo chmod 4755 node_modules/electron/dist/chrome-sandbox
           xvfb-run -a bunx electron tests/capture.cjs --disable-gpu
+          xvfb-run -a bunx electron tests/youtube-details.cjs --disable-gpu
       - name: Check captured frames on Windows
         if: runner.os == 'Windows'
-        run: bunx electron tests/capture.cjs --disable-gpu
+        run: |
+          bunx electron tests/capture.cjs --disable-gpu
+          bunx electron tests/youtube-details.cjs --disable-gpu
       - run: node tools/package.mjs
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'

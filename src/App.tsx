@@ -1,4 +1,5 @@
 import type { ThumbnailDocument } from "../core/thumbnail-document.js";
+import { YouTubeDetails } from "./YouTubeDetails.js";
 import { UpdateDialog } from "./UpdateDialog.js";
 import type { VideoLayout } from "../core/layout.js";
 import { LayoutEditor } from "./LayoutEditor.js";
@@ -184,6 +185,8 @@ export function App() {
   const [prompt, setPrompt] = useState<PromptKind | null>(null);
   const [pending, setPending] = useState<"inspect" | "render" | null>(null);
   const preview = useRef<HTMLIFrameElement>(null);
+  const [youtubeOpen, setYoutubeOpen] = useState(false);
+  const [youtubeFiles, setYoutubeFiles] = useState<{ video?: string; thumbnail?: string }>({});
   const [editingLayout, setEditingLayout] = useState(false);
   const [draftLayout, setDraftLayout] = useState<VideoLayout>();
   const liveLayout = draftLayout ?? options?.layout;
@@ -341,6 +344,7 @@ export function App() {
       const value = await window.studio.choose(kind);
       if (!value) return null;
       if (kind === "replay") {
+        setYoutubeFiles({});
         patch({ replay: value, beatmap: "" });
         setTimeline(undefined);
         setTime(0);
@@ -354,6 +358,7 @@ export function App() {
       } else if (kind === "skin") {
         await persist({ skinPath: value });
       } else if (kind === "beatmap") {
+        setYoutubeFiles({});
         patch({ beatmap: value });
         setTimeline(undefined);
         setTime(0);
@@ -416,7 +421,9 @@ export function App() {
     setProgress({ stage: "Exporting thumbnail", message: "Save thumbnail" });
     setBusy(true); setNotice(""); setError(""); setOutput("");
     try {
-      setOutput(await window.studio.exportThumbnail({ timeline, dir: options.outputDir, ...customization }));
+      const file = await window.studio.exportThumbnail({ timeline, dir: options.outputDir, ...customization });
+      setOutput(file);
+      setYoutubeFiles(old => ({ ...old, thumbnail: file }));
     } catch (e) {
       if (cancelRequested.current) setNotice("Thumbnail export cancelled");
       else setError((e instanceof Error ? e.message : String(e)).replace(/^Error invoking remote method '[^']+': (?:Error: )?/, ""));
@@ -470,6 +477,7 @@ export function App() {
         leaderboardSize: current.leaderboardSize,
       });
       setOutput(result);
+      setYoutubeFiles(old => ({ ...old, video: result }));
     } catch (e) {
       if (cancelRequested.current) setNotice("Render cancelled");
       else setError((e instanceof Error ? e.message : String(e)).replace(/^Error invoking remote method '[^']+': (?:Error: )?/, ""));
@@ -805,6 +813,7 @@ export function App() {
           </Button>
         )}
         <div ref={setThumbnailExportTarget} className={workspace === "thumbnail" ? "contents" : "hidden"} />
+        <Button variant="secondary" isDisabled={!timeline} onPress={() => setYoutubeOpen(true)}>YouTube details</Button>
         {workspace === "video" && <Button
           isDisabled={busy || !timeline}
           isPending={busy && busyAction === "render"}
@@ -813,6 +822,12 @@ export function App() {
           {busy && busyAction !== "thumbnail" ? busyAction === "import" ? "Importing..." : "Rendering" : "Render video"}
         </Button>}
       </footer>
+
+      {timeline && <YouTubeDetails key={timeline.replay} timeline={timeline} files={youtubeFiles} isOpen={youtubeOpen} onOpenChange={setYoutubeOpen}
+        additionalText={options.youtubeAdditionalText ?? ""} onAdditionalTextChange={async text => {
+          setOptions(old => old ? { ...old, youtubeAdditionalText: text } : old);
+          await window.studio.saveSettings({ youtubeAdditionalText: text });
+        }} />}
 
       {!busy && !editingLayout && workspace === "video" && !connectionPromptOpen && update?.nextVersion && ["available", "downloading", "ready", "error"].includes(update.state) && dismissedUpdate !== updateKey &&
         <UpdateDialog status={update} onDismiss={() => setDismissedUpdate(updateKey)}
