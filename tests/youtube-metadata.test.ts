@@ -24,10 +24,10 @@ test("YouTube text uses final PP, recorded score, separate map fields, and an of
   timeline.title = "Display title is not parsed";
   const text = generateYouTubeText(timeline);
   assert.equal(text.title, "Player | 6.25⭐ | Artist - Song [Hard] +HDHR FC 412pp | 99.31%");
-  assert.match(text.description, /412pp \| 99.31% \| 1000x\/1000x \| 0 misses/);
-  assert.match(text.description, /Beatmap: https:\/\/osu.ppy.sh\/beatmaps\/123/);
+  assert.match(text.description, /\/\/ = Beatmap info/);
+  assert.match(text.description, /Link: https:\/\/osu.ppy.sh\/beatmaps\/123/);
   assert.ok(!text.description.includes("Player:"));
-  assert.match(text.description, /Played: 2026-09-08/);
+  assert.match(text.description, /⭐6.25 \| 180bpm \| AR: 10 \| CS: 4.00 \| OD: 9.00 \| HP: 6.00/);
   delete timeline.ppInfo!.onlineFinalPP;
   assert.equal(youtubeInputs(timeline).pp, "410");
   timeline.ppInfo!.onlineFinalPP = NaN;
@@ -41,11 +41,11 @@ test("unverified claims and unavailable data are omitted, with manual inputs sup
   delete timeline.ppInfo;
   delete timeline.sceneInfo!.beatmapId;
   const inputs = youtubeInputs(timeline);
-  assert.deepEqual(inputs, { playerUrl: "", beatmapUrl: "", pp: "", status: "" });
+  assert.ok(Object.values(inputs).every(value => value === ""));
   const text = generateYouTubeText(timeline, { ...inputs, pp: "0", status: "2xMiss", playerUrl: "https://osu.ppy.sh/users/42" }, "My credits");
   assert.match(text.title, /2xMiss 0pp/);
   assert.ok(!text.title.includes("NM"));
-  assert.match(text.description, /Player: https:\/\/osu.ppy.sh\/users\/42/);
+  assert.match(text.description, /Profile: https:\/\/osu.ppy.sh\/users\/42/);
   assert.ok(text.description.endsWith("\n\nMy credits"));
   const bare = generateYouTubeText({ ...timeline, sceneInfo: undefined, stars: NaN, bpm: NaN });
   assert.equal(bare.title, "Player | Artist - Song [Hard]");
@@ -80,4 +80,47 @@ test("copy validation counts Unicode characters and UTF-8 bytes without changing
   assert.deepEqual(youtubeInputErrors({ ...inputs, playerUrl: "https://osu.ppy.sh/users/42" }), {});
   assert.ok(youtubeInputErrors({ ...inputs, playerUrl: "https://example.com/users/42" }).playerUrl);
   assert.ok(youtubeInputErrors({ ...inputs, pp: "-1" }).pp);
+});
+
+
+test("reference description groups player links, map details, and account stats", () => {
+  const timeline = replay();
+  timeline.playerStats = { countryRank: 1, pp: 8648, hours: 120, playcount: 89206, monthlyPlaycounts: [] };
+  timeline.playerRank = 15818;
+  const inputs = { ...youtubeInputs(timeline), playerUrl: "https://osu.ppy.sh/users/23441928",
+    twitchUrl: "https://www.twitch.tv/fumburrito", youtubeUrl: "https://www.youtube.com/@player",
+    mapperUrl: "https://osu.ppy.sh/users/10827686", joined: "2021-01-01" };
+  assert.equal(generateYouTubeText(timeline, inputs).description, `// = Player links
+Profile: https://osu.ppy.sh/users/23441928
+YouTube: https://www.youtube.com/@player
+Twitch: https://www.twitch.tv/fumburrito
+
+// = Beatmap info
+Link: https://osu.ppy.sh/beatmaps/123
+Mapper: https://osu.ppy.sh/users/10827686
+⭐6.25 | 180bpm | AR: 10 | CS: 4.00 | OD: 9.00 | HP: 6.00
+
+// = Player info
+Total played: 120h
+Playcount: 89,206
+Rank: #15,818
+Join: 2021-01-01
+PP: 8,648`);
+  assert.deepEqual(youtubeInputErrors(inputs), {});
+  assert.deepEqual(youtubeInputErrors({ ...inputs, beatmapUrl: "https://osu.ppy.sh/beatmapsets/2252339#osu/5302833" }), {});
+  assert.ok(youtubeInputErrors({ ...inputs, twitchUrl: "https://twitch.tv.evil.example/player" }).twitchUrl);
+  assert.ok(youtubeInputErrors({ ...inputs, status: "0xMiss" }).status);
+  assert.ok(youtubeInputErrors({ ...inputs, status: "1.5xSB" }).status);
+});
+
+
+test("reference title preserves the requested field order and formatting", () => {
+  const timeline = replay();
+  timeline.player = "Narendra Modi";
+  timeline.mods = "NM";
+  timeline.stars = 7.52;
+  Object.assign(timeline.sceneInfo!, { artist: "Unlucky Morpheus", songTitle: "Faith", difficulty: "Mekadon's Extreme" });
+  timeline.sceneInfo!.score.accuracy = 98.58;
+  assert.equal(generateYouTubeText(timeline, { ...youtubeInputs(timeline), pp: "495" }).title,
+    "Narendra Modi | 7.52⭐ | Unlucky Morpheus - Faith [Mekadon's Extreme] FC 495pp | 98.58%");
 });
