@@ -88,8 +88,8 @@ const promptCopy: Record<PromptKind, { title: string; body: string; action: stri
     },
     beatmap: {
       title: "Beatmap not found",
-      body: "The replay's map is not in the Songs folder. Choose the matching .osu file. Audio must sit beside it.",
-      action: "Choose .osu file",
+      body: "Choose a downloaded .osz archive or export the map from lazer. Studio will find the matching difficulty. You can also select an .osu file with its audio.",
+      action: "Choose beatmap archive",
     },
     danser: {
       title: "Danser not found",
@@ -367,9 +367,9 @@ export function App() {
 
   async function inspect(current = options) {
     if (!current?.replay) return;
-    if (!current.songs) {
+    if (!current.songs && !current.beatmap) {
       setPending("inspect");
-      setPrompt("songs");
+      setPrompt("beatmap");
       return;
     }
     playback.setPlaying(false);

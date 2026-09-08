@@ -1,3 +1,4 @@
+import { importBeatmapArchive } from "./beatmap-archive.js";
 import { classifyPlay, sliderBreakEvents } from "./play-status.js";
 import { collectTimingHits, hitWindowsFor } from "./hit-timing.js";
 import { replayFormat, scoreAccuracy } from "./replay-format.js";
@@ -23,9 +24,11 @@ export async function resolveBeatmap(songs: string, expected: string, explicit?:
   signal?.throwIfAborted();
   const matches = async (file: string) => hash(await mapBytes(file)) === expected;
   if (explicit) {
+    if (/\.osz$/i.test(explicit)) return importBeatmapArchive(explicit, expected, signal);
     if (!await matches(explicit)) throw new Error("Selected beatmap does not match the replay MD5.");
     return path.resolve(explicit);
   }
+  if (!songs) throw new Error("Beatmap not found. Choose a beatmap archive or a Songs folder.");
   const key = `${path.resolve(songs)}:${expected}`;
   const previous = recentMaps.get(key);
   if (previous && await matches(previous).catch(() => false)) return previous;
@@ -60,7 +63,7 @@ export async function resolveBeatmap(songs: string, expected: string, explicit?:
   }
   const found = await check();
   if (found) return remember(found);
-  throw new Error("Beatmap not found in Songs. Select the matching .osu file with its audio beside it.");
+  throw new Error("Beatmap not found in Songs. Choose a matching .osz archive or .osu file.");
 }
 
 function extractBgFilename(osuText: string): string | null {
