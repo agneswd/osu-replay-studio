@@ -1,6 +1,6 @@
 {
   "name": "osu-replay-studio",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "private": true,
   "description": "Render osu! replays with gameplay, overlays, and score animations.",
   "type": "module",
