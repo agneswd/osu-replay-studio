@@ -131,7 +131,7 @@ export function nativeAudioArgs(
     end = timing.duration,
     outro = timing.outroStartFrame / fps;
   const duck = music
-    ? `,volume='1-${1 - outroMusicVolume}*min(1,max(0,(t-${timing.gameplayFrames / fps})/${outroMusicTransition}))':eval=frame`
+    ? `,volume='1-${1 - outroMusicVolume}*min(1,max(0,(t-${(timing.gameplayFrames + timing.outroPauseFrames) / fps})/${outroMusicTransition}))':eval=frame`
     : "";
   const audio = `atrim=duration=${end - hold},asetpts=PTS-STARTPTS,${filter},aresample=48000${duck},adelay=${Math.round(hold * 1000)}:all=1,apad=whole_dur=${end}`;
   return [

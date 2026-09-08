@@ -16,10 +16,12 @@ test("intro and outro hold the gameplay clock at exact frame boundaries", () => 
     assert.deepEqual(at(timing.introFrames), { gameplayTime: -1, scene: null });
     const end = timing.introFrames + timing.gameplayFrames;
     assert.equal(at(end - 1).scene, null);
-    assert.equal(at(end).scene?.kind, "outro");
+    assert.equal(at(end).scene, null);
     assert.equal(at(timing.outroStartFrame - 1).scene, null);
+    assert.equal(at(timing.outroStartFrame).scene?.kind, "outro");
     assert.equal(at(end).gameplayTime, at(end - 1).gameplayTime);
-    assert.equal(timing.outroStartFrame, end);
+    assert.equal(timing.outroStartFrame, end + timing.outroPauseFrames);
+    assert.equal(timing.outroPauseFrames / fps, 1);
     assert.deepEqual(at(timing.outroStartFrame), { gameplayTime: (timing.gameplayFrames + timing.startFrame - 1) / fps, scene: { kind: "outro", time: 0 } });
     assert.equal(at(timing.frames - 1).gameplayTime, at(end).gameplayTime);
     assert.deepEqual(at(timing.introFrames), { gameplayTime: -1, scene: null });
@@ -33,10 +35,10 @@ test("disabled animations add no delay; duration limits only gameplay", () => {
   assert.equal(presentationAt(timeline, 1, 30).gameplayTime, 1);
   assert.equal(presentationAt(timeline, 1, 30).scene, null);
   assert.equal(presentationAt(timeline, 8.9, 30, true, 1).scene?.kind, "outro");
-  assert.equal(presentationTiming(1, 30, true).duration, 12.8);
+  assert.equal(presentationTiming(1, 30, true).duration, 13.8);
   const enabled = compositeArgs("in.mp4", "out.mp4", 2, 30, true);
   assert.match(enabled[enabled.indexOf("-af") + 1], /adelay=5400:all=1/);
-  assert.equal(enabled[enabled.indexOf("-t") + 1], "13.8");
+  assert.equal(enabled[enabled.indexOf("-t") + 1], "14.8");
   assert.equal(compositeArgs("in.mp4", "out.mp4", 2, 30).includes("-af"), true);
   const trimmed = compositeArgs("in.mp4", "out.mp4", 2, 30, true, 1.32);
   assert.deepEqual(trimmed.slice(0, 5), ["-y", "-ss", "0.32000000000000006", "-i", "in.mp4"]);

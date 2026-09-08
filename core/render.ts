@@ -321,7 +321,7 @@ export async function render(
       const settingsFile = path.join(runtime, "settings", "studio.json");
       const settings = JSON.parse(await readFile(settingsFile, "utf8"));
       settings.Recording.libx264 = { CRF: 16, Preset: "fast", AdditionalOptions: "-video_track_timescale 90000" };
-      settings.Recording.Filters = window.filter + `,tpad=stop_mode=clone:stop=-1,trim=end_frame=${timing.gameplayFrames}`;
+      settings.Recording.Filters = window.filter + `,tpad=stop_mode=clone:stop=-1,trim=end_frame=${timing.gameplayFrames + timing.outroPauseFrames}`;
       await writeFile(settingsFile, JSON.stringify(settings));
       danserEnv.STUDIO_NATIVE_FRAME_LIMIT = String(window.end);
       if (o.overlays.length || o.introOutro) {
