@@ -28,3 +28,20 @@ export function classifyPlay(objectCount: number, judged: readonly number[], rec
   const fullCombo = completed && verified && recorded[3] === 0 && sliderBreaks === 0;
   return { completed, verified, fullCombo, perfectCombo: fullCombo && combo >= maxCombo, sliderBreaks };
 }
+
+// Non-Classic lazer records slider heads as normal judgements and ticks/repeats separately.
+// Missing tails reduce accuracy but do not break combo. Missing payloads remain unverified.
+export function recordedLazerStatus(objectCount: number, info: Pick<import("replayviewer-js").ScoreInfo, "statistics" | "maximum_statistics"> | undefined, classic: boolean, combo: number, maxCombo: number): PlayStatus | undefined {
+  if (classic || !info?.statistics || !info.maximum_statistics) return undefined;
+  const stats = info.statistics, maximum = info.maximum_statistics;
+  if (![...Object.values(stats), ...Object.values(maximum)].every(n => Number.isSafeInteger(n) && n >= 0)) return undefined;
+  if (maximum.great !== objectCount || objectCount <= 0) return undefined;
+  const judged = (stats.great ?? 0) + (stats.ok ?? 0) + (stats.meh ?? 0) + (stats.miss ?? 0);
+  const ticks = (stats.large_tick_hit ?? 0) + (stats.large_tick_miss ?? 0);
+  if (judged > objectCount || ticks > (maximum.large_tick_hit ?? 0) || (stats.slider_tail_hit ?? 0) > (maximum.slider_tail_hit ?? 0)) return undefined;
+  const completed = judged === objectCount;
+  const verified = completed && ticks === (maximum.large_tick_hit ?? 0);
+  const sliderBreaks = (stats.large_tick_miss ?? 0) + (stats.combo_break ?? 0);
+  const fullCombo = verified && (stats.miss ?? 0) === 0 && sliderBreaks === 0;
+  return { completed, verified, fullCombo, perfectCombo: fullCombo && combo >= maxCombo, sliderBreaks };
+}

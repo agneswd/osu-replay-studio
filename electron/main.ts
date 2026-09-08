@@ -274,7 +274,7 @@ app
             kind === "replay"
               ? [{ name: "osu! replay", extensions: ["osr"] }]
               : kind === "beatmap"
-                ? [{ name: "osu! beatmap", extensions: ["osu"] }]
+                ? [{ name: "osu! beatmap archive or difficulty", extensions: ["osz", "osu"] }]
                 : [],
         });
         return result.canceled ? null : result.filePaths[0];

@@ -12,7 +12,8 @@ interface ApiScore {
   id: number; legacy_score_id?: number; user_id: number; user?: ApiUser;
   pp: number | null; accuracy: number; max_combo: number; rank: string;
   total_score: number; legacy_total_score?: number; score?: number;
-  statistics: { great?: number; ok?: number; meh?: number; miss?: number; count_miss?: number };
+  statistics: import("replayviewer-js").LazerStatistics & { count_miss?: number };
+  maximum_statistics?: import("replayviewer-js").LazerStatistics;
   mods: (string | { acronym: string })[]; ended_at?: string; created_at?: string;
   beatmap?: { id?: number; version: string }; beatmapset?: { title: string; covers: { cover: string } };
 }
@@ -57,6 +58,7 @@ export type OsuClient = ReturnType<typeof createOsuClient>;
 
 export function normalizeScore(score: ApiScore, lazer = false): RankedScore {
   return {
+    lazerStatistics: lazer ? { statistics: score.statistics, maximum_statistics: score.maximum_statistics } : undefined,
     id: String(score.id), legacyId: score.legacy_score_id ? String(score.legacy_score_id) : undefined,
     userId: score.user_id, name: score.user?.username ?? "Unknown player",
     pp: score.pp, accuracy: score.accuracy * 100, combo: score.max_combo,
