@@ -137,6 +137,7 @@ export interface RankedScore {
 }
 export interface OnlineData {
   fetchedAt: string;
+  joinedAt?: string;
   warnings: string[];
   playerId: number;
   avatar?: string;
@@ -147,7 +148,7 @@ export interface OnlineData {
   badges: { title: string; url: string }[];
   stats?: Timeline["playerStats"];
   map: {
-    id: number; mapper: string; mapperAvatar?: string; cover?: string;
+    id: number; setId?: number; mapperId?: number; mapper: string; mapperAvatar?: string; cover?: string;
     status: string; plays: number; favourites: number;
     retries?: { fail: number[]; exit: number[] };
   };

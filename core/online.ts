@@ -3,6 +3,7 @@ import type { OnlineData, RankedScore } from "./types.js";
 export interface OsuCredentials { clientId: string; clientSecret: string }
 interface ApiUser {
   id: number; username: string; avatar_url: string; country_code: string;
+  join_date?: string;
   cover_url?: string; is_supporter?: boolean;
   statistics?: { global_rank: number | null; country_rank: number | null; pp: number; play_time: number; play_count: number };
   monthly_playcounts?: { start_date: string; count: number }[];
@@ -119,14 +120,14 @@ export async function fetchOnlineData(client: OsuClient, username: string, check
   const [avatar, cover, mapperAvatar, mapCover] = await Promise.all([image(user.avatar_url), image(user.cover_url), image(mapper?.avatar_url), image(map.beatmapset.covers.cover)]);
   const badges = await Promise.all((user.badges ?? []).map(async badge => ({ title: badge.description, url: await image(badge.image_url) })));
   return {
-    fetchedAt: new Date().toISOString(), warnings, playerId: user.id,
+    fetchedAt: new Date().toISOString(), warnings, playerId: user.id, joinedAt: user.join_date,
     avatar, cover, country: user.country_code, rank: user.statistics?.global_rank ?? null,
     supporter: user.is_supporter ?? false, badges: badges.filter((badge): badge is { title: string; url: string } => !!badge.url),
     stats: user.statistics ? {
       countryRank: user.statistics.country_rank, pp: user.statistics.pp, hours: Math.floor(user.statistics.play_time / 3600), playcount: user.statistics.play_count,
       monthlyPlaycounts: (user.monthly_playcounts ?? []).map(entry => ({ date: entry.start_date, count: entry.count })),
     } : undefined,
-    map: { id: map.id, mapper: mapper?.username ?? map.beatmapset.creator, mapperAvatar,
+    map: { id: map.id, setId: map.beatmapset_id, mapperId: map.user_id, mapper: mapper?.username ?? map.beatmapset.creator, mapperAvatar,
       cover: mapCover, status: map.beatmapset.status, plays: map.beatmapset.play_count, favourites: map.beatmapset.favourite_count,
       retries: details?.failtimes,
     },
