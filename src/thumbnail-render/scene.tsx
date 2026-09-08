@@ -38,10 +38,11 @@ export function ThumbnailScene({ timeline, value, scale = 1 }: { timeline: Timel
       element.style.transformOrigin = "top left";
       element.style.zIndex = patch.z === undefined ? "" : String(patch.z);
       element.style.visibility = patch.hidden ? "hidden" : "";
+
     }
   }, [value, template]);
   return <div ref={root} className="thumbnail-scene" style={{ width: 1280, height: 720, transform: `scale(${scale})`, transformOrigin: "top left", position: "relative" }}>
     <Thumbnail data={data} template={template} accentRange={value.accentRange} />
-    {value.customTexts.map(id => <TextLayer key={id} testId={id} config={{ visible: true, x: 420, y: 320, width: 500, maxWidth: 500, fontSize: value.layers[id]?.fontSize ?? 54, fontWeight: 700, fontFamily: '"Baloo 2", sans-serif', color: value.layers[id]?.color ?? "#ffffff" }}>{value.layers[id]?.text ?? "Your text"}</TextLayer>)}
+    {value.customTexts.map(id => <TextLayer key={id} testId={id} config={{ visible: true, x: 420, y: 320, width: 500, maxWidth: 500, fontSize: value.layers[id]?.fontSize ?? 54, glow: value.layers[id]?.glow ?? undefined, fontWeight: 700, fontFamily: '"Baloo 2", sans-serif', color: value.layers[id]?.color ?? "#ffffff" }}>{value.layers[id]?.text ?? "Your text"}</TextLayer>)}
   </div>;
 }

@@ -3,6 +3,7 @@ import type { OnlineData, RankedScore } from "./types.js";
 export interface OsuCredentials { clientId: string; clientSecret: string }
 interface ApiUser {
   id: number; username: string; avatar_url: string; country_code: string;
+  join_date?: string;
   cover_url?: string; is_supporter?: boolean;
   statistics?: { global_rank: number | null; country_rank: number | null; pp: number; play_time: number; play_count: number };
   monthly_playcounts?: { start_date: string; count: number }[];
@@ -12,7 +13,8 @@ interface ApiScore {
   id: number; legacy_score_id?: number; user_id: number; user?: ApiUser;
   pp: number | null; accuracy: number; max_combo: number; rank: string;
   total_score: number; legacy_total_score?: number; score?: number;
-  statistics: { great?: number; ok?: number; meh?: number; miss?: number; count_miss?: number };
+  statistics: import("replayviewer-js").LazerStatistics & { count_miss?: number };
+  maximum_statistics?: import("replayviewer-js").LazerStatistics;
   mods: (string | { acronym: string })[]; ended_at?: string; created_at?: string;
   beatmap?: { id?: number; version: string }; beatmapset?: { title: string; covers: { cover: string } };
 }
@@ -57,6 +59,7 @@ export type OsuClient = ReturnType<typeof createOsuClient>;
 
 export function normalizeScore(score: ApiScore, lazer = false): RankedScore {
   return {
+    lazerStatistics: lazer ? { statistics: score.statistics, maximum_statistics: score.maximum_statistics } : undefined,
     id: String(score.id), legacyId: score.legacy_score_id ? String(score.legacy_score_id) : undefined,
     userId: score.user_id, name: score.user?.username ?? "Unknown player",
     pp: score.pp, accuracy: score.accuracy * 100, combo: score.max_combo,
@@ -117,14 +120,14 @@ export async function fetchOnlineData(client: OsuClient, username: string, check
   const [avatar, cover, mapperAvatar, mapCover] = await Promise.all([image(user.avatar_url), image(user.cover_url), image(mapper?.avatar_url), image(map.beatmapset.covers.cover)]);
   const badges = await Promise.all((user.badges ?? []).map(async badge => ({ title: badge.description, url: await image(badge.image_url) })));
   return {
-    fetchedAt: new Date().toISOString(), warnings, playerId: user.id,
+    fetchedAt: new Date().toISOString(), warnings, playerId: user.id, joinedAt: user.join_date,
     avatar, cover, country: user.country_code, rank: user.statistics?.global_rank ?? null,
     supporter: user.is_supporter ?? false, badges: badges.filter((badge): badge is { title: string; url: string } => !!badge.url),
     stats: user.statistics ? {
       countryRank: user.statistics.country_rank, pp: user.statistics.pp, hours: Math.floor(user.statistics.play_time / 3600), playcount: user.statistics.play_count,
       monthlyPlaycounts: (user.monthly_playcounts ?? []).map(entry => ({ date: entry.start_date, count: entry.count })),
     } : undefined,
-    map: { id: map.id, mapper: mapper?.username ?? map.beatmapset.creator, mapperAvatar,
+    map: { id: map.id, setId: map.beatmapset_id, mapperId: map.user_id, mapper: mapper?.username ?? map.beatmapset.creator, mapperAvatar,
       cover: mapCover, status: map.beatmapset.status, plays: map.beatmapset.play_count, favourites: map.beatmapset.favourite_count,
       retries: details?.failtimes,
     },

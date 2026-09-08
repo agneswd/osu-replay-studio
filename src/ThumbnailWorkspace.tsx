@@ -34,11 +34,11 @@ function Color({ label, value, onChange }: { label: string; value: string; onCha
   </ColorPicker></div>;
 }
 
-export const ThumbnailWorkspace = memo(function ThumbnailWorkspace({ timeline, accent, busy, onExport, exportTarget, onOpenReplay }: { exportTarget: HTMLDivElement | null; timeline: Timeline | undefined; onOpenReplay(): void; accent: string; busy: boolean; onExport(value: ThumbnailDocument): void }) {
+export const ThumbnailWorkspace = memo(function ThumbnailWorkspace({ timeline, accent, onAccentChange, busy, onExport, exportTarget, onOpenReplay }: { exportTarget: HTMLDivElement | null; timeline: Timeline | undefined; onOpenReplay(): void; accent: string; onAccentChange(accent: string): void; busy: boolean; onExport(value: ThumbnailDocument): void }) {
   const key = timeline ? storagePrefix + timeline.replay : null;
   const [history, setHistory] = useState(() => ({ past: [] as ThumbnailDocument[], current: key ? load(key, defaultThumbnail(accent)) : defaultThumbnail(accent), future: [] as ThumbnailDocument[] }));
   const [draft, setDraft] = useState<ThumbnailDocument>();
-  const value = draft ?? history.current;
+  const value = { ...(draft ?? history.current), accent };
   const latest = useRef(value); latest.current = value;
   const [selected, select] = useState<string | null>(null), [hovered, hover] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
@@ -58,9 +58,10 @@ export const ThumbnailWorkspace = memo(function ThumbnailWorkspace({ timeline, a
     try { const stored = JSON.parse(localStorage.getItem(storagePrefix + "presets") ?? "{}"); for (const item of Object.values(stored)) validateThumbnailDocument(item as ThumbnailDocument); return stored; } catch { return {}; }
   });
   const [presetName, setPresetName] = useState("");
-  useEffect(() => { if (!key) return; try { localStorage.setItem(key, JSON.stringify(history.current)); } catch { setMessage("Could not save thumbnail edits. Storage is full."); } }, [key, history.current]);
+  useEffect(() => { if (!key) return; try { localStorage.setItem(key, JSON.stringify({ ...history.current, accent })); } catch { setMessage("Could not save thumbnail edits. Storage is full."); } }, [key, history.current, accent]);
   useEffect(() => () => { if (raf.current !== null) cancelAnimationFrame(raf.current); }, []);
   const commit = (next: ThumbnailDocument) => {
+    if (next.accent !== accent) onAccentChange(next.accent);
     setDraft(undefined);
     setHistory(old => JSON.stringify(old.current) === JSON.stringify(next) ? old : { past: [...old.past.slice(-49), old.current], current: next, future: [] });
   };
@@ -262,8 +263,10 @@ export const ThumbnailWorkspace = memo(function ThumbnailWorkspace({ timeline, a
       <Choice label="PNG resolution" value={String(value.width)} items={[1280, 1920, 2560, 3840].map(w => [String(w), `${w} × ${w * 9 / 16}`])} onChange={width => commit({ ...value, width: Number(width) as ThumbnailDocument["width"] })} />
       <Color label="Thumbnail accent" value={value.accent} onChange={accent => commit({ ...value, accent })} />
       <Button size="sm" variant="ghost" onPress={async () => { if (!timeline?.bgImage) return; const image = new Image(); image.src = timeline.bgImage; await image.decode(); const colors = sampleImagePalette(image); commit({ ...latest.current, accent: colors.accentColor }); }}>Use background color</Button>
-      <Checkbox isSelected={value.twitch} onChange={twitch => commit({ ...value, twitch })}><Checkbox.Content><Checkbox.Control><Checkbox.Indicator /></Checkbox.Control><Label>Twitch logo</Label></Checkbox.Content></Checkbox>
-      <Checkbox isSelected={value.classic} onChange={classic => commit({ ...value, classic })}><Checkbox.Content><Checkbox.Control><Checkbox.Indicator /></Checkbox.Control><Label>Classic mod</Label></Checkbox.Content></Checkbox>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+      <Checkbox isSelected={value.twitch} onChange={twitch => commit({ ...value, twitch })}><Checkbox.Content><Checkbox.Control><Checkbox.Indicator /></Checkbox.Control>Twitch logo</Checkbox.Content></Checkbox>
+      {(timeline?.replayFormat === "stable" || /CL/.test(timeline?.mods ?? "")) && <Checkbox isSelected={value.classic} onChange={classic => commit({ ...value, classic })}><Checkbox.Content><Checkbox.Control><Checkbox.Indicator /></Checkbox.Control>Classic mod</Checkbox.Content></Checkbox>}
+      </div>
       <Choice label="Play status" value={value.status} items={[["auto", "From replay"], ["fc", "FC override"], ["counts", "Custom hit counts"]]} onChange={status => commit({ ...value, status: status as ThumbnailDocument["status"] })} />
       {timeline && value.status === "auto" && <p className="text-xs text-muted">{timeline.sceneInfo?.playStatus?.completed === false ? "Incomplete replay. FC is not assumed." : timeline.sceneInfo?.playStatus?.verified ? `${timeline.sceneInfo.score.hits["0"]} misses, ${timeline.sceneInfo.score.hits.sliderBreaks} slider breaks` : "Replay analysis is not verified. FC is not assumed."}</p>}
       {value.status === "counts" && <div className="flex gap-2">{([['misses', 'Misses'], ['sliderBreaks', 'Slider breaks']] as const).map(([field, label]) => <div key={field} className="min-w-0"><Label>{label}</Label><Input aria-label={label} type="number" min={0} max={100000} value={String(value[field] ?? (field === "misses" ? timeline?.sceneInfo?.score.hits["0"] : timeline?.sceneInfo?.score.hits.sliderBreaks) ?? 0)} onChange={e => commit({ ...value, [field]: Math.max(0, Math.min(100000, Math.round(Number(e.target.value)))) })} /></div>)}</div>}
@@ -274,6 +277,13 @@ export const ThumbnailWorkspace = memo(function ThumbnailWorkspace({ timeline, a
             onSelect={e => { const el = e.currentTarget; if (selected === "bottom-message" && el.selectionEnd! > el.selectionStart!) textInput.current = el; }} />
           <Label>Font size</Label><Input aria-label="Font size" type="number" min={8} max={600} value={String(layer.fontSize ?? Math.round(parseFloat(style ? getComputedStyle(style).fontSize : "54")))} onChange={e => commit(patch(selected, { fontSize: Math.max(8, Math.min(600, Number(e.target.value))) }))} />
           <Color label="Text color" value={layer.color ?? "#ffffff"} onChange={color => commit(patch(selected, { color }))} />
+          {selected.startsWith("custom-") && <>
+            <Checkbox isSelected={!!layer.glow} onChange={enabled => commit(patch(selected, { glow: enabled ? { color: layer.color ?? "#ffffff", blur: 12 } : null }))}><Checkbox.Content><Checkbox.Control><Checkbox.Indicator /></Checkbox.Control>Text glow</Checkbox.Content></Checkbox>
+            {layer.glow && <>
+              <Color label="Glow color" value={layer.glow.color} onChange={color => commit(patch(selected, { glow: { ...layer.glow!, color } }))} />
+              <Label>Glow blur</Label><Input aria-label="Glow blur" type="number" min={0} max={100} value={String(layer.glow.blur)} onChange={e => commit(patch(selected, { glow: { ...layer.glow!, blur: Math.max(0, Math.min(100, Number(e.target.value))) } }))} />
+            </>}
+          </>}
           {selected === "bottom-message" && <Button size="sm" variant="secondary" onPress={() => { const el = textInput.current; if (el && el.selectionEnd! > el.selectionStart!) commit({ ...patch(selected, { text: el.value }), accentRange: { start: el.selectionStart!, end: el.selectionEnd! } }); }}>Accent selection</Button>}
           {selected === "bottom-message" && <Button size="sm" variant="ghost" isDisabled={!value.accentRange} onPress={() => commit({ ...value, accentRange: undefined })}>Clear text accent</Button>}
         </>}

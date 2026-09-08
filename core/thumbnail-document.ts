@@ -7,6 +7,7 @@ export interface ThumbnailLayer {
   text?: string;
   color?: string;
   fontSize?: number;
+  glow?: { color: string; blur: number } | null;
 }
 export interface ThumbnailDocument {
   version: 1;
@@ -37,6 +38,7 @@ export function validateThumbnailDocument(value: ThumbnailDocument) {
       const n = layer[key];
       if (n !== undefined && (!Number.isFinite(n) || n < min || n > max)) throw new Error("Invalid thumbnail geometry.");
     }
+    if (layer.glow !== undefined && layer.glow !== null && (!/^#[\da-f]{6}$/i.test(layer.glow.color) || !Number.isFinite(layer.glow.blur) || layer.glow.blur < 0 || layer.glow.blur > 100)) throw new Error("Invalid text glow.");
     if (layer.hidden !== undefined && typeof layer.hidden !== "boolean") throw new Error("Invalid thumbnail visibility.");
     if (layer.text !== undefined && (typeof layer.text !== "string" || layer.text.length > 500 || /[\r\n]/.test(layer.text))) throw new Error("Thumbnail text must be one line with at most 500 characters.");
     if (layer.color !== undefined && !/^#[\da-f]{6}$/i.test(layer.color)) throw new Error("Invalid thumbnail color.");

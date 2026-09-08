@@ -16,3 +16,15 @@ test("FC accepts dropped tails but requires completed and matching replay judgem
   assert.equal(classifyPlay(4, [3, 0, 0, 0], [3, 0, 0, 0], 9, 9, 0).fullCombo, false);
   assert.equal(classifyPlay(3, [2, 1, 0, 0], [3, 0, 0, 0], 9, 9, 0).fullCombo, false);
 });
+
+test("recorded lazer results verify FC despite different simulated judgements and dropped tails", async () => {
+  const { recordedLazerStatus } = await import("../core/play-status.js");
+  const info = { statistics: { great: 467, ok: 10, large_tick_hit: 24, slider_tail_hit: 120, ignore_miss: 2 }, maximum_statistics: { great: 477, large_tick_hit: 24, slider_tail_hit: 122 } };
+  assert.deepEqual(recordedLazerStatus(477, info, false, 621, 623), { completed: true, verified: true, fullCombo: true, perfectCombo: false, sliderBreaks: 0 });
+  assert.equal(recordedLazerStatus(477, { ...info, statistics: { ...info.statistics, large_tick_hit: 23, large_tick_miss: 1 } }, false, 600, 623)?.sliderBreaks, 1);
+  assert.equal(recordedLazerStatus(477, { ...info, statistics: { ...info.statistics, great: 466, miss: 1 } }, false, 600, 623)?.fullCombo, false);
+  assert.equal(recordedLazerStatus(477, { ...info, statistics: { ...info.statistics, great: 400 } }, false, 600, 623)?.completed, false);
+  assert.equal(recordedLazerStatus(477, { statistics: info.statistics }, false, 621, 623), undefined);
+  assert.equal(recordedLazerStatus(477, info, true, 621, 623), undefined);
+  assert.equal(recordedLazerStatus(477, { ...info, statistics: { ...info.statistics, large_tick_miss: -1 } }, false, 621, 623), undefined);
+});

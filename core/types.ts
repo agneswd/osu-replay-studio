@@ -59,6 +59,7 @@ export interface ThumbnailOptions extends ThumbnailTextOptions {
   accent: string;
 }
 export interface SavedSettings {
+  youtubeAdditionalText?: string;
   layout?: VideoLayout;
   backgroundDim?: number;
   cursorSize?: number;
@@ -76,6 +77,7 @@ export interface SavedSettings {
   leaderboardSort?: "pp" | "score";
 }
 export interface StudioDefaults {
+  youtubeAdditionalText?: string;
   layout?: VideoLayout;
   backgroundDim: number;
   cursorSize: number;
@@ -115,6 +117,7 @@ export interface Snapshot {
   ur: number;
 }
 export interface RankedScore {
+  lazerStatistics?: Pick<import("replayviewer-js").ScoreInfo, "statistics" | "maximum_statistics">;
   id: string;
   legacyId?: string;
   userId: number;
@@ -134,6 +137,7 @@ export interface RankedScore {
 }
 export interface OnlineData {
   fetchedAt: string;
+  joinedAt?: string;
   warnings: string[];
   playerId: number;
   avatar?: string;
@@ -144,7 +148,7 @@ export interface OnlineData {
   badges: { title: string; url: string }[];
   stats?: Timeline["playerStats"];
   map: {
-    id: number; mapper: string; mapperAvatar?: string; cover?: string;
+    id: number; setId?: number; mapperId?: number; mapper: string; mapperAvatar?: string; cover?: string;
     status: string; plays: number; favourites: number;
     retries?: { fail: number[]; exit: number[] };
   };
@@ -184,6 +188,9 @@ export interface Timeline {
   warnings: string[];
   sceneInfo?: {
     playStatus?: import("./play-status.js").PlayStatus;
+    songTitle?: string;
+    difficulty?: string;
+    beatmapId?: number;
     title: string;
     artist: string;
     mapper: string;

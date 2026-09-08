@@ -1,4 +1,5 @@
-import { classifyPlay, sliderBreakEvents } from "./play-status.js";
+import { importBeatmapArchive } from "./beatmap-archive.js";
+import { classifyPlay, recordedLazerStatus, sliderBreakEvents } from "./play-status.js";
 import { collectTimingHits, hitWindowsFor } from "./hit-timing.js";
 import { rankGrade, replayFormat, scoreAccuracy } from "./replay-format.js";
 import type { PpScore } from "./pp.js";
@@ -23,9 +24,11 @@ export async function resolveBeatmap(songs: string, expected: string, explicit?:
   signal?.throwIfAborted();
   const matches = async (file: string) => hash(await mapBytes(file)) === expected;
   if (explicit) {
+    if (/\.osz$/i.test(explicit)) return importBeatmapArchive(explicit, expected, signal);
     if (!await matches(explicit)) throw new Error("Selected beatmap does not match the replay MD5.");
     return path.resolve(explicit);
   }
+  if (!songs) throw new Error("Beatmap not found. Choose a beatmap archive or a Songs folder.");
   const key = `${path.resolve(songs)}:${expected}`;
   const previous = recentMaps.get(key);
   if (previous && await matches(previous).catch(() => false)) return previous;
@@ -60,7 +63,7 @@ export async function resolveBeatmap(songs: string, expected: string, explicit?:
   }
   const found = await check();
   if (found) return remember(found);
-  throw new Error("Beatmap not found in Songs. Select the matching .osu file with its audio beside it.");
+  throw new Error("Beatmap not found in Songs. Choose a matching .osz archive or .osu file.");
 }
 
 function extractBgFilename(osuText: string): string | null {
@@ -398,6 +401,24 @@ export async function analyze(
     };
   });
 
+  const simulatedStatus = classifyPlay(map.hitObjects.length, [300, 100, 50, 0].map(j => parsed.hitResults.filter(r => !r.isSliderSub && r.judgement === j).length),
+    [replay.count300, replay.count100, replay.count50, replay.countMiss], replay.maxCombo, calculated.maxCombo, breaks.length);
+  let playStatus = format.lazer
+    ? recordedLazerStatus(map.hitObjects.length, replay.scoreInfo, format.classic, replay.maxCombo, calculated.maxCombo) ?? (format.classic ? simulatedStatus : { ...simulatedStatus, verified: false, fullCombo: false, perfectCombo: false })
+    : simulatedStatus;
+
+  const exactOnline = online?.replayScore;
+  if (format.lazer && exactOnline?.id === String(replay.scoreInfo?.online_id) && exactOnline.combo === replay.maxCombo && exactOnline.score === replay.score) {
+    const apiStatus = recordedLazerStatus(map.hitObjects.length, exactOnline.lazerStatistics, format.classic, replay.maxCombo, calculated.maxCombo);
+    if (apiStatus?.verified) {
+      if (playStatus.verified && (playStatus.fullCombo !== apiStatus.fullCombo || playStatus.sliderBreaks !== apiStatus.sliderBreaks)) {
+        playStatus = { ...playStatus, verified: false, fullCombo: false, perfectCombo: false };
+        warnings.push("Recorded and online play status disagree. FC is not verified.");
+      } else if (!playStatus.verified) playStatus = apiStatus;
+    }
+  }
+  if (format.lazer && playStatus.verified && !format.classic) warnings.push("Final play status uses recorded lazer statistics. Live event timing remains a simulation.");
+
   return {
       online,
       ppInfo: { engineVersion: ppEngineVersion, localFinalPP: scorePP, onlineFinalPP: onlinePP },
@@ -440,8 +461,9 @@ export async function analyze(
       warnings,
       bgImage,
       sceneInfo: {
-        playStatus: classifyPlay(map.hitObjects.length, [300, 100, 50, 0].map(j => parsed.hitResults.filter(r => !r.isSliderSub && r.judgement === j).length),
-          [replay.count300, replay.count100, replay.count50, replay.countMiss], replay.maxCombo, calculated.maxCombo, breaks.length),
+        songTitle: map.title, difficulty: map.version,
+        beatmapId: Number(bytes.toString().match(/^BeatmapID:\s*(\d+)\s*$/m)?.[1]) || undefined,
+        playStatus,
         title: `${map.title} [${map.version}]`, artist: map.artist,
         mapper: bytes.toString().match(/^Creator:(.*)$/m)?.[1].trim() ?? "",
         ar: mapAttributes.ar, od: mapAttributes.od, cs: mapAttributes.cs, hp: mapAttributes.hp,
@@ -451,7 +473,7 @@ export async function analyze(
         playedAt: Number.isFinite(playedAtMs) && playedAtMs > 0 ? new Date(playedAtMs).toISOString().slice(0, 10) : "",
         score: { ...last, score: replay.score, combo: replay.maxCombo, maxCombo: replay.maxCombo,
           accuracy, pp: onlinePP ?? scorePP, grade, hits: { "300": replay.count300, "100": replay.count100,
-            "50": replay.count50, "0": replay.countMiss, sliderBreaks: breaks.length } },
+            "50": replay.count50, "0": replay.countMiss, sliderBreaks: playStatus.sliderBreaks } },
       },
       playerStats: online?.stats,
       playerAvatar: online?.avatar ?? defaultAvatar(player),

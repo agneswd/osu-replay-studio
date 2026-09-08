@@ -10,6 +10,9 @@ export type ChooseKind = "replay" | "beatmap" | "songs" | "danser" | "outputDir"
 declare global {
   interface Window {
     studio: {
+      openYouTubeStudio(): Promise<void>;
+      revealExport(file: string): Promise<void>;
+      copyText(value: string): Promise<void>;
       osuStatus(): Promise<{ clientId: string; configured: boolean }>;
       saveOsuCredentials(value: { clientId: string; clientSecret: string }): Promise<{ clientId: string; configured: boolean }>;
       clearOsuCredentials(): Promise<{ clientId: string; configured: boolean }>;
@@ -43,6 +46,9 @@ declare global {
 export function installBrowserStudio() {
   if (window.studio) return;
   window.studio = {
+    openYouTubeStudio: async () => { window.open("https://www.youtube.com/upload", "_blank", "noopener"); },
+    revealExport: async () => { throw new Error("Show exported files in the desktop app."); },
+    copyText: async value => navigator.clipboard.writeText(value),
     osuStatus: async () => ({ clientId: "", configured: false }),
     saveOsuCredentials: async () => { throw new Error("Connect osu! in the desktop app."); },
     clearOsuCredentials: async () => ({ clientId: "", configured: false }),
