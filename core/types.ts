@@ -115,6 +115,7 @@ export interface Snapshot {
   ur: number;
 }
 export interface RankedScore {
+  lazerStatistics?: Pick<import("replayviewer-js").ScoreInfo, "statistics" | "maximum_statistics">;
   id: string;
   legacyId?: string;
   userId: number;
