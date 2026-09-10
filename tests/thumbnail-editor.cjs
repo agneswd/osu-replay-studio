@@ -103,6 +103,12 @@ app.on("window-all-closed", () => {});
         path.join(process.env.STUDIO_TEST_EVIDENCE, `thumbnail-${name}.png`), value.accent, new AbortController().signal,
         { document: { ...plain, status: "counts", misses, sliderBreaks } });
     }
-  } finally { win.destroy(); await fs.rm(profile, { recursive: true, force: true }); }
+  } finally {
+    win.destroy();
+    await fs.rm(profile, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 }).catch(error => {
+      // Chromium can retain profile locks until process exit on Windows.
+      if (!["EBUSY", "EPERM", "ENOTEMPTY"].includes(error.code)) throw error;
+    });
+  }
   app.exit(0);
 })().catch(error => { console.error(error); app.exit(1); });
