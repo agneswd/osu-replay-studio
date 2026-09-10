@@ -5,12 +5,12 @@ import os from "node:os";
 import path from "node:path";
 import { createServer } from "vite";
 
-test("shared TypeScript modules pass through Vite in desktop development", async () => {
+test("presentation TypeScript modules pass through Vite in desktop development", async () => {
   const cacheDir = await mkdtemp(path.join(os.tmpdir(), "studio-vite-"));
   const server = await createServer({ cacheDir, logLevel: "silent", server: { host: "127.0.0.1", port: 0 } });
   try {
     await server.listen();
-    const response = await fetch(new URL("shared/outro-audio.ts", server.resolvedUrls!.local[0]));
+    const response = await fetch(new URL("core/presentation.ts", server.resolvedUrls!.local[0]));
     assert.equal(response.status, 200);
     assert.match(response.headers.get("content-type") ?? "", /javascript/);
   } finally {

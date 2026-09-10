@@ -2,7 +2,7 @@
 
 Choose **Thumbnail** in the top bar. Before import, the preview shows a gray frame and an **Open replay** button.
 The sidebar and toolbar stay visible with replay controls disabled. The editor uses the replay's player, beatmap, score, mods, and background.
-Choose the CPOL or Clean template. All controls use HeroUI.
+Choose the CPOL or Clean template. CPOL starts with an edge-to-edge top panel, a bottom border, and larger FC and miss labels.
 
 ![Thumbnail editor](images/thumbnail-editor.png)
 
@@ -12,7 +12,9 @@ Use arrow keys to move one design pixel. Hold Shift for ten pixels.
 Right-click for reset, visibility, and layer order. Alt-click cycles through overlapping elements.
 The context menu can select hidden or off-canvas elements.
 
-The editing controls sit below the preview. Use **Add text** for a custom caption. Change its color and font size in the selected-element controls. Enable **Text glow** to set its glow color and blur.
+The editing controls sit below the preview. Use **Add text** for a custom caption. **Duplicate** copies the selected element, including its text or image, appearance, and size. Each copy can be edited separately. Ctrl+D does the same.
+Change color, font, weight, and font size in the selected-element controls. Enable **Text glow** on replay text and custom text. Enable **Gradient fill** for rank letters and other captions.
+Combo, difficulty, and BPM badges can use a bottom-only border, plus radius and thickness. **Background shading** controls darkness in the lower background. **Drop shadow** adds a shadow to panels, images, badges, and text. Set its color, blur, and offset globally or per element.
 For bottom text, select words in the text field and choose **Accent selection**.
 Undo and redo keep one drag or resize as one action. Ctrl+Z undoes; Ctrl+Shift+Z redoes.
 Scroll the mouse wheel to zoom. Drag with the middle mouse button to pan. **Fit** restores the canvas view.

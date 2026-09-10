@@ -7,7 +7,7 @@ import type { Capture } from "../core/types.js";
 
 export type WorkerRequest =
   | { kind: "browser"; options: Parameters<Capture>[0]; timeline: Parameters<Capture>[1]; frames: number; range?: Parameters<Capture>[4] }
-  | { kind: "native"; scene: string; background: { clear: string; soft: string }; sceneKind: "intro" | "outro"; frames: number; fps: number; width: number; height: number };
+  | { kind: "native"; scene: string; background: { clear: string; soft: string; motion?: { directory: string; start: number } }; sceneKind: "intro" | "outro"; frames: number; fps: number; width: number; height: number };
 
 type Reply = { ready: true } | { frame: Uint8Array } | { done: true } | { error: string };
 

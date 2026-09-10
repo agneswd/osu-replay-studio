@@ -58,6 +58,7 @@ export interface BadgeLayerConfig extends TextLayerConfig {
     background: string;
     borderColor: string;
     borderWidth: number;
+    borderMode?: "all" | "bottom";
     radius: number | string;
     paddingX?: number;
     autoWidth?: boolean;
@@ -74,6 +75,7 @@ export interface PanelLayerConfig extends LayerBase {
     background: string;
     borderColor?: string;
     borderWidth?: number;
+    borderMode?: "all" | "bottom";
     radius: number;
     backdropBlur?: number;
     backgroundImage?: {
@@ -126,6 +128,7 @@ export interface AvatarConfig extends LayerBase {
         color: string;
         width: number;
     };
+    borderMode?: "all" | "bottom";
     shadow?: {
         x: number;
         y: number;
@@ -142,8 +145,11 @@ export interface CountryFlagConfig extends LayerBase {
         color: string;
         width: number;
     };
+    borderMode?: "all" | "bottom";
 }
 export interface ModListConfig extends LayerBase {
+    border?: { color: string; width: number };
+    borderMode?: "all" | "bottom";
     iconSize: number;
     gap: number;
     radius: number;
@@ -159,13 +165,15 @@ export interface ModListConfig extends LayerBase {
     }>;
 }
 export interface TwitchLogoConfig extends LayerBase {
+    border?: { color: string; width: number };
+    borderMode?: "all" | "bottom";
     asset: string;
     size: number;
     radius: number;
     background: string;
     tint?: string;
 }
-export interface BottomMessageConfig extends LayerBase {
+export interface BottomMessageConfig extends LayerBase, TextEffect {
     width?: number;
     fontFamily: string;
     fontSize: number;

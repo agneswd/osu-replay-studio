@@ -1,6 +1,7 @@
 import type { ReferenceTemplateComponents, ThumbnailTemplate } from "./types";
 import type { ThumbnailData } from "../shared/types/thumbnail";
 import { mixColors, withAlpha } from "../shared/formatting/color";
+import { thumbnailFontFamily, type ThumbnailLayer } from "../../../core/thumbnail-document";
 export interface EditorState extends Pick<ThumbnailTemplate,
     "textOverrides" | "positionOverrides" | "sizeOverrides" | "colorOverrides" | "fontSizeOverrides" | "customTexts"> {
     accent?: string;
@@ -11,7 +12,9 @@ export interface EditorState extends Pick<ThumbnailTemplate,
     statusKind?: "fc" | "miss" | "unknown";
     bottomText?: string;
     bottomAccent?: string;
-
+    overlayOpacity?: number;
+    dropShadow?: ThumbnailLayer["shadow"];
+    layers?: Record<string, ThumbnailLayer>;
 }
 export function applyDataOverrides(data: ThumbnailData, state: EditorState | undefined): ThumbnailData {
     if (!state)
@@ -82,7 +85,7 @@ export function applyOverrides(template: ThumbnailTemplate, state: EditorState |
         return template;
     }
     const next = structuredClone(template);
-    const { accent, twitchVisible, bottomText, bottomAccent, textOverrides, positionOverrides, sizeOverrides, colorOverrides, fontSizeOverrides, customTexts, } = state;
+    const { accent, twitchVisible, bottomText, bottomAccent, textOverrides, positionOverrides, sizeOverrides, colorOverrides, fontSizeOverrides, customTexts, overlayOpacity, layers, } = state;
     next.customTexts = structuredClone(customTexts ?? []);
     if (accent) {
         next.theme.accent = accent;
@@ -194,5 +197,47 @@ export function applyOverrides(template: ThumbnailTemplate, state: EditorState |
         }
         if (layer === "status") next.components.statusMiss.color = color;
     }
+    if (overlayOpacity !== undefined) {
+      for (const overlay of next.background.overlays) {
+        if (overlay.kind === "linear-gradient" && overlay.gradient?.startsWith("180deg")) overlay.opacity = overlayOpacity;
+      }
+    }
+    const badges = [next.components.comboBadge, next.components.difficultyBadge, next.components.bpmBadge];
+    for (const [id, layer] of Object.entries(layers ?? {})) {
+      const conf = id.startsWith("custom-") ? next.customTexts.find(item => item.id === id) : componentOf(next, id);
+      if (!conf) continue;
+      if ("fontFamily" in conf && "fontSize" in conf) {
+        if (layer.fontWeight !== undefined) conf.fontWeight = layer.fontWeight;
+        if (layer.fontFamily) conf.fontFamily = thumbnailFontFamily[layer.fontFamily];
+        if (layer.glow !== undefined) conf.glow = layer.glow ? { ...layer.glow, layers: 2 } : undefined;
+        if (layer.gradient !== undefined) conf.gradient = layer.gradient ? `linear-gradient(180deg, ${layer.gradient.from}, ${layer.gradient.to})` : undefined;
+      }
+      if ("radius" in conf) {
+        if (layer.borderRadius !== undefined) conf.radius = layer.borderRadius;
+        const panel = id === "top-panel" ? next.components.topPanel
+          : id === "combo" ? next.components.comboBadge : id === "difficulty" ? next.components.difficultyBadge
+          : id === "bpm" ? next.components.bpmBadge : id === "username" ? next.components.usernamePanel : undefined;
+        if (panel) {
+          if (layer.borderWidth !== undefined) panel.borderWidth = layer.borderWidth;
+          if (layer.borderMode) panel.borderMode = layer.borderMode;
+        }
+        const image = id === "avatar" ? next.components.avatar : id === "country-flag" ? next.components.countryFlag
+          : id === "mod-list" ? next.components.modList : id === "twitch-logo" ? next.components.twitchLogo : undefined;
+        if (image) {
+          if (layer.borderWidth !== undefined) image.border = { color: next.theme.accent, ...image.border, width: layer.borderWidth };
+          if (layer.borderMode) image.borderMode = layer.borderMode;
+        }
+      }
+    }
+    const row = layers?.["badge-row"];
+    if (row) for (const badge of badges) {
+      if (row.borderWidth !== undefined) badge.borderWidth = row.borderWidth;
+      if (row.borderRadius !== undefined) badge.radius = row.borderRadius;
+      if (row.borderMode) badge.borderMode = row.borderMode;
+    }
     return next;
+}
+function componentOf(template: ThumbnailTemplate, id: string) {
+  const key = COMPONENT_BY_LAYER[id];
+  return key ? template.components[key] : undefined;
 }

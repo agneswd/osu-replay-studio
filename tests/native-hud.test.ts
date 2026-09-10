@@ -16,6 +16,10 @@ test("native cuts use the same nearest-frame clock at each supported frame rate"
       const cut = nativeFrameWindow(lead, start, frames, fps);
       assert.ok(Math.abs((cut.start - start) / fps - lead) <= 0.5 / fps + 1e-9);
       assert.equal(cut.end - cut.start, frames);
+      const early = nativeFrameWindow(lead, -2 * fps, frames, fps);
+      const padding = 2 * fps - Math.round(lead * fps);
+      assert.equal(early.end + padding, frames);
+      assert.ok(early.filter.includes(`tpad=start=${padding}:start_mode=clone`));
     }
 });
 

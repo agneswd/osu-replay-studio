@@ -13,7 +13,9 @@ export function Avatar({ url, config, }: {
             width: config.width,
             height: config.height,
             borderRadius: config.radius,
-            border: config.border ? `${config.border.width}px solid ${config.border.color}` : undefined,
+            ...(config.border ? (config.borderMode === "bottom"
+              ? { border: "none", borderBottom: `${config.border.width}px solid ${config.border.color}` }
+              : { border: `${config.border.width}px solid ${config.border.color}` }) : {}),
             boxShadow: config.shadow
                 ? `${config.shadow.x}px ${config.shadow.y}px ${config.shadow.blur}px ${config.shadow.color}`
                 : undefined,
@@ -34,18 +36,21 @@ export function CountryFlag({ countryCode, config, }: {
             width: config.width,
             height: config.height,
             borderRadius: config.radius,
-            border: config.border ? `${config.border.width}px solid ${config.border.color}` : undefined,
+            ...(config.border ? (config.borderMode === "bottom"
+              ? { border: "none", borderBottom: `${config.border.width}px solid ${config.border.color}` }
+              : { border: `${config.border.width}px solid ${config.border.color}` }) : {}),
             overflow: "hidden",
             boxShadow: "0 2px 6px rgba(0,0,0,0.5)",
         })} data-layer="country-flag">
       <img src={`../../shared/assets/flags/${code}.svg`} alt={code} onError={event => { event.currentTarget.style.visibility = "hidden"; }} style={{ display: "block", width: "100%", height: "100%", objectFit: "cover" }} />
     </div>);
 }
-export function UsernamePanel({ username, config, }: {
+export function UsernamePanel({ username, config, testId = "username", }: {
     username: string;
+    testId?: string;
     config: BadgeLayerConfig;
 }) {
-    return (<BadgeLayer config={config} testId="username">
+    return (<BadgeLayer config={config} testId={testId}>
       {username}
     </BadgeLayer>);
 }

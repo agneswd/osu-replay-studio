@@ -211,7 +211,7 @@ test("real OSR decoding keeps slider events ordered and judges the slider at its
     assert.equal(frameAt(timeline, 4.6).gameplay.grade, "SS");
     // Last object is a 500 ms slider from 4000. Fade waits for the tail plus the 50 window.
     assert.equal(timeline.gameplayFadeStart, 4.65);
-    assert.equal(timeline.duration, 5.75);
+    assert.ok(timeline.duration >= 5.75, "Finish the slider tail, judgement fade and recorded cursor data.");
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

@@ -1,7 +1,11 @@
+import { frameAt } from "../core/timeline.js";
+import { displayMods } from "../core/mods.js";
+import { modAssetPath, modColor } from "./mod-badges.js";
+import type { StudioDefaults } from "../core/types.js";
 import { normalizeLayout, type VideoLayout } from "../core/layout.js";
 import { AudioSync, Renderer, Player, TimeMapper, parseReplay, parseBeatmap, computeModDifficulty, applyStacking, loadSkin, buildSkin, type SkinAssets } from "replayviewer-js";
 import { unzipSync, strFromU8 } from "fflate";
-import { cursorExpansion } from "../core/cursor.js";
+import { cursorExpansion, visibleCursorFrames } from "../core/cursor.js";
 import type { Timeline } from "../core/types.js";
 
 const buffer = (bytes: Uint8Array) => new Uint8Array(bytes).buffer;
@@ -10,6 +14,49 @@ export class PreviewEngine {
   private constructor(readonly renderer: Renderer, readonly audio: AudioSync, readonly context: AudioContext,
     private ownedSkins: SkinAssets[], private background: ImageBitmap | null,
     private expand: (time: number) => number, private rotate: boolean) {}
+  private modImages = new Map<string, HTMLCanvasElement>();
+  leaderboard(timeline: Timeline, settings: StudioDefaults, layout?: VideoLayout) {
+    const target = normalizeLayout(layout).overlays.leaderboard;
+    Object.assign(this.renderer.options, { studioUnderlay: settings.overlays.includes("leaderboard") ? (ctx: CanvasRenderingContext2D, timeMs: number) => {
+      const rows = frameAt(timeline, timeMs / 1000 / timeline.speed, settings.leaderboardSize, settings.leaderboardSort).leaderboard?.rows ?? [];
+      const pinned = rows.some(row => row.current && row.slot === 7);
+      ctx.save(); ctx.scale(2 / 3, 2 / 3);
+      ctx.translate(target.x, target.y); ctx.scale(target.scale, target.scale);
+      ctx.beginPath(); ctx.rect(0, 0, 365, 384); ctx.clip();
+      for (const row of rows) {
+        const slot = row.slot ?? rows.indexOf(row);
+        ctx.globalAlpha = (row.opacity ?? 1) * (row.current ? 1 : .52) * (pinned && !row.current ? Math.max(0, Math.min(1, 7 - slot)) : 1);
+        let x = 308;
+        for (const mod of displayMods(row.mods)) {
+          const source = modAssetPath(mod);
+          if (!source) continue;
+          let badge = this.modImages.get(source);
+          if (!badge) {
+            badge = document.createElement("canvas");
+            badge.width = badge.height = 54;
+            const paint = badge.getContext("2d")!;
+            const color = modColor(mod);
+            paint.beginPath(); paint.roundRect(0, 0, 54, 54, 9); paint.clip();
+            paint.fillStyle = color.bg; paint.fillRect(0, 0, 54, 54);
+            const image = new Image();
+            // Rasterize the complete badge once, including the CSS styling used by the HUD.
+            image.onload = () => {
+              if (color.fg === "dark") paint.filter = "brightness(0.15)";
+              const scale = Math.max(54 / image.naturalWidth, 54 / image.naturalHeight);
+              paint.drawImage(image, (54 - image.naturalWidth * scale) / 2,
+                (54 - image.naturalHeight * scale) / 2,
+                image.naturalWidth * scale, image.naturalHeight * scale);
+            };
+            image.src = source;
+            this.modImages.set(source, badge);
+          }
+          ctx.drawImage(badge, x, slot * 48 + 14, 18, 18);
+          x += 16;
+        }
+      }
+      ctx.restore();
+    } : undefined });
+  }
   private size = 1;
   private disposed = false;
 
@@ -51,7 +98,8 @@ export class PreviewEngine {
       if (timeline.bgImage) background = await createImageBitmap(await (await fetch(timeline.bgImage)).blob());
       const renderer = new Renderer(canvas, new Player(timeline.duration * 1000), replay, map, skin,
         new TimeMapper(replay.frames, 0, 0, timeline.speed), background, difficulty, 1);
-      Object.assign(renderer.options, { showJudgement: false, showKeyOverlay: false, showURBar: false, showModIcons: false });
+      Object.assign(renderer.options, { showJudgement: false, showKeyOverlay: false, showURBar: false, showModIcons: false,
+        studioCursorFrames: visibleCursorFrames(replay.frames) });
       const audio = new AudioSync({ ctx: context, songBuffer: song, skinSounds: skin.sounds, mergedSounds: sounds,
         beatmap: map, hitResults: renderer.hitResults, comboFrames: renderer.comboFrames,
         introOffsetMs: 0, speed: timeline.speed, isNC: timeline.preservesPitch === false });

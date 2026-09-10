@@ -1,3 +1,17 @@
+diff --git a/app/app.go b/app/app.go
+--- a/app/app.go
++++ b/app/app.go
+@@ -433,7 +433,9 @@
+ 			settings.Graphics.Fullscreen = false
+ 			settings.Graphics.WindowWidth = int64(settings.Recording.FrameWidth)
+ 			settings.Graphics.WindowHeight = int64(settings.Recording.FrameHeight)
+-			settings.Playfield.LeadInTime = 0
++			if os.Getenv("STUDIO_CURSOR_LEAD_IN") != "1" {
++				settings.Playfield.LeadInTime = 0
++			}
+ 		}
+ 
+ 		if screenshotMode {
 diff --git a/app/ffmpeg/video.go b/app/ffmpeg/video.go
 index 76376c5..dcaa00f 100644
 --- a/app/ffmpeg/video.go
@@ -21,6 +35,24 @@ diff --git a/app/states/player.go b/app/states/player.go
 index 9d674ba..1f5bde4 100644
 --- a/app/states/player.go
 +++ b/app/states/player.go
+@@ -315,5 +315,8 @@
+ 	player.fxGlider = bmath.NewDimGlider(0)
+ 	player.cursorGlider = animation.NewGlider(0)
++	if studioCursorLeadIn {
++		player.cursorGlider.SetValue(1)
++	}
+ 	player.epiGlider = animation.NewGlider(0)
+ 	player.objectsAlpha = animation.NewGlider(1)
+ 
+@@ -743,7 +746,7 @@
+ 
+-	if player.progressMsF >= player.startPointE || settings.PLAY {
++	if player.progressMsF >= player.startPointE || settings.PLAY || studioCursorLeadIn {
+ 		if player.progressMsF < player.mapEndL {
+ 			player.controller.Update(player.progressMsF, delta)
+ 
+ 			if player.nightcore != nil {
+ 				player.nightcore.Update(player.progressMsF)
 @@ -844,7 +844,7 @@ func (player *Player) DrawMain(float64) {
  	objectCameras := player.objectCamera.GenRotated(settings.DIVIDES, -2*math.Pi/float64(settings.DIVIDES))
  	cursorCameras := player.mainCamera.GenRotated(settings.DIVIDES, -2*math.Pi/float64(settings.DIVIDES))
@@ -30,11 +62,19 @@ index 9d674ba..1f5bde4 100644
  	if settings.Playfield.Background.FlashToTheBeat {
  		bgAlpha = mutils.Clamp(bgAlpha*player.Scl, 0, 1)
  	}
+@@ -853,6 +853,7 @@
+ 	player.background.Draw(player.progressMsF, player.batch, player.blurGlider.GetValue(), bgAlpha, player.bgCamera.GetProjectionView())
++	player.drawStudioHUD(true)
+ 
+ 	if player.progressMsF > 0 {
+ 		timeDiff := player.progressMsF - player.lastProgressMsF
+ 		settings.Cursor.Colors.Update(timeDiff)
+ 		player.lastProgressMsF = player.progressMsF
 @@ -963,6 +963,7 @@ func (player *Player) Draw(d float64) {
  	profiler.StartGroup("Player.Draw", profiler.PDraw)
  
  	player.DrawMain(d)
-+	player.drawStudioHUD()
++	player.drawStudioHUD(false)
  	player.drawDebug()
  
  	profiler.EndGroup()

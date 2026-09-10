@@ -32,7 +32,9 @@ function resolveColor(acronym: string, overrides: ModListConfig["modColors"]): {
         MOD_CATEGORY_COLORS[acronym.toUpperCase()] ??
         FALLBACK_COLOR);
 }
-export function ModIcon({ mod, size, radius, glow, allowFallback, colorOverrides, }: {
+export function ModIcon({ mod, size, radius, glow, allowFallback, colorOverrides, border, borderMode, }: {
+    border?: ModListConfig["border"];
+    borderMode?: ModListConfig["borderMode"];
     mod: NormalizedMod;
     size: number;
     radius: number;
@@ -54,6 +56,8 @@ export function ModIcon({ mod, size, radius, glow, allowFallback, colorOverrides
             width: size,
             height: size,
             borderRadius: radius,
+            border: border && borderMode !== "bottom" ? `${border.width}px solid ${border.color}` : undefined,
+            borderBottom: border && borderMode === "bottom" ? `${border.width}px solid ${border.color}` : undefined,
             background: color.bg,
             display: "flex",
             alignItems: "center",
@@ -85,7 +89,7 @@ export function ModList({ mods, config, }: {
             opacity: config.opacity ?? 1,
         }} data-layer="mod-list">
       {mods.map((mod, i) => (<div key={`${mod.acronym}-${i}`} style={{ marginLeft: i > 0 ? config.gap : 0, zIndex: i }}>
-          <ModIcon mod={mod} size={config.iconSize} radius={config.radius} glow={config.glow} allowFallback={config.fallbackAcronyms} colorOverrides={config.modColors}/>
+          <ModIcon mod={mod} size={config.iconSize} radius={config.radius} border={config.border} borderMode={config.borderMode} glow={config.glow} allowFallback={config.fallbackAcronyms} colorOverrides={config.modColors}/>
         </div>))}
     </div>);
 }

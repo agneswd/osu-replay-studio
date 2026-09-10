@@ -44,6 +44,14 @@ app.whenReady().then(async () => {
     count++;
   }
   assert.equal(count, 2);
+  const { presentationTiming } = await import(pathToFileURL(path.join(root, "dist/core/presentation.js")).href);
+  const outroTiming = presentationTiming(timeline.duration, 30, true);
+  for await (const png of captureOverlay(root)({ width: 320, height: 180, fps: 30, overlays: [], introOutro: true },
+    timeline, outroTiming.frames, new AbortController().signal, { start: outroTiming.outroStartFrame, end: outroTiming.outroStartFrame + 1 })) {
+    const pixels = nativeImage.createFromBuffer(png).toBitmap();
+    assert.deepEqual([...pixels.subarray((5 * 320 + 5) * 4, (5 * 320 + 5) * 4 + 4)], [0, 0, 0, 255],
+      "The browser outro covers frozen gameplay when the map has no background art.");
+  }
   const { defaultLayout: browserLayout } = await import(pathToFileURL(path.join(root, "dist/core/layout.js")).href);
   const movedLayout = browserLayout();
   movedLayout.overlays["health-bar"] = { x: 120, y: 180, scale: .5, z: 3 };
@@ -173,6 +181,16 @@ app.whenReady().then(async () => {
     for await (const frame of nativeSceneWithWorker(root)(...sceneArgs, new AbortController().signal))
       assert.deepEqual(Buffer.from(frame), reference[nativeCount++]);
     assert.equal(nativeCount, 3);
+    ffmpeg(nativeSceneBackgroundArgs(source, clear, soft, "outro", 30, 30));
+    assert.deepEqual([...nativeImage.createFromPath(soft).toBitmap().subarray(0, 4)], [0, 0, 0, 255],
+      "A map without background art must not leave the old HUD behind the outro.");
+    let outroCount = 0;
+    for await (const frame of nativeSceneWithWorker(root)(scene, { clear, soft }, "outro", 33, 30, 16, 16, new AbortController().signal)) {
+      if (outroCount === 0) assert.ok(frame[0] > 0);
+      if (outroCount >= 30) assert.equal(frame[0], 0);
+      outroCount++;
+    }
+    assert.equal(outroCount, 33, "The transition prefix must not consume any scene frames.");
     const cancelled = new AbortController();
     const iterator = nativeSceneWithWorker(root)(...sceneArgs, cancelled.signal)[Symbol.asyncIterator]();
     await iterator.next();
