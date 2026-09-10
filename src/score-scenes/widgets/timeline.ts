@@ -1,9 +1,8 @@
-import { introExitStart, sceneDuration } from "../../../core/presentation.js";
 import type { OverlayData } from "./types";
 import type { OverlayNode } from "./OverlayWidget";
 import type { ShowcaseNode } from "./ShowcaseIntroWidget";
 export { easeMotionDecel, OVERLAY_TOTAL_CYCLE, SHOWCASE_INTRO_TOTAL_CYCLE } from "./motion";
-import { easeMotionDecel, clampProgress, easeOutCubic, outroMotion } from "./motion";
+import { easeMotionDecel, clampProgress, easeOutCubic, outroMotion, widgetCloseScale } from "./motion";
 
 export interface OverlayNodeSource {
     get(name: OverlayNode): Element | null;
@@ -183,11 +182,11 @@ export function seekOverlay(t: number, nodes: OverlayNodeSource, data: OverlayDa
         card.style.clipPath = "";
     }
 
-    if (t >= 0.50 && t < introExitStart && widget) {
+    if (t >= 0.50 && t < 4.70 && widget) {
         widget.style.opacity = "1";
         widget.style.transform = "scale(1)";
     }
-    if ((t >= 0.50 && t < 2.30) || (t >= 3.06 && t < introExitStart)) {
+    if ((t >= 0.50 && t < 2.30) || (t >= 3.06 && t < 4.70)) {
         for (const card of [topCard, bottomCard]) {
             if (!card) continue;
             card.style.opacity = "1";
@@ -324,8 +323,8 @@ export function seekOverlay(t: number, nodes: OverlayNodeSource, data: OverlayDa
 
         clearMapSide(nodes);
     }
-    // Map view, 3.06s until the closing fade.
-    else if (t < introExitStart) {
+    // Map view, 3.06s until the magic-lamp close.
+    else if (t < 4.70) {
 
         paintLayer(nodes, "topPlayer", 0);
         paintLayer(nodes, "bottomPlayer", 0);
@@ -343,19 +342,18 @@ export function seekOverlay(t: number, nodes: OverlayNodeSource, data: OverlayDa
 
 
     }
-    // Fade the card while revealing the held gameplay frame.
+    // Closing, 4.70-5.40s.
     else {
-        const pClose = clampProgress((t - introExitStart) / (sceneDuration - introExitStart));
+        const { pClose, pull, scaleX, scaleY } = widgetCloseScale(t);
         paintLayer(nodes, "topPlayer", 0);
         paintLayer(nodes, "bottomPlayer", 0);
         paintLayer(nodes, "topMap", 1);
         paintLayer(nodes, "bottomMap", 1);
         paintLayer(nodes, "starFooter", 1);
         if (widget) {
-            const pull = pClose * pClose * (3 - 2 * pClose);
             widget.style.transformOrigin = "center top";
-            widget.style.transform = `translateY(${48 * pull}px)`;
-            widget.style.opacity = String(1 - pull);
+            widget.style.transform = `translateY(${760 * pull}px) perspective(${1200 - 900 * pClose}px) rotateX(${-65 * Math.sin(pClose * Math.PI / 2)}deg) scale(${scaleX},${scaleY})`;
+            widget.style.opacity = String(1 - clampProgress((pClose - .82) / .18));
         }
 
 

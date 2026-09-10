@@ -1,4 +1,3 @@
-import { introExitStart, sceneDuration } from "../../../core/presentation.js";
 import type { OverlayData } from "./types";
 import type { PlaycountSpline } from "./spline";
 
@@ -154,7 +153,7 @@ export function introMotion(t: number, data: OverlayData, spline?: PlaycountSpli
     motion.yearProgress = 1;
     motion.hours = data.player.hours;
     motion.playcount = data.player.playcount;
-  } else if (t < introExitStart) {
+  } else if (t < 4.70) {
     motion.topMap = layer(1);
     motion.bottomMap = layer(1);
     const detailsEase = easeMotionDecel(clampProgress((t - 3.06) / 0.28));
@@ -164,15 +163,14 @@ export function introMotion(t: number, data: OverlayData, spline?: PlaycountSpli
     motion.topMap = layer(1);
     motion.bottomMap = layer(1);
     motion.starFooter = layer(1);
-    const pClose = clampProgress((t - introExitStart) / (sceneDuration - introExitStart));
-    const pull = pClose * pClose * (3 - 2 * pClose);
+    const { pClose, pull } = widgetCloseScale(t);
     motion.widget = {
-      opacity: 1 - pull,
+      opacity: 1 - clampProgress((pClose - .82) / .18),
       x: 0,
-      y: 48 * pull,
+      y: 760 * pull,
       scale: 1,
-      rotateX: 0,
-      perspective: 1200,
+      rotateX: -65 * Math.sin(pClose * Math.PI / 2),
+      perspective: 1200 - 900 * pClose,
       originTop: true,
     };
   }
@@ -194,6 +192,17 @@ export function introMotion(t: number, data: OverlayData, spline?: PlaycountSpli
   if (motion.peakProgress < peakThreshold) motion.peakProgress = 0;
   else motion.peakProgress = easeMotionDecel(clampProgress((motion.peakProgress - peakThreshold) / 0.15));
   return motion;
+}
+
+export function widgetCloseScale(t: number) {
+  const pClose = clampProgress((t - 4.85) / .55);
+  const pull = pClose * pClose;
+  return {
+    pClose,
+    pull,
+    scaleX: 1 - .98 * pull,
+    scaleY: 1 + .8 * Math.sin(pClose * Math.PI),
+  };
 }
 
 export function outroMotion(t: number): OutroMotion {

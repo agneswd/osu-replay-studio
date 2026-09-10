@@ -1,7 +1,7 @@
 import { normalizeOverlayAccent, type RenderOptions, type Timeline } from "../core/types.js";
 import type { HudBatch, HudFrame, HudSprite } from "../core/native-hud.js";
 import { overlayData, sceneFlags } from "./score-scenes/data.js";
-import { introMotion, outroMotion } from "./score-scenes/widgets/motion.js";
+import { introMotion, outroMotion, widgetCloseScale } from "./score-scenes/widgets/motion.js";
 import { buildPlaycountSpline } from "./score-scenes/widgets/spline.js";
 import { scenePalette } from "./score-scenes/widgets/themes.js";
 import { modColor, modAssetPath } from "./mod-badges.js";
@@ -797,6 +797,14 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
     });
 
     draw = sprite;
+    if (t >= 4.70) {
+      const edge = 24;
+      const composed = composeLayers(layers, ox - edge, oy - edge, widgetW + edge * 2, widgetH + 40 + edge * 2);
+      const warped = warpClose(composed, t);
+      const s = save(`close:${t.toFixed(4)}`, warped.canvas);
+      sprite(s, warped.x, warped.y);
+      return frame;
+    }
     for (const item of layers) sprite(item.s, item.x, item.y, item.w, item.h, item.color, item.clip);
     return frame;
   }
@@ -836,6 +844,44 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
       x.restore();
     }
     return c;
+  }
+
+  function warpClose(src: HTMLCanvasElement, t: number) {
+    const { pClose, pull, scaleX, scaleY } = widgetCloseScale(t);
+    const perspective = (distance: number) => {
+      const matrix = new DOMMatrix();
+      matrix.m34 = -1 / distance;
+      return matrix;
+    };
+    // CSS applies scale before rotation, then the widget and stage perspectives.
+    // The source includes 24px of shadow padding around the widget.
+    const matrix = new DOMMatrix().translate(480, 270)
+      .multiply(perspective(1200)).translate(-480, -270)
+      .translate(widgetX + widgetW / 2, widgetY + 760 * pull)
+      .multiply(perspective(1200 - 900 * pClose))
+      .rotateAxisAngle(1, 0, 0, -65 * Math.sin(pClose * Math.PI / 2))
+      .scale(scaleX, scaleY).translate(-widgetW / 2 - 24, -24);
+    const project = (x: number, y: number) => {
+      const point = matrix.transformPoint({ x, y });
+      return { x: point.x / point.w, y: point.y / point.w };
+    };
+    const sw = src.width / 2, sh = src.height / 2;
+    const corners = [project(0, 0), project(sw, 0), project(0, sh), project(sw, sh)];
+    const x = Math.floor(Math.min(...corners.map(p => p.x)) * 2) / 2;
+    const y = Math.floor(Math.min(...corners.map(p => p.y)) * 2) / 2;
+    const right = Math.ceil(Math.max(...corners.map(p => p.x)) * 2) / 2;
+    const bottom = Math.min(540, Math.ceil(Math.max(...corners.map(p => p.y)) * 2) / 2);
+    const out = canvas((right - x) * 2, Math.max(1, (bottom - y) * 2));
+    const c = out.getContext("2d")!;
+    // Inverse-map destination rows to avoid gaps and overlapping source strips.
+    for (let row = 0; row < out.height; row++) {
+      const targetY = y + (row + 0.5) / 2;
+      const sourceY = (matrix.m42 - targetY * matrix.m44) / (targetY * matrix.m24 - matrix.m22);
+      if (sourceY < 0 || sourceY >= sh) continue;
+      const left = project(0, sourceY).x, right = project(sw, sourceY).x;
+      c.drawImage(src, 0, sourceY * 2 - 0.5, src.width, 1, (left - x) * 2, row, (right - left) * 2, 1);
+    }
+    return { canvas: out, x, y };
   }
 
   function drawOutro(t: number): HudFrame {
