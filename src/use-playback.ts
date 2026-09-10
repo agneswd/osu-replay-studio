@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { outroSampleRate, outroSamples } from "../shared/outro-audio.js";
-import { presentationTiming, firstNoteSeconds, endFadeStart, endFadeDuration, outroMusicGain } from "../core/presentation.js";
+import { presentationAt, presentationTiming, firstNoteSeconds, endFadeStart, endFadeDuration, outroMusicGain } from "../core/presentation.js";
 import type { Timeline } from "../core/types.js";
 import type { PreviewEngine } from "./preview-engine.js";
 
@@ -40,30 +40,45 @@ export function usePlayback(timeline: Timeline | undefined, time: number, setTim
   useEffect(() => {
     if (!playing || !engine || !timeline) { engine?.audio.pause(); return; }
     const timing = presentationTiming(timeline.duration, fps, introOutro, firstNoteSeconds(timeline));
-    const audioOrigin = (timing.introFrames - timing.startFrame) / fps;
-    const start = Math.max(timing.introFrames / fps, audioOrigin);
-    const end = introOutro ? duration : (timing.introFrames + timing.gameplayFrames) / fps;
+    const holdEnd = timing.introFrames / fps;
+    const easeEnd = holdEnd + timing.introEaseFrames / fps;
+    const consumed = timing.introEaseConsumedFrames / fps;
+    const startTime = timing.startFrame / fps;
+    const outroStart = introOutro ? timing.outroStartFrame / fps : duration;
     let phase = "";
     let stopped = false;
     let raf = 0;
     const tick = () => {
       if (stopped) return;
       const now = performance.now();
-      const seconds = Math.min(duration, phase === "gameplay" && engine.audio.isPlaying
-        ? audioOrigin + engine.audio.currentTimeMs / 1000
+      const followAudio = (phase === "gameplay" || phase === "outro") && engine.audio.isPlaying;
+      const seconds = Math.min(duration, followAudio
+        ? easeEnd + engine.audio.currentTimeMs / 1000 - startTime - consumed
         : clock.current.seconds + (now - clock.current.started) / 1000);
-      const next = seconds < start ? "intro" : seconds < end ? "gameplay" : "outro";
+      const next = seconds < holdEnd ? "hold" : seconds < easeEnd ? "ease" : seconds < outroStart ? "gameplay" : "outro";
       if (next !== phase) {
         clock.current = { seconds, started: now };
         phase = next;
-        if (next === "gameplay") void engine.audio.playFrom((seconds - audioOrigin) * 1000).catch(() => {
-          if (!stopped) { setAudioError("Could not start preview audio."); setPlaying(false); }
-        });
-        else engine.audio.pause();
+        if (next === "hold" || (!introOutro && next === "outro")) engine.audio.pause();
+        else if (next === "ease" || ((next === "gameplay" || next === "outro") && !engine.audio.isPlaying)) {
+          const position = presentationAt(timeline, seconds, fps, introOutro);
+          void engine.audio.playFrom(position.gameplayTime * 1000).then(() => {
+            if (!stopped) engine.audio.setUserRate(Math.max(.1, next === "ease" ? position.gameplayRate || .1 : 1));
+          }).catch(() => {
+            if (!stopped) { setAudioError("Could not start preview audio."); setPlaying(false); }
+          });
+        } else if (next === "gameplay") {
+          engine.audio.setUserRate(1);
+          void engine.audio.seekTo((startTime + consumed + Math.max(0, seconds - easeEnd)) * 1000);
+        }
+      } else if (next === "ease") {
+        const position = presentationAt(timeline, seconds, fps, introOutro);
+        engine.audio.setUserRate(Math.max(.1, position.gameplayRate || .1));
       }
       const fade = introOutro ? Math.max(0, Math.min(1, 1 - (seconds - timing.outroStartFrame / fps - endFadeStart) / endFadeDuration)) : 1;
       const musicGain = introOutro ? outroMusicGain(seconds - timing.outroStartFrame / fps) : 1;
       engine.audio.setSongVolume(currentVolume.current * .5 * musicGain * fade);
+      engine.audio.setEffectsVolume(currentVolume.current * .5 * (seconds >= outroStart ? 0 : 1) * fade);
       if (sceneGain.current) sceneGain.current.gain.value = currentVolume.current * .5 * fade;
       currentTime.current = seconds;
       // Audio runs on its own clock. Hidden windows do not need visual updates.

@@ -25,7 +25,7 @@ test("opaque scenes and transparent gameplay preserve export frames and colors",
     const frames = Buffer.concat([
       ...Array<Buffer>(timing.sceneFrames).fill(fixture("opaque-red")),
       ...Array<Buffer>(timing.introFrames - timing.sceneFrames).fill(fixture("transparent")),
-      ...Array<Buffer>(timing.gameplayFrames + timing.outroPauseFrames).fill(fixture("transparent")),
+      ...Array<Buffer>(timing.outroStartFrame - timing.introFrames).fill(fixture("transparent")),
       ...Array<Buffer>(timing.sceneFrames).fill(fixture("opaque-blue")),
     ]);
     ffmpeg(compositeArgs(gameplay, output, 0.2, 30, true), frames);

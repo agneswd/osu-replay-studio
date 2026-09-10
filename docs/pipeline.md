@@ -22,10 +22,13 @@ This mapping depends on Danser 0.11.0. Recheck it before upgrading Danser.
 
 The overlay has no wall-clock timers or network clients. Every frame replaces its
 visible state, so seeking backward uses the same values as forward playback.
-Optional intro and outro animations each run for 5.4 seconds. The first note arrives one second after the intro ends.
-Gameplay holds its first frame during the intro. It holds its last frame for one second before the outro and during the outro.
+Optional intro and outro animations each run for 5.4 seconds.
+Gameplay holds its first frame during the intro and for one more second after the intro overlay ends.
+It then eases from a stop to 1x over half a second. Audio follows that same clock.
+The first note is still one second of gameplay after motion starts.
+The outro starts as soon as the replay has no frames left. Map music ducks to half volume on the outro and stays until the fade to black.
 Original outro sounds use the same sample generator in preview and export.
-The audio mix ends at the video duration. Music follows the gameplay clock. Preview uses the same presentation clock.
+The audio mix ends at the video duration. Preview uses the same presentation clock.
 
 Export audio uses two-pass loudness normalization with a -14 LUFS target and a -1.5 dB true-peak limit.
 Preview volume does not affect export audio.

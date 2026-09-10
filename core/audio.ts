@@ -34,7 +34,7 @@ export function measuredAudioFilter(log: string): string {
 export function outroMusicArgs(gameplay: string, song: string, output: string,
   start: number, leadIn: number, fadeStart: number, duration: number, speed: number, preservesPitch = true) {
   const join = Math.max(0, fadeStart - start);
-  const crossfade = .1;
+  const crossfade = .4;
   const tempo = preservesPitch ? `atempo=${speed}` : `asetrate=${48000 * speed},aresample=48000`;
   const tailStart = Math.max(0, start + join);
   return ["-y", "-ss", String(Math.max(0, leadIn + start)), "-i", gameplay, "-i", song,

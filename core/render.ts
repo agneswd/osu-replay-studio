@@ -19,7 +19,7 @@ import { spawn } from "node:child_process";
 import { pipeline, finished } from "node:stream/promises";
 import type { OsuClient } from "./online.js";
 import { analyze } from "./analyze.js";
-import { compositeArgs, gameplayOutputArgs, presentationTiming, firstNoteSeconds } from "./presentation.js";
+import { compositeArgs, gameplayOutputArgs, gameplayPaceArgs, presentationTiming, firstNoteSeconds } from "./presentation.js";
 import { runtimeTool } from "./runtime.js";
 import { exportLoudness, measuredAudioFilter, outroWave, outroMusicArgs } from "./audio.js";
 import {
@@ -321,7 +321,7 @@ export async function render(
       const settingsFile = path.join(runtime, "settings", "studio.json");
       const settings = JSON.parse(await readFile(settingsFile, "utf8"));
       settings.Recording.libx264 = { CRF: 16, Preset: "fast", AdditionalOptions: "-video_track_timescale 90000" };
-      settings.Recording.Filters = window.filter + `,tpad=stop_mode=clone:stop=-1,trim=end_frame=${timing.gameplayFrames + timing.outroPauseFrames}`;
+      settings.Recording.Filters = window.filter + `,tpad=stop_mode=clone:stop=-1,trim=end_frame=${timing.gameplayFrames}`;
       await writeFile(settingsFile, JSON.stringify(settings));
       danserEnv.STUDIO_NATIVE_FRAME_LIMIT = String(window.end);
       if (o.overlays.length || o.introOutro) {
@@ -365,10 +365,10 @@ export async function render(
     const musicAudio = o.introOutro && timeline.audioPath ? path.join(work, "music.wav") : undefined;
     if (musicAudio) await run(runtimeTool("ffmpeg"), outroMusicArgs(gameplay, timeline.audioPath!, musicAudio,
       timing.startFrame / o.fps, leadIn, Math.min(duration, timeline.gameplayFadeStart ?? duration),
-      timing.duration - timing.introFrames / o.fps, timeline.speed, timeline.preservesPitch), signal, line => log.write(line));
+      (timing.gameplayFrames + timing.sceneFrames) / o.fps, timeline.speed, timeline.preservesPitch), signal, line => log.write(line));
     let audioLog = "";
     await run(runtimeTool("ffmpeg"), [...(musicAudio ? [] : ["-ss", String(Math.max(0, leadIn + timing.startFrame / o.fps))]), "-i", musicAudio ?? gameplay,
-      "-t", String(musicAudio ? timing.duration - timing.introFrames / o.fps : timing.gameplayFrames / o.fps), "-vn", "-af", `${exportLoudness}:print_format=json`, "-f", "null", "-"],
+      "-t", String(musicAudio ? (timing.gameplayFrames + timing.sceneFrames) / o.fps : timing.gameplayFrames / o.fps), "-vn", "-af", `${exportLoudness}:print_format=json`, "-f", "null", "-"],
       signal, line => { audioLog = (audioLog + line).slice(-8000); });
     const audioFilter = measuredAudioFilter(audioLog);
     const outroAudio = o.introOutro ? path.join(work, "outro.wav") : undefined;
@@ -419,7 +419,7 @@ export async function render(
           }
           await run(runtimeTool("ffmpeg"), nativeSceneArgs(path.join(workDir, `${kind}.mp4`), timing.sceneFrames, o.fps, o.width, o.height, true), signal, line => log.write(line), workDir, sceneCapture());
         }
-        await run(runtimeTool("ffmpeg"), ["-y", "-i", gameplay, "-map", "0:v:0", "-an", "-c:v", "copy", path.join(work, "gameplay-video.mp4")], signal, line => log.write(line));
+        await run(runtimeTool("ffmpeg"), gameplayPaceArgs(gameplay, path.join(work, "gameplay-video.mp4"), timing, o.fps), signal, line => log.write(line));
         // Relative fixed names keep the concat file independent of user path quoting.
         await writeFile(path.join(work, "segments.txt"), "file 'intro.mp4'\nfile 'gameplay-video.mp4'\nfile 'outro.mp4'\n");
         video = path.join(work, "video.mp4");

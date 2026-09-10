@@ -56,6 +56,7 @@ import {
   endFadeDuration,
   outroMusicVolume,
   outroMusicTransition,
+  pacedAudioFilter,
   presentationTiming,
 } from "./presentation.js";
 
@@ -130,10 +131,12 @@ export function nativeAudioArgs(
   const hold = timing.introFrames / fps,
     end = timing.duration,
     outro = timing.outroStartFrame / fps;
+  const duckAt = (timing.outroStartFrame - timing.introFrames) / fps;
   const duck = music
-    ? `,volume='1-${1 - outroMusicVolume}*min(1,max(0,(t-${(timing.gameplayFrames + timing.outroPauseFrames) / fps})/${outroMusicTransition}))':eval=frame`
+    ? `,volume='1-${1 - outroMusicVolume}*min(1,max(0,(t-${duckAt})/${outroMusicTransition}))':eval=frame`
     : "";
-  const audio = `atrim=duration=${end - hold},asetpts=PTS-STARTPTS,${filter},aresample=48000${duck},adelay=${Math.round(hold * 1000)}:all=1,apad=whole_dur=${end}`;
+  const sourceSeconds = music ? (timing.gameplayFrames + timing.sceneFrames) / fps : timing.gameplayFrames / fps;
+  const audio = `atrim=duration=${sourceSeconds},asetpts=PTS-STARTPTS,aresample=48000${pacedAudioFilter(timing, fps)},${filter}${duck},adelay=${Math.round(hold * 1000)}:all=1,apad=whole_dur=${end}`;
   return [
     "-y",
     ...(music

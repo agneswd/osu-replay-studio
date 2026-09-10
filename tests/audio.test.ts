@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { measuredAudioFilter, outroWave } from "../core/audio.js";
 import { outroSamples } from "../shared/outro-audio.js";
-import { compositeArgs } from "../core/presentation.js";
+import { compositeArgs, presentationTiming } from "../core/presentation.js";
 
 test("export audio uses measured loudness and preserves silence", () => {
   const measured = measuredAudioFilter('log\n{"input_i":"-20","input_tp":"-8","input_lra":"3","input_thresh":"-30","target_offset":"0.1"}');
@@ -25,6 +25,7 @@ test("outro cues share preview samples and start after gameplay in the export", 
     assert.ok(Math.abs(samples[i]) < .1);
   }
   const args = compositeArgs("in.mp4", "out.mp4", 10, 60, true, 1, 1, "anull", "outro.wav");
-  assert.match(args[args.indexOf("-filter_complex") + 1], /\[2:a\]aresample=48000,adelay=16400:all=1/);
+  const outroMs = Math.round(presentationTiming(10, 60, true, 1).outroStartFrame / 60 * 1000);
+  assert.match(args[args.indexOf("-filter_complex") + 1], new RegExp(`\\[2:a\\]aresample=48000,adelay=${outroMs}:all=1`));
   assert.ok(!compositeArgs("in.mp4", "out.mp4", 10, 60, false, 1, 1, "anull", "outro.wav").includes("outro.wav"));
 });

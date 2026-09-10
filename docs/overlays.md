@@ -35,7 +35,9 @@ The outro shows the player's six best plays. These sections use the configured o
 Missing data stays hidden. No sample playcounts or invented ranks are shown.
 
 Gameplay and the HUD stay frozen, blurred, and dim during the intro.
+After the intro overlay ends, gameplay holds for one second, then eases from a stop to 1x.
 A dim beatmap image stays visible even with 100% gameplay dim.
+The outro starts when replay data ends. Map music ducks to half volume and keeps playing until the fade to black.
 The HUD hides when the outro starts. The outro ends with a fade to black.
 
 The line below the map graph marks 100s, 50s, and misses at their map positions.
