@@ -1,8 +1,8 @@
+import { textEffects } from "./effects";
 import { EditableText, useEditingText } from "../../../editable-text.js";
 import type { CSSProperties } from "react";
 import type { TextLayerConfig } from "../../types";
 import { fitFontSize } from "./fit";
-import { softGlow, TEXT_SHADOW_3D } from "../../../shared/formatting/color";
 export function TextLayer({ config, children, testId, }: {
     config: TextLayerConfig;
     children: string;
@@ -18,13 +18,6 @@ export function TextLayer({ config, children, testId, }: {
     const fontSize = fitWidth !== undefined
         ? fitFontSize(fitText, config, fitWidth, config.maxLines ? 32 : 20)
         : config.fontSize;
-    const glow = config.glow
-        ? softGlow(config.glow.color ?? config.color, config.glow.blur, config.glow.layers ?? 3)
-        : undefined;
-    const shadow = config.shadow
-        ? `${config.shadow.offsetX}px ${config.shadow.offsetY}px ${config.shadow.blur}px ${config.shadow.color}`
-        : TEXT_SHADOW_3D;
-    const hasGradient = Boolean(config.gradient);
     const strokeStyle = config.stroke
         ? `${config.stroke.width}px ${config.stroke.color}`
         : undefined;
@@ -37,6 +30,7 @@ export function TextLayer({ config, children, testId, }: {
             return `drop-shadow(${ox}px ${oy}px 0px ${col})`;
         }).join(" ")
         : "";
+    const effect = textEffects(config, config.color);
     const style: CSSProperties = {
         position: "absolute",
         left: config.x,
@@ -48,10 +42,8 @@ export function TextLayer({ config, children, testId, }: {
         fontWeight: config.fontWeight,
         letterSpacing: config.letterSpacing,
         lineHeight: config.lineHeight ?? 1.1,
-        color: hasGradient ? undefined : config.color,
-        background: config.gradient ?? config.background,
-        WebkitBackgroundClip: hasGradient ? "text" : undefined,
-        WebkitTextFillColor: hasGradient ? "transparent" : undefined,
+        color: config.color,
+        background: config.background,
         WebkitTextStroke: strokeStyle,
         paintOrder: "stroke fill",
         transform: config.transform,
@@ -62,11 +54,8 @@ export function TextLayer({ config, children, testId, }: {
         boxShadow: config.boxShadow,
         textAlign: config.align ?? "left",
         textTransform: config.textTransform ?? "none",
-        textShadow: hasGradient ? undefined : [shadow, glow].filter(Boolean).join(", ") || undefined,
-        filter: [
-            extrusionFilters,
-            config.shadow ? `drop-shadow(${config.shadow.offsetX}px ${config.shadow.offsetY}px ${config.shadow.blur}px ${config.shadow.color})` : "",
-        ].filter(Boolean).join(" ") || undefined,
+        ...effect,
+        filter: [extrusionFilters, effect.filter].filter(Boolean).join(" ") || undefined,
         whiteSpace: config.maxLines ? "pre-line" : "pre",
         overflow: config.maxLines ? "hidden" : undefined,
         WebkitBoxOrient: config.maxLines ? "vertical" : undefined,

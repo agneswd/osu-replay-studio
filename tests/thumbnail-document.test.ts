@@ -62,6 +62,10 @@ test("replay text glow, badge borders, overlay, and drop shadow stay in the docu
   const next = applyOverrides(referenceTemplate, { layers: value.layers, overlayOpacity: .4, dropShadow: value.dropShadow });
   assert.equal(next.components.grade.glow?.blur, 22);
   assert.equal(next.components.comboBadge.borderMode, "bottom");
+  next.components.topPanel.borderMode = undefined;
+  const panel = applyOverrides(referenceTemplate, { layers: { "top-panel": { borderMode: "bottom", borderWidth: 2 } } });
+  assert.equal(panel.components.topPanel.borderMode, "bottom");
+  assert.equal(panel.components.topPanel.borderWidth, 2);
   assert.equal(next.background.overlays.find(overlay => overlay.gradient?.startsWith("180deg"))?.opacity, .4);
   value.overlayOpacity = 2;
   assert.throws(() => validateThumbnailDocument(value), /overlay/);

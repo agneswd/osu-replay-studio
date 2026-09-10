@@ -7,6 +7,7 @@ export const thumbnailFontFamily: Record<ThumbnailFont, string> = {
 };
 export interface ThumbnailShadow { x: number; y: number; blur: number; color: string }
 export interface ThumbnailLayer {
+  source?: string;
   x?: number;
   y?: number;
   scale?: number;
@@ -68,6 +69,7 @@ export function validateThumbnailDocument(value: ThumbnailDocument) {
     if (layer.borderMode !== undefined && layer.borderMode !== "all" && layer.borderMode !== "bottom") throw new Error("Invalid thumbnail border mode.");
     if (layer.shadow) validateShadow(layer.shadow, "Invalid thumbnail shadow.");
     if (layer.gradient && (!/^#[\da-f]{6}$/i.test(layer.gradient.from) || !/^#[\da-f]{6}$/i.test(layer.gradient.to))) throw new Error("Invalid thumbnail gradient.");
+    if (layer.source !== undefined && (!/^[a-z][a-z-]{0,79}$/.test(layer.source) || layer.source.startsWith("custom-"))) throw new Error("Invalid duplicate source.");
     if (layer.hidden !== undefined && typeof layer.hidden !== "boolean") throw new Error("Invalid thumbnail visibility.");
     if (layer.text !== undefined && (typeof layer.text !== "string" || layer.text.length > 500 || /[\r\n]/.test(layer.text))) throw new Error("Thumbnail text must be one line with at most 500 characters.");
     if (layer.color !== undefined && !/^#[\da-f]{6}$/i.test(layer.color)) throw new Error("Invalid thumbnail color.");

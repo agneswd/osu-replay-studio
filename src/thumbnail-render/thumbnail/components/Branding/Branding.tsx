@@ -1,3 +1,4 @@
+import { textEffects } from "../Text/effects";
 import { EditableText, useEditingText } from "../../../editable-text.js";
 import { fitFontSize } from "../Text/fit";
 import type { CSSProperties, ReactNode } from "react";
@@ -15,6 +16,8 @@ export function TwitchLogo({ config }: {
             width: config.size,
             height: config.size,
             borderRadius: config.radius,
+            border: config.border && config.borderMode !== "bottom" ? `${config.border.width}px solid ${config.border.color}` : undefined,
+            borderBottom: config.border && config.borderMode === "bottom" ? `${config.border.width}px solid ${config.border.color}` : undefined,
             background: config.background,
             display: "flex",
             alignItems: "center",
@@ -27,12 +30,13 @@ export function TwitchLogo({ config }: {
             }}/>) : null}
     </div>);
 }
-export function BottomMessage({ text, accentRange, config, }: {
+export function BottomMessage({ text, accentRange, config, testId = "bottom-message", }: {
     text: string;
+    testId?: string;
     accentRange?: { start: number; end: number };
     config: BottomMessageConfig;
 }) {
-    const editing = useEditingText("bottom-message");
+    const editing = useEditingText(testId);
     if (!config.visible || (text === "" && !editing))
         return null;
     const glow = config.highlightedGlow
@@ -43,20 +47,21 @@ export function BottomMessage({ text, accentRange, config, }: {
         textShadow: [glow, TEXT_SHADOW_3D].filter(Boolean).join(", "),
     };
     let content: ReactNode;
+    const effect = textEffects(config, config.prefixColor);
     const index = accentRange?.start ?? -1;
     const end = accentRange?.end ?? -1;
     const accentPart = text.slice(index, end);
     if (accentPart && index >= 0 && end <= text.length) {
         content = (<>
-        <span style={{ color: config.prefixColor, textShadow: TEXT_SHADOW_3D }}>{text.slice(0, index)}</span>
+        <span style={{ color: config.prefixColor, ...effect }}>{text.slice(0, index)}</span>
         <span style={accentStyle}>{accentPart}</span>
-        <span style={{ color: config.prefixColor, textShadow: TEXT_SHADOW_3D }}>{text.slice(index + accentPart.length)}</span>
+        <span style={{ color: config.prefixColor, ...effect }}>{text.slice(index + accentPart.length)}</span>
       </>);
     }
     else {
-        content = <span style={{ color: config.prefixColor, textShadow: TEXT_SHADOW_3D }}>{text}</span>;
+        content = <span style={{ color: config.prefixColor, ...effect }}>{text}</span>;
     }
-    return (<EditableText id="bottom-message" onInput={event => {
+    return (<EditableText id={testId} onInput={event => {
         // Text edits clear the accent range without replacing the caret's text nodes.
         for (const span of Array.from(event.currentTarget.querySelectorAll("span"))) {
             span.style.color = "inherit"; span.style.textShadow = "inherit";
@@ -70,8 +75,9 @@ export function BottomMessage({ text, accentRange, config, }: {
             fontSize: config.width ? fitFontSize(text, config, config.width, 12) : config.fontSize,
             fontWeight: config.fontWeight,
             letterSpacing: config.letterSpacing,
+            ...effect,
             whiteSpace: "pre",
-        })} data-layer="bottom-message">
+        })} data-layer={testId}>
       {content}
     </EditableText>);
 }

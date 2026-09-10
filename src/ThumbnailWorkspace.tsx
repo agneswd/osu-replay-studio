@@ -1,8 +1,11 @@
+import { referenceTemplate } from "./thumbnail-render/thumbnail/templates/reference/template.js";
+import { cuteTemplate } from "./thumbnail-render/thumbnail/templates/cute/template.js";
+import { COMPONENT_BY_LAYER } from "./thumbnail-render/thumbnail/overrides.js";
 import { TextEditingContext } from "./thumbnail-render/editable-text.js";
 import { createPortal } from "react-dom";
 import { resizeThumbnailLayer } from "./thumbnail-geometry.js";
 import { memo, useEffect, useLayoutEffect, useRef, useState, type PointerEvent } from "react";
-import { Button, Checkbox, ColorArea, ColorField, ColorPicker, ColorSlider, ColorSwatch, Dropdown, Input, Label, ListBox, Select } from "@heroui/react";
+import { Button, Checkbox, ColorArea, ColorField, ColorPicker, ColorSlider, ColorSwatch, Dropdown, Input, Label, ListBox, Select, Slider } from "@heroui/react";
 import { Undo2, Redo2, Plus, Copy, ZoomIn, ZoomOut } from "lucide-react";
 import type { Timeline } from "../core/types.js";
 import { defaultThumbnail, validateThumbnailDocument, type ThumbnailDocument, type ThumbnailLayer } from "../core/thumbnail-document.js";
@@ -14,7 +17,7 @@ type Corner = "nw" | "ne" | "sw" | "se";
 const corners: Corner[] = ["nw", "ne", "sw", "se"];
 const storagePrefix = "studio-thumbnail-v1:";
 const excluded = new Set(["background", "inner-border"]);
-const borderIds = new Set(["badge-row", "combo", "difficulty", "bpm", "top-panel", "avatar", "username", "country-flag"]);
+const borderIds = new Set(["badge-row", "combo", "difficulty", "bpm", "top-panel", "avatar", "username", "country-flag", "mod-list", "twitch-logo"]);
 function load(key: string, fallback: ThumbnailDocument) {
   try { const value = JSON.parse(localStorage.getItem(key) ?? "null"); validateThumbnailDocument(value); return value as ThumbnailDocument; } catch { return fallback; }
 }
@@ -146,7 +149,8 @@ export const ThumbnailWorkspace = memo(function ThumbnailWorkspace({ timeline, a
     event.currentTarget.setPointerCapture(event.pointerId);
   }
   function beginText(id: string) {
-    if (!textLayers.has(id) && !id.startsWith("custom-")) return;
+    const source = latest.current.layers[id]?.source ?? id;
+    if (!textLayers.has(source) && !source.startsWith("custom-")) return;
     textSession.current = { id, start: latest.current };
     select(id); setEditing(id); setMenu(null);
   }
@@ -172,7 +176,12 @@ export const ThumbnailWorkspace = memo(function ThumbnailWorkspace({ timeline, a
       if (value.customTexts.length >= 30) return;
       const id = `custom-${crypto.randomUUID()}`;
       const source = value.layers[selected] ?? {};
-      commit({ ...value, customTexts: [...value.customTexts, id], layers: { ...value.layers, [id]: { ...source, x: (source.x ?? 0) + 24, y: (source.y ?? 0) + 24, text: source.text ?? style?.textContent ?? "Your text" } } });
+      const builtIn = source.source ?? (selected.startsWith("custom-") ? undefined : selected);
+      const text = textLayers.has(builtIn ?? "") || !builtIn ? source.text ?? style?.textContent ?? "Your text" : undefined;
+      const box = boxes[selected];
+      commit({ ...value, customTexts: [...value.customTexts, id], layers: { ...value.layers, [id]: { ...source,
+        source: builtIn, hidden: false, x: builtIn ? (box?.x ?? 0) + 24 : (source.x ?? 0) + 24,
+        y: builtIn ? (box?.y ?? 0) + 24 : (source.y ?? 0) + 24, text } } });
       select(id);
       return;
     }
@@ -189,7 +198,16 @@ export const ThumbnailWorkspace = memo(function ThumbnailWorkspace({ timeline, a
   const displayBox = selectedBox;
   const layer = selected ? value.layers[selected] ?? {} : {};
   const style = selected ? canvas.current?.querySelector<HTMLElement>(`[data-layer="${selected}"]`) : null;
-  const editableText = selected && (textLayers.has(selected) || selected.startsWith("custom-"));
+  const selectedSource = layer.source ?? selected;
+  const editableText = selected && (textLayers.has(selectedSource!) || (selected.startsWith("custom-") && !layer.source));
+  const textStyle = style?.querySelector<HTMLElement>("[data-editor-text]") ?? (style?.hasAttribute("data-duplicate") ? style.firstElementChild as HTMLElement : null) ?? style;
+  const computed = textStyle ? getComputedStyle(textStyle) : undefined;
+  const components = (value.template === "cute" ? cuteTemplate : referenceTemplate).components;
+  const config = components[COMPONENT_BY_LAYER[selectedSource!]];
+  const baseGlow = config && "glow" in config ? config.glow : undefined;
+  const rgb = computed?.color.match(/\d+/g)?.slice(0, 3);
+  const color = layer.color ?? (rgb?.length === 3 ? "#" + rgb.map(n => Number(n).toString(16).padStart(2, "0")).join("") : "#ffffff");
+  const glow = layer.glow === undefined && baseGlow ? { color: baseGlow.color ?? color, blur: baseGlow.blur } : layer.glow;
   return <div className="flex min-h-0 min-w-0 w-full flex-1" data-thumbnail-workspace onKeyDown={event => {
     if ((event.target as HTMLElement).closest('input, textarea, [contenteditable], [role="menu"]')) return;
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") { event.preventDefault(); event.shiftKey ? redo() : undo(); }
@@ -246,7 +264,7 @@ export const ThumbnailWorkspace = memo(function ThumbnailWorkspace({ timeline, a
                   <Dropdown.Item id="front" isDisabled={!selected}><Label>Bring to front</Label></Dropdown.Item>
                   <Dropdown.Item id="back" isDisabled={!selected}><Label>Send to back</Label></Dropdown.Item>
                   <Dropdown.Item id="hide" isDisabled={!selected}><Label>{layer.hidden ? "Show element" : "Hide element"}</Label></Dropdown.Item>
-                  <Dropdown.Item id="remove" isDisabled={!selected?.startsWith("custom-")}><Label>Remove text</Label></Dropdown.Item>
+                  <Dropdown.Item id="remove" isDisabled={!selected?.startsWith("custom-")}><Label>Remove element</Label></Dropdown.Item>
                   <Dropdown.Item id="reset-all"><Label>Reset thumbnail</Label></Dropdown.Item>
                   <Dropdown.SubmenuTrigger><Dropdown.Item><Label>Select element</Label><Dropdown.SubmenuIndicator /></Dropdown.Item><Dropdown.Popover><Dropdown.Menu aria-label="Select thumbnail element">
                     {Object.keys(boxes).map(id => <Dropdown.Item id={id} key={id} onAction={() => select(id)}><Label>{layerName(id)}</Label></Dropdown.Item>)}
@@ -283,40 +301,60 @@ export const ThumbnailWorkspace = memo(function ThumbnailWorkspace({ timeline, a
       {timeline && value.status === "auto" && <p className="text-xs text-muted">{timeline.sceneInfo?.playStatus?.completed === false ? "Incomplete replay. FC is not assumed." : timeline.sceneInfo?.playStatus?.verified ? `${timeline.sceneInfo.score.hits["0"]} misses, ${timeline.sceneInfo.score.hits.sliderBreaks} slider breaks` : "Replay analysis is not verified. FC is not assumed."}</p>}
       {value.status === "counts" && <div className="flex gap-2">{([['misses', 'Misses'], ['sliderBreaks', 'Slider breaks']] as const).map(([field, label]) => <div key={field} className="min-w-0"><Label>{label}</Label><Input aria-label={label} type="number" min={0} max={100000} value={String(value[field] ?? (field === "misses" ? timeline?.sceneInfo?.score.hits["0"] : timeline?.sceneInfo?.score.hits.sliderBreaks) ?? 0)} onChange={e => commit({ ...value, [field]: Math.max(0, Math.min(100000, Math.round(Number(e.target.value)))) })} /></div>)}</div>}
       <div className="flex flex-col gap-3 border-t border-border pt-4">
-        <Label>Lower overlay</Label>
-        <Input aria-label="Lower overlay opacity" type="number" min={0} max={100} value={String(Math.round((value.overlayOpacity ?? 1) * 100))} onChange={e => commit({ ...value, overlayOpacity: Math.max(0, Math.min(1, Number(e.target.value) / 100)) })} />
+        <Slider aria-label="Background shading" minValue={0} maxValue={100} step={1}
+          value={Math.round((value.overlayOpacity ?? 1) * 100)}
+          onChange={next => commit({ ...value, overlayOpacity: (typeof next === "number" ? next : next[0]) / 100 })}>
+          <div className="flex items-center justify-between gap-2"><Label>Background shading</Label><Slider.Output /></div>
+          <Slider.Track><Slider.Fill /><Slider.Thumb /></Slider.Track>
+        </Slider>
         <Checkbox isSelected={!!value.dropShadow} onChange={enabled => commit({ ...value, dropShadow: enabled ? { x: 0, y: 8, blur: 18, color: "#000000" } : null })}><Checkbox.Content><Checkbox.Control><Checkbox.Indicator /></Checkbox.Control>Drop shadow</Checkbox.Content></Checkbox>
         {value.dropShadow && <>
           <Color label="Shadow color" value={value.dropShadow.color} onChange={color => commit({ ...value, dropShadow: { ...value.dropShadow!, color } })} />
-          <Label>Shadow blur</Label><Input aria-label="Shadow blur" type="number" min={0} max={80} value={String(value.dropShadow.blur)} onChange={e => commit({ ...value, dropShadow: { ...value.dropShadow!, blur: Math.max(0, Math.min(80, Number(e.target.value))) } })} />
+          <div className="grid grid-cols-2 gap-3">
+            {([["x", "Horizontal offset"], ["y", "Vertical offset"]] as const).map(([field, label]) => <div key={field} className="flex min-w-0 flex-col gap-1">
+              <Label>{label}</Label><Input aria-label={label} type="number" min={-80} max={80} value={String(value.dropShadow![field])}
+                onChange={e => commit({ ...value, dropShadow: { ...value.dropShadow!, [field]: Math.max(-80, Math.min(80, Number(e.target.value))) } })} />
+            </div>)}
+          </div>
+          <Slider aria-label="Shadow blur" minValue={0} maxValue={80} step={1} value={value.dropShadow.blur}
+            onChange={next => commit({ ...value, dropShadow: { ...value.dropShadow!, blur: typeof next === "number" ? next : next[0] } })}>
+            <div className="flex items-center justify-between gap-2"><Label>Shadow blur</Label><Slider.Output /></div>
+            <Slider.Track><Slider.Fill /><Slider.Thumb /></Slider.Track>
+          </Slider>
         </>}
+
       </div>
       {selected && <div className="flex flex-col gap-3 border-t border-border pt-4">
         <Label>{layerName(selected)}</Label>
         {editableText && <>
           <Input aria-label="Selected element text" value={layer.text ?? style?.textContent ?? ""} maxLength={500} onChange={e => { const next = patch(selected, { text: e.target.value }); if (selected === "bottom-message") next.accentRange = undefined; commit(next); }}
             onSelect={e => { const el = e.currentTarget; if (selected === "bottom-message" && el.selectionEnd! > el.selectionStart!) textInput.current = el; }} />
-          <Label>Font size</Label><Input aria-label="Font size" type="number" min={8} max={600} value={String(layer.fontSize ?? Math.round(parseFloat(style ? getComputedStyle(style).fontSize : "54")))} onChange={e => commit(patch(selected, { fontSize: Math.max(8, Math.min(600, Number(e.target.value))) }))} />
+          <Label>Font size</Label><Input aria-label="Font size" type="number" min={8} max={600} value={String(layer.fontSize ?? Math.round(parseFloat(computed?.fontSize ?? "54")))} onChange={e => commit(patch(selected, { fontSize: Math.max(8, Math.min(600, Number(e.target.value))) }))} />
           <Choice label="Font" value={layer.fontFamily ?? (value.template === "cute" ? "fredoka" : "baloo")} items={[["baloo", "Baloo 2"], ["fredoka", "Fredoka"], ["montserrat", "Montserrat"]]} onChange={fontFamily => commit(patch(selected, { fontFamily: fontFamily as ThumbnailLayer["fontFamily"] }))} />
-          <Choice label="Weight" value={String(layer.fontWeight ?? 700)} items={[["400", "Regular"], ["600", "Semibold"], ["700", "Bold"]]} onChange={weight => commit(patch(selected, { fontWeight: Number(weight) }))} />
-          <Color label="Text color" value={layer.color ?? "#ffffff"} onChange={color => commit(patch(selected, { color }))} />
-          <Checkbox isSelected={!!layer.gradient} onChange={enabled => commit(patch(selected, { gradient: enabled ? { from: layer.color ?? "#ffffff", to: value.accent } : null }))}><Checkbox.Content><Checkbox.Control><Checkbox.Indicator /></Checkbox.Control>Gradient fill</Checkbox.Content></Checkbox>
+          <Choice label="Weight" value={String(layer.fontWeight ?? Number(computed?.fontWeight ?? 700))} items={[["400", "Regular"], ["600", "Semibold"], ["700", "Bold"]]} onChange={weight => commit(patch(selected, { fontWeight: Number(weight) }))} />
+          <Color label="Text color" value={color} onChange={color => commit(patch(selected, { color }))} />
+          <Checkbox isSelected={!!layer.gradient} onChange={enabled => commit(patch(selected, { gradient: enabled ? { from: color, to: value.accent } : null }))}><Checkbox.Content><Checkbox.Control><Checkbox.Indicator /></Checkbox.Control>Gradient fill</Checkbox.Content></Checkbox>
           {layer.gradient && <>
             <Color label="Gradient start" value={layer.gradient.from} onChange={from => commit(patch(selected, { gradient: { ...layer.gradient!, from } }))} />
             <Color label="Gradient end" value={layer.gradient.to} onChange={to => commit(patch(selected, { gradient: { ...layer.gradient!, to } }))} />
           </>}
-          <Checkbox isSelected={!!layer.glow} onChange={enabled => commit(patch(selected, { glow: enabled ? { color: layer.color ?? "#ffffff", blur: 12 } : null }))}><Checkbox.Content><Checkbox.Control><Checkbox.Indicator /></Checkbox.Control>Text glow</Checkbox.Content></Checkbox>
-          {layer.glow && <>
-            <Color label="Glow color" value={layer.glow.color} onChange={color => commit(patch(selected, { glow: { ...layer.glow!, color } }))} />
-            <Label>Glow blur</Label><Input aria-label="Glow blur" type="number" min={0} max={100} value={String(layer.glow.blur)} onChange={e => commit(patch(selected, { glow: { ...layer.glow!, blur: Math.max(0, Math.min(100, Number(e.target.value))) } }))} />
+          <Checkbox isSelected={!!glow} onChange={enabled => commit(patch(selected, { glow: enabled ? { color, blur: 12 } : null }))}><Checkbox.Content><Checkbox.Control><Checkbox.Indicator /></Checkbox.Control>Text glow</Checkbox.Content></Checkbox>
+          {glow && <>
+            <Color label="Glow color" value={glow.color} onChange={color => commit(patch(selected, { glow: { ...glow!, color } }))} />
+            <Label>Glow blur</Label><Input aria-label="Glow blur" type="number" min={0} max={100} value={String(glow.blur)} onChange={e => commit(patch(selected, { glow: { ...glow!, blur: Math.max(0, Math.min(100, Number(e.target.value))) } }))} />
           </>}
           {selected === "bottom-message" && <Button size="sm" variant="secondary" onPress={() => { const el = textInput.current; if (el && el.selectionEnd! > el.selectionStart!) commit({ ...patch(selected, { text: el.value }), accentRange: { start: el.selectionStart!, end: el.selectionEnd! } }); }}>Accent selection</Button>}
           {selected === "bottom-message" && <Button size="sm" variant="ghost" isDisabled={!value.accentRange} onPress={() => commit({ ...value, accentRange: undefined })}>Clear text accent</Button>}
         </>}
-        {selected && borderIds.has(selected) && <>
-          <Choice label="Border" value={layer.borderMode ?? "all"} items={[["all", "All sides"], ["bottom", "Bottom only"]]} onChange={borderMode => commit(patch(selected, { borderMode: borderMode as "all" | "bottom" }))} />
-          <Label>Border thickness</Label><Input aria-label="Border thickness" type="number" min={0} max={40} value={String(layer.borderWidth ?? 4)} onChange={e => commit(patch(selected, { borderWidth: Math.max(0, Math.min(40, Number(e.target.value))) }))} />
-          <Label>Corner radius</Label><Input aria-label="Corner radius" type="number" min={0} max={400} value={String(layer.borderRadius ?? 16)} onChange={e => commit(patch(selected, { borderRadius: Math.max(0, Math.min(400, Number(e.target.value))) }))} />
+        {selected && borderIds.has(selectedSource!) && <>
+          <Choice label="Border" value={layer.borderMode ?? (selectedSource === "top-panel" && value.template === "reference" ? "bottom" : "all")} items={[["all", "All sides"], ["bottom", "Bottom only"]]} onChange={borderMode => commit(patch(selected, { borderMode: borderMode as "all" | "bottom" }))} />
+          <Label>Border thickness</Label><Input aria-label="Border thickness" type="number" min={0} max={40} value={String(layer.borderWidth ?? (config && "borderWidth" in config ? config.borderWidth : config && "border" in config && typeof config.border === "object" ? config.border.width : 0) ?? 0)} onChange={e => commit(patch(selected, { borderWidth: Math.max(0, Math.min(40, Number(e.target.value))) }))} />
+          <Label>Corner radius</Label><Input aria-label="Corner radius" type="number" min={0} max={400} value={String(layer.borderRadius ?? (config && "radius" in config ? parseFloat(String(config.radius)) : 0))} onChange={e => commit(patch(selected, { borderRadius: Math.max(0, Math.min(400, Number(e.target.value))) }))} />
+        </>}
+        <Checkbox isSelected={!!layer.shadow} onChange={enabled => commit(patch(selected, { shadow: enabled ? { x: 0, y: 8, blur: 18, color: "#000000" } : null }))}><Checkbox.Content><Checkbox.Control><Checkbox.Indicator /></Checkbox.Control>Element shadow</Checkbox.Content></Checkbox>
+        {layer.shadow && <>
+          <Color label="Element shadow color" value={layer.shadow.color} onChange={color => commit(patch(selected, { shadow: { ...layer.shadow!, color } }))} />
+          {(["x", "y", "blur"] as const).map(field => <div key={field}><Label>Shadow {field}</Label><Input aria-label={`Element shadow ${field}`} type="number" min={field === "blur" ? 0 : -80} max={80} value={String(layer.shadow![field])} onChange={e => commit(patch(selected, { shadow: { ...layer.shadow!, [field]: Math.max(field === "blur" ? 0 : -80, Math.min(80, Number(e.target.value))) } }))} /></div>)}
         </>}
         <Button size="sm" variant="ghost" onPress={() => action("reset")}>Reset element</Button>
       </div>}

@@ -1,12 +1,12 @@
+import { textEffects } from "../Text/effects";
 import { EditableText } from "../../../editable-text.js";
 import type { CSSProperties, ReactNode } from "react";
 import { Children } from "react";
 import type { BadgeLayerConfig, BadgeRowConfig, PanelLayerConfig, StarNotchConfig } from "../../types";
 import { Layer, layerStyle } from "../Layer";
 import { fitFontSize } from "../Text/fit";
-import { TEXT_SHADOW_3D } from "../../../shared/formatting/color";
 import { resolveAssetUrl } from "../../../shared/assets/assetUrl";
-function badgeBorder(config: BadgeLayerConfig): CSSProperties {
+function badgeBorder(config: { borderWidth: number; borderColor: string; borderMode?: "all" | "bottom"; radius: number | string }): CSSProperties {
   const width = `${config.borderWidth}px solid ${config.borderColor}`;
   if (config.borderMode === "bottom") return { border: "none", borderBottom: width, borderRadius: config.radius };
   return { border: width, borderRadius: config.radius };
@@ -42,7 +42,7 @@ export function BadgeLayer({ config, children, testId, variant = "absolute", }: 
             whiteSpace: "pre",
             minWidth: 0,
             overflow: "hidden",
-            textShadow: TEXT_SHADOW_3D,
+            ...textEffects(config, config.color),
         }}>
       {children}
     </EditableText>);
@@ -143,8 +143,7 @@ export function PanelLayer({ config, backgroundSrc, }: {
             width: config.width,
             height: config.height,
             background: config.background,
-            border: config.borderColor ? `${config.borderWidth ?? 0}px solid ${config.borderColor}` : undefined,
-            borderRadius: config.radius,
+            ...(config.borderColor ? badgeBorder({ borderWidth: config.borderWidth ?? 0, borderColor: config.borderColor, borderMode: config.borderMode, radius: config.radius }) : { borderRadius: config.radius }),
             backdropFilter: config.backdropBlur ? `blur(${config.backdropBlur}px)` : undefined,
             boxShadow: config.shadow ? `${config.shadow.x}px ${config.shadow.y}px ${config.shadow.blur}px ${config.shadow.color}` : undefined,
             overflow: bg ? "hidden" : undefined,

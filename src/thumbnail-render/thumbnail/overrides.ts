@@ -85,7 +85,7 @@ export function applyOverrides(template: ThumbnailTemplate, state: EditorState |
         return template;
     }
     const next = structuredClone(template);
-    const { accent, twitchVisible, bottomText, bottomAccent, textOverrides, positionOverrides, sizeOverrides, colorOverrides, fontSizeOverrides, customTexts, overlayOpacity, dropShadow, layers, } = state;
+    const { accent, twitchVisible, bottomText, bottomAccent, textOverrides, positionOverrides, sizeOverrides, colorOverrides, fontSizeOverrides, customTexts, overlayOpacity, layers, } = state;
     next.customTexts = structuredClone(customTexts ?? []);
     if (accent) {
         next.theme.accent = accent;
@@ -206,58 +206,36 @@ export function applyOverrides(template: ThumbnailTemplate, state: EditorState |
     for (const [id, layer] of Object.entries(layers ?? {})) {
       const conf = id.startsWith("custom-") ? next.customTexts.find(item => item.id === id) : componentOf(next, id);
       if (!conf) continue;
-      if (layer.fontWeight !== undefined && "fontWeight" in conf) conf.fontWeight = layer.fontWeight;
-      if (layer.fontFamily && "fontFamily" in conf) conf.fontFamily = thumbnailFontFamily[layer.fontFamily];
-      if (layer.glow !== undefined && "glow" in conf) conf.glow = layer.glow ? { color: layer.glow.color, blur: layer.glow.blur, layers: 2 } : undefined;
-      if (layer.gradient !== undefined && "gradient" in conf) conf.gradient = layer.gradient ? `180deg, ${layer.gradient.from}, ${layer.gradient.to}` : undefined;
-      applyLayerShadow(conf, layer.shadow);
-      if (layer.borderWidth !== undefined && "borderWidth" in conf) conf.borderWidth = layer.borderWidth;
-      if (layer.borderRadius !== undefined) {
-        if ("radius" in conf) conf.radius = layer.borderRadius;
-        else if ("borderRadius" in conf) conf.borderRadius = layer.borderRadius;
+      if ("fontFamily" in conf && "fontSize" in conf) {
+        if (layer.fontWeight !== undefined) conf.fontWeight = layer.fontWeight;
+        if (layer.fontFamily) conf.fontFamily = thumbnailFontFamily[layer.fontFamily];
+        if (layer.glow !== undefined) conf.glow = layer.glow ? { ...layer.glow, layers: 2 } : undefined;
+        if (layer.gradient !== undefined) conf.gradient = layer.gradient ? `linear-gradient(180deg, ${layer.gradient.from}, ${layer.gradient.to})` : undefined;
       }
-      if (layer.borderMode && "borderMode" in conf) conf.borderMode = layer.borderMode;
+      if ("radius" in conf) {
+        if (layer.borderRadius !== undefined) conf.radius = layer.borderRadius;
+        const panel = id === "top-panel" ? next.components.topPanel
+          : id === "combo" ? next.components.comboBadge : id === "difficulty" ? next.components.difficultyBadge
+          : id === "bpm" ? next.components.bpmBadge : id === "username" ? next.components.usernamePanel : undefined;
+        if (panel) {
+          if (layer.borderWidth !== undefined) panel.borderWidth = layer.borderWidth;
+          if (layer.borderMode) panel.borderMode = layer.borderMode;
+        }
+        const image = id === "avatar" ? next.components.avatar : id === "country-flag" ? next.components.countryFlag
+          : id === "mod-list" ? next.components.modList : id === "twitch-logo" ? next.components.twitchLogo : undefined;
+        if (image) {
+          if (layer.borderWidth !== undefined) image.border = { color: next.theme.accent, ...image.border, width: layer.borderWidth };
+          if (layer.borderMode) image.borderMode = layer.borderMode;
+        }
+      }
     }
     const row = layers?.["badge-row"];
     if (row) for (const badge of badges) {
       if (row.borderWidth !== undefined) badge.borderWidth = row.borderWidth;
       if (row.borderRadius !== undefined) badge.radius = row.borderRadius;
       if (row.borderMode) badge.borderMode = row.borderMode;
-      applyLayerShadow(badge, row.shadow);
-    }
-    if (dropShadow) {
-      applyLayerShadow(next.components.topPanel, dropShadow);
-      applyLayerShadow(next.components.avatar, dropShadow);
-      for (const badge of badges) if (!badge.boxShadow) applyLayerShadow(badge, dropShadow);
-      for (const key of ["status", "statusMiss", "mapTitle", "grade", "pp", "accuracy", "leaderboard"] as const)
-        applyLayerShadow(next.components[key], dropShadow, true);
     }
     return next;
-}
-function box(shadow: NonNullable<ThumbnailLayer["shadow"]>) {
-  return `${shadow.x}px ${shadow.y}px ${shadow.blur}px ${shadow.color}`;
-}
-function applyLayerShadow(conf: object | undefined, shadow: ThumbnailLayer["shadow"], keepExisting = false) {
-  if (!conf || shadow === undefined) return;
-  if (shadow === null) {
-    if ("boxShadow" in conf) (conf as { boxShadow?: string }).boxShadow = undefined;
-    if ("shadow" in conf) (conf as { shadow?: unknown }).shadow = undefined;
-    return;
-  }
-  if ("fontFamily" in conf && "borderWidth" in conf) {
-    const badge = conf as { boxShadow?: string };
-    if (!keepExisting || !badge.boxShadow) badge.boxShadow = box(shadow);
-    return;
-  }
-  if ("fontFamily" in conf && "fontSize" in conf) {
-    const text = conf as { shadow?: { offsetX: number; offsetY: number; blur: number; color: string } };
-    if (!keepExisting || !text.shadow) text.shadow = { offsetX: shadow.x, offsetY: shadow.y, blur: shadow.blur, color: shadow.color };
-    return;
-  }
-  if ("shadow" in conf) {
-    const panel = conf as { shadow?: { x: number; y: number; blur: number; color: string } };
-    if (!keepExisting || !panel.shadow) panel.shadow = { x: shadow.x, y: shadow.y, blur: shadow.blur, color: shadow.color };
-  }
 }
 function componentOf(template: ThumbnailTemplate, id: string) {
   const key = COMPONENT_BY_LAYER[id];

@@ -1,5 +1,5 @@
 import { useEditingText } from "../editable-text.js";
-import { useEffect } from "react";
+import { useEffect, cloneElement } from "react";
 import type { ThumbnailData } from "../shared/types/thumbnail";
 import type { ThumbnailTemplate } from "./types";
 import { computeTexts, withTextOverride } from "./texts";
@@ -55,7 +55,9 @@ function starColor(data: ThumbnailData, template: ThumbnailTemplate): string {
     }
     return template.components.starRating.color;
 }
-export function Thumbnail({ data, template, scale = 1, markReady = false, accentRange, }: {
+export function Thumbnail({ data, template, scale = 1, markReady = false, accentRange, onlyLayer, layerId, }: {
+    onlyLayer?: string;
+    layerId?: string;
     data: ThumbnailData;
     template: ThumbnailTemplate;
     scale?: number;
@@ -106,21 +108,23 @@ export function Thumbnail({ data, template, scale = 1, markReady = false, accent
     const isMissSizeOverridden = Boolean(template.fontSizeOverrides?.["status-miss"] || template.fontSizeOverrides?.["status"]);
     const statusMiss = {
         ...c.statusMiss,
-        fontSize: !isMissSizeOverridden && splitStatus ? c.statusMiss.fontSize * 0.75 : c.statusMiss.fontSize,
+        fontSize: !isMissSizeOverridden && splitStatus ? c.statusMiss.fontSize * .75 : c.statusMiss.fontSize,
+        ...(template.id === "reference" && splitStatus ? { y: 8, height: 145 } : {}),
         ...(template.id === "cute" && splitStatus
             ? { y: 230, height: 110, valign: "center" as const }
             : {}),
     };
     const statusSB = {
         ...c.statusSB,
+        ...(template.id === "reference" && !hasMisses ? { height: 205 } : {}),
         fontSize: isSbSizeOverridden
             ? c.statusSB.fontSize
             : template.id === "cute"
                 ? (splitStatus ? 58 : c.statusSB.fontSize)
             : splitStatus
-                ? c.statusSB.fontSize * 0.9
+                ? c.statusSB.fontSize
                 : !hasMisses
-                    ? c.statusMiss.fontSize * 0.75
+                    ? c.statusMiss.fontSize
                     : c.statusSB.fontSize,
         x: isSbPosOverridden
             ? c.statusSB.x
@@ -134,7 +138,7 @@ export function Thumbnail({ data, template, scale = 1, markReady = false, accent
             : template.id === "cute"
                 ? (splitStatus ? 345 : c.statusSB.y)
             : !hasMisses
-                ? c.statusMiss.y + 10
+                ? c.statusMiss.y
                 : c.statusSB.y,
         ...(template.id === "cute" && splitStatus
             ? { height: 70, valign: "center" as const }
@@ -163,92 +167,45 @@ export function Thumbnail({ data, template, scale = 1, markReady = false, accent
             cancelled = true;
         };
     }, [markReady, data, template]);
-    return (<div id="thumbnail-root" style={{
-            position: "relative",
-            width: canvas.width,
-            height: canvas.height,
-            transform: scale !== 1 ? `scale(${scale})` : undefined,
-            transformOrigin: "top left",
-            overflow: "hidden",
-            background: "#141414",
-            fontFamily: template.components.mapTitle.fontFamily,
-        }}>
-
-      <BackgroundLayer config={{
-            ...template.background,
-            source: data.backgroundUrl ?? template.background.source,
-            fallbacks: data.backgroundFallbacks ?? template.background.fallbacks,
-        }}/>
-
-
-      <PanelLayer config={c.topPanel} backgroundSrc={bgSrc}/>
-      <StarNotch config={c.starNotch} beatmapStatus={data.beatmapStatus}/>
-      {data.status.kind === "fc" && !hasSliderBreaks ? (<TextLayer config={c.status} testId="status">
-          {text("status")}
-        </TextLayer>) : (<>
-          {hasMisses ? (<TextLayer config={statusMiss} testId="status-miss">
-              {text("status")}
-            </TextLayer>) : null}
-          {hasSliderBreaks ? (<TextLayer config={statusSB} testId="status-sb">
-              {text("status-sb")}
-            </TextLayer>) : null}
-        </>)}
-      <TextLayer config={{ ...c.starRating, color: starColor(data, template) }} testId="star-rating">
-        {text("star-rating")}
-      </TextLayer>
-      <TextLayer config={c.pp} testId="pp">
-        {text("pp")}
-      </TextLayer>
-      <BadgeRow config={c.badgeRow}>
-        <BadgeLayer config={c.comboBadge} testId="combo" variant="row">
-          {text("combo")}
-        </BadgeLayer>
-        <BadgeLayer config={c.difficultyBadge} testId="difficulty" variant="row">
-          {visibleDifficulty}
-        </BadgeLayer>
-        <BadgeLayer config={c.bpmBadge} testId="bpm" variant="row">
-          {text("bpm")}
-        </BadgeLayer>
-      </BadgeRow>
-
-      {c.mapArtist ? (<TextLayer config={c.mapArtist} testId="map-artist">
-        {mapArtist}
-      </TextLayer>) : null}
-      <TextLayer config={c.mapTitle} testId="map-title">
-        {mapText}
-      </TextLayer>
-
-      <TextLayer config={{ ...grade, color: gradeColor(data, template) }} testId="grade">
-        {text("grade")}
-      </TextLayer>
-      <TextLayer config={c.accuracy} testId="accuracy">
-        {text("accuracy")}
-      </TextLayer>
-      <TextLayer config={{ ...c.leaderboard, color: leaderboardColor(data, template) }} testId="leaderboard">
-        {text("leaderboard")}
-      </TextLayer>
-
-
-      <Avatar url={data.avatarUrl} config={c.avatar}/>
-      <CountryFlag countryCode={data.countryCode} config={c.countryFlag}/>
-      <UsernamePanel username={text("username")} config={c.usernamePanel}/>
-      <ModList mods={data.mods} config={c.modList}/>
-
-      <TwitchLogo config={c.twitchLogo}/>
-
-      {c.innerBorder?.visible ? (<div data-layer="inner-border" style={{
-                position: "absolute",
-                inset: c.innerBorder.inset ?? 18,
-                border: c.innerBorder.border ?? "2px solid rgba(255, 255, 255, 0.35)",
-                borderRadius: c.innerBorder.borderRadius ?? 20,
-                boxShadow: "0 0 16px rgba(255, 255, 255, 0.12)",
-                pointerEvents: "none",
-                zIndex: 15,
-            }}/>) : null}
-
-      {c.sparkles?.visible ? (<CuteSparkles config={c.sparkles} color={template.theme.accent}/>) : null}
-
-
-      {c.bottomMessage?.visible ? (<BottomMessage text={text("bottom-text")} accentRange={accentRange} config={c.bottomMessage}/>) : null}
-    </div>);
+    const elements = {
+      "top-panel": <PanelLayer config={c.topPanel} backgroundSrc={bgSrc} />,
+      "star-notch": <StarNotch config={c.starNotch} beatmapStatus={data.beatmapStatus} />,
+      status: data.status.kind === "fc" && !hasSliderBreaks ? <TextLayer config={c.status} testId="status">{text("status")}</TextLayer> : null,
+      "status-miss": data.status.kind !== "fc" && hasMisses ? <TextLayer config={statusMiss} testId="status-miss">{text("status")}</TextLayer> : null,
+      "status-sb": hasSliderBreaks ? <TextLayer config={statusSB} testId="status-sb">{text("status-sb")}</TextLayer> : null,
+      "star-rating": <TextLayer config={{ ...c.starRating, color: starColor(data, template) }} testId="star-rating">{text("star-rating")}</TextLayer>,
+      pp: <TextLayer config={c.pp} testId="pp">{text("pp")}</TextLayer>,
+      combo: <BadgeLayer config={c.comboBadge} testId="combo" variant="row">{text("combo")}</BadgeLayer>,
+      difficulty: <BadgeLayer config={c.difficultyBadge} testId="difficulty" variant="row">{visibleDifficulty}</BadgeLayer>,
+      bpm: <BadgeLayer config={c.bpmBadge} testId="bpm" variant="row">{text("bpm")}</BadgeLayer>,
+      "map-artist": c.mapArtist ? <TextLayer config={c.mapArtist} testId="map-artist">{mapArtist}</TextLayer> : null,
+      "map-title": <TextLayer config={c.mapTitle} testId="map-title">{mapText}</TextLayer>,
+      grade: <TextLayer config={{ ...grade, color: gradeColor(data, template) }} testId="grade">{text("grade")}</TextLayer>,
+      accuracy: <TextLayer config={c.accuracy} testId="accuracy">{text("accuracy")}</TextLayer>,
+      leaderboard: <TextLayer config={{ ...c.leaderboard, color: leaderboardColor(data, template) }} testId="leaderboard">{text("leaderboard")}</TextLayer>,
+      avatar: <Avatar url={data.avatarUrl} config={c.avatar} />,
+      "country-flag": <CountryFlag countryCode={data.countryCode} config={c.countryFlag} />,
+      username: <UsernamePanel username={text("username")} config={c.usernamePanel} testId={layerId} />,
+      "mod-list": <ModList mods={data.mods} config={c.modList} />,
+      "twitch-logo": <TwitchLogo config={c.twitchLogo} />,
+      sparkles: c.sparkles?.visible ? <CuteSparkles config={c.sparkles} color={template.theme.accent} /> : null,
+      "bottom-message": c.bottomMessage?.visible ? <BottomMessage text={text("bottom-text")} accentRange={accentRange} config={c.bottomMessage} testId={layerId} /> : null,
+    };
+    const badges = <BadgeRow config={c.badgeRow}>{elements.combo}{elements.difficulty}{elements.bpm}</BadgeRow>;
+    if (onlyLayer) {
+      if (onlyLayer === "badge-row") return badges;
+      const element = elements[onlyLayer as keyof typeof elements];
+      if (!element) return null;
+      return "testId" in element.props ? cloneElement(element, { testId: layerId }) : element;
+    }
+    return <div id="thumbnail-root" style={{ position: "relative", width: canvas.width, height: canvas.height,
+      transform: scale !== 1 ? `scale(${scale})` : undefined, transformOrigin: "top left", overflow: "hidden",
+      background: "#141414", fontFamily: c.mapTitle.fontFamily }}>
+      <BackgroundLayer config={{ ...template.background, source: data.backgroundUrl ?? template.background.source, fallbacks: data.backgroundFallbacks ?? template.background.fallbacks }} />
+      {Object.entries(elements).filter(([id]) => !["combo", "difficulty", "bpm"].includes(id)).map(([id, element]) => element && cloneElement(element, { key: id }))}
+      {badges}
+      {c.innerBorder?.visible && <div data-layer="inner-border" style={{ position: "absolute", inset: c.innerBorder.inset ?? 18,
+        border: c.innerBorder.border ?? "2px solid rgba(255,255,255,.35)", borderRadius: c.innerBorder.borderRadius ?? 20,
+        boxShadow: "0 0 16px rgba(255,255,255,.12)", pointerEvents: "none", zIndex: 15 }} />}
+    </div>;
 }
