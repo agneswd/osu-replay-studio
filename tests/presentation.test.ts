@@ -5,15 +5,17 @@ import type { Timeline } from "../core/types.js";
 
 const timeline = { duration: 2.01, speed: 1.5 } as Timeline;
 
-test("the entrance starts with music and leaves one second before early gameplay", () => {
+test("the entrance holds one second before the first note regardless of song lead-in", () => {
   for (const speed of [.75, 1, 1.5]) for (const time of [0, 500, 1027, 10000]) {
     const map = { ...timeline, duration: 20, speed, hitObjects: [{ time }] } as Timeline;
     const first = firstNoteSeconds(map), start = introGameplayStart(map);
-    assert.equal(start, Math.min(0, first - 1));
-    assert.ok(first - start >= 1);
+    assert.equal(start, first - 1);
     const timing = presentationTiming(20, 60, true, first, start);
     assert.equal(timing.introEaseFrames / 60, 1.5);
     assert.equal(presentationAt(map, 0, 60, true).gameplayTime, timing.startFrame / 60);
+    const hitAt = presentationSeconds(timing, first, 60);
+    assert.ok(Math.abs(hitAt - timing.introFrames / 60 - 1.75) <= 1 / 60);
+    assert.equal(gameplayClock(timing, hitAt, 60).rate, 1);
     const args = compositeArgs("in.mp4", "out.mp4", 20, 60, true, 3, first, "anull", undefined, start);
     assert.equal(Number(args[args.indexOf("-ss") + 1]), 3 + timing.startFrame / 60);
     assert.equal(Number(args[args.indexOf("-t") + 1]), timing.duration);

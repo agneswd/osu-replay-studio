@@ -30,9 +30,9 @@ export function firstNoteSeconds(timeline: Timeline) {
   return (timeline.hitObjects?.[0]?.time ?? 0) / 1000 / timeline.speed;
 }
 
-// Start at the song origin, with at least one second before the first object.
+// Hold the replay one second before the first object, then accelerate from that position.
 export function introGameplayStart(timeline: Timeline) {
-  return Math.min(0, firstNoteSeconds(timeline) - gameplayLeadIn);
+  return firstNoteSeconds(timeline) - gameplayLeadIn;
 }
 
 export function presentationTiming(duration: number, fps: number, enabled = false, firstNote = 0, gameplayStart = firstNote - gameplayLeadIn) {

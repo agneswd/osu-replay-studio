@@ -5,7 +5,7 @@
 3. Re-simulate the replay, build sparse snapshots, and fetch optional online data.
 4. Create an isolated Danser runtime with only the selected map folder linked into Songs.
 5. Render gameplay with Danser 0.11.0. Disable its HUD, results screen and motion blur.
-6. Trim Danser startup. Start at the music origin, with at least one second before the first note when the intro is enabled.
+6. Trim Danser startup. Hold one second before the first note when the intro is enabled.
 7. Rasterize HUD and scene artwork once. Danser draws HUD sprites during the gameplay encode.
 8. For intro and outro, draw native sprites over gameplay with the same entrance clock and encode those segments.
 9. Join scene videos and gameplay by stream copy. Mix audio on one presentation clock.
@@ -25,7 +25,7 @@ visible state, so seeking backward uses the same values as forward playback.
 Optional intro and outro animations each run for 5.4 seconds.
 The intro starts closing at 4.1 seconds. Gameplay holds for one second, then accelerates from zero to 1x over 1.5 seconds.
 Motion starts beneath the final 0.3 seconds of the fading intro. Audio follows the same continuous clock.
-The source starts with the music, or earlier to leave at least one second before the first note.
+The frozen source frame is one second before the first note. Acceleration starts from that frame and reaches 1x before the note.
 Recorded cursor data and object animations finish, then gameplay fades into the dimmed background for one second before the outro. Map music ducks to half volume over 0.8 seconds and continues until the fade to black.
 The outro has no added sound effects.
 The audio mix ends at the video duration. Preview uses the same presentation clock.
