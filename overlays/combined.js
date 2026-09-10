@@ -54,7 +54,7 @@ let lastAccent;
 let sceneFrame;
 let sceneReady;
 window.prepareScenes = (timeline) => {
-  outroBackground.src = timeline.bgImage || "";
+  outroBackground.src = timeline.bgImage || "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"><path d="M0 0h1v1H0z"/></svg>');
   if (!sceneFrame) {
     sceneFrame = document.createElement("iframe");
     sceneFrame.title = "Score intro and outro";
