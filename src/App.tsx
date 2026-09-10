@@ -151,6 +151,19 @@ function PathRow({
   );
 }
 
+function fitAppTitle(title: HTMLHeadingElement | null) {
+  if (!title) return;
+  const text = title.firstElementChild!;
+  const update = () => {
+    title.style.visibility = text.getBoundingClientRect().width > title.getBoundingClientRect().width ? "hidden" : "";
+  };
+  const observer = new ResizeObserver(update);
+  observer.observe(title);
+  observer.observe(text);
+  update();
+  return () => observer.disconnect();
+}
+
 export function App() {
   const [options, setOptions] = useState<StudioDefaults>();
   const [timeline, setTimeline] = useState<Timeline>();
@@ -663,7 +676,7 @@ export function App() {
         <div className="flex min-w-0 items-center gap-3">
         <img src={appLogo} alt="" width={36} height={36} className="shrink-0" />
         <div className={`app-heading relative h-11 min-w-0 flex-1${timeline ? " has-replay" : ""}`}>
-          <h1 className="app-title text-base font-semibold">osu! Replay Studio</h1>
+          <h1 ref={fitAppTitle} className="app-title whitespace-nowrap text-base font-semibold"><span className="inline-block">osu! Replay Studio</span></h1>
           <p className="app-subtitle absolute bottom-0 h-5 w-full truncate text-sm text-muted">
             {timeline ? `${timeline.player} · ${timeline.title}` : ""}
           </p>
@@ -904,7 +917,7 @@ export function App() {
                   {ppStatus?.latest && ppStatus.latest.localeCompare(ppStatus.version, "en", { numeric: true }) > 0 && <p className="text-sm text-warning">osu! calculator {ppStatus.latest} is available upstream. Calculator updates are included in app releases.</p>}
                   {!ppStatus?.latest && <p className="text-sm text-muted">Update status unavailable.</p>}
                 </div>
-                {timeline?.warnings.filter(message => message.startsWith("Local PP")).map(message => <p key={message} className="text-xs text-muted">{message}</p>)}
+                {timeline?.warnings.map(message => <p key={message} className="text-xs text-muted">{message}</p>)}
                 <div className="flex flex-col gap-2">
                   <p className="text-sm font-medium">osu! connection</p>
                   <Input variant="secondary" aria-label="osu! client ID" placeholder="Client ID" value={clientId} onChange={event => setClientId(event.target.value)} autoComplete="off" />
