@@ -149,7 +149,8 @@ export function nativeAudioArgs(
     ? `,volume='1-${1 - outroMusicVolume}*min(1,max(0,(t-${duckAt})/${outroMusicTransition}))':eval=frame`
     : "";
   const sourceSeconds = music ? end - hold : timing.gameplayFrames / fps;
-  const audio = `atrim=duration=${sourceSeconds},asetpts=PTS-STARTPTS,aresample=48000,${filter}${duck},adelay=${Math.round(hold * 1000)}:all=1,apad=whole_dur=${end}`;
+  // Rebuild timestamps after delay so AAC retains the silent intro samples.
+  const audio = `atrim=duration=${sourceSeconds},asetpts=PTS-STARTPTS,aresample=48000,${filter}${duck},adelay=${Math.round(hold * 1000)}:all=1,asetpts=N/SR/TB,apad=whole_dur=${end}`;
   return [
     "-y",
     ...(music
