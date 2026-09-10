@@ -6,6 +6,11 @@ import { Layer, layerStyle } from "../Layer";
 import { fitFontSize } from "../Text/fit";
 import { TEXT_SHADOW_3D } from "../../../shared/formatting/color";
 import { resolveAssetUrl } from "../../../shared/assets/assetUrl";
+function badgeBorder(config: BadgeLayerConfig): CSSProperties {
+  const width = `${config.borderWidth}px solid ${config.borderColor}`;
+  if (config.borderMode === "bottom") return { border: "none", borderBottom: width, borderRadius: config.radius };
+  return { border: width, borderRadius: config.radius };
+}
 export function BadgeLayer({ config, children, testId, variant = "absolute", }: {
     config: BadgeLayerConfig;
     children: string;
@@ -54,22 +59,22 @@ export function BadgeLayer({ config, children, testId, variant = "absolute", }: 
             width: config.autoWidth ? "max-content" : config.width,
             minWidth: config.autoWidth ? config.width : undefined,
             background: config.background,
-            border: `${config.borderWidth}px solid ${config.borderColor}`,
-            borderRadius: config.radius,
+            ...badgeBorder(config),
             display: "flex",
             alignItems: "center",
             flex: "0 1 auto",
             overflow: "hidden",
+            boxShadow: config.boxShadow,
         }
         : layerStyle(config, {
             width: config.autoWidth ? "max-content" : config.width,
             minWidth: config.autoWidth ? config.width : undefined,
             height: config.height,
             background: config.background,
-            border: `${config.borderWidth}px solid ${config.borderColor}`,
-            borderRadius: config.radius,
+            ...badgeBorder(config),
             display: "flex",
             alignItems: "center",
+            boxShadow: config.boxShadow,
             ...(transform ? { transform } : {}),
         });
     return (<div style={shellStyle} data-layer={testId}>

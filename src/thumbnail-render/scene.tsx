@@ -23,7 +23,10 @@ export function ThumbnailScene({ timeline, value, scale = 1 }: { timeline: Timel
     data.status = value.status === "fc" ? { kind: "fc" } : data.missCount ? { kind: "miss", count: data.missCount } : { kind: "unknown" };
     data.isFullCombo = value.status === "fc";
   }
-  const overrides: EditorState = { accent: value.accent, twitchVisible: value.twitch, textOverrides: {}, colorOverrides: {}, fontSizeOverrides: {} };
+  const overrides: EditorState = {
+    accent: value.accent, twitchVisible: value.twitch, textOverrides: {}, colorOverrides: {}, fontSizeOverrides: {},
+    overlayOpacity: value.overlayOpacity, dropShadow: value.dropShadow, layers: value.layers,
+  };
   for (const [id, layer] of Object.entries(value.layers)) {
     if (layer.text !== undefined) overrides.textOverrides![textKeys[id] ?? id] = layer.text;
     if (layer.color) overrides.colorOverrides![id] = layer.color;
@@ -43,6 +46,18 @@ export function ThumbnailScene({ timeline, value, scale = 1 }: { timeline: Timel
   }, [value, template]);
   return <div ref={root} className="thumbnail-scene" style={{ width: 1280, height: 720, transform: `scale(${scale})`, transformOrigin: "top left", position: "relative" }}>
     <Thumbnail data={data} template={template} accentRange={value.accentRange} />
-    {value.customTexts.map(id => <TextLayer key={id} testId={id} config={{ visible: true, x: 420, y: 320, width: 500, maxWidth: 500, fontSize: value.layers[id]?.fontSize ?? 54, glow: value.layers[id]?.glow ?? undefined, fontWeight: 700, fontFamily: '"Baloo 2", sans-serif', color: value.layers[id]?.color ?? "#ffffff" }}>{value.layers[id]?.text ?? "Your text"}</TextLayer>)}
+    {value.customTexts.map(id => {
+      const layer = value.layers[id] ?? {};
+      return <TextLayer key={id} testId={id} config={{
+        visible: true, x: 420, y: 320, width: 500, maxWidth: 500,
+        fontSize: layer.fontSize ?? 54,
+        glow: layer.glow ?? undefined,
+        fontWeight: layer.fontWeight ?? 700,
+        fontFamily: layer.fontFamily === "fredoka" ? '"Fredoka", sans-serif' : layer.fontFamily === "montserrat" ? '"Montserrat", sans-serif' : '"Baloo 2", sans-serif',
+        color: layer.color ?? "#ffffff",
+        gradient: layer.gradient ? `180deg, ${layer.gradient.from}, ${layer.gradient.to}` : undefined,
+        shadow: layer.shadow ? { offsetX: layer.shadow.x, offsetY: layer.shadow.y, blur: layer.shadow.blur, color: layer.shadow.color } : undefined,
+      }}>{layer.text ?? "Your text"}</TextLayer>;
+    })}
   </div>;
 }

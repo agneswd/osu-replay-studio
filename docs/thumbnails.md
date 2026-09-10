@@ -12,7 +12,9 @@ Use arrow keys to move one design pixel. Hold Shift for ten pixels.
 Right-click for reset, visibility, and layer order. Alt-click cycles through overlapping elements.
 The context menu can select hidden or off-canvas elements.
 
-The editing controls sit below the preview. Use **Add text** for a custom caption. Change its color and font size in the selected-element controls. Enable **Text glow** to set its glow color and blur.
+The editing controls sit below the preview. Use **Add text** for a custom caption. **Duplicate** copies the selected element, including replay text. Ctrl+D does the same.
+Change color, font, weight, and font size in the selected-element controls. Enable **Text glow** on replay text and custom text. Enable **Gradient fill** for rank letters and other captions.
+Combo, difficulty, and BPM badges can use a bottom-only border, plus radius and thickness. The lower overlay slider darkens the bottom of the background. **Drop shadow** adds a shadow to cards and text.
 For bottom text, select words in the text field and choose **Accent selection**.
 Undo and redo keep one drag or resize as one action. Ctrl+Z undoes; Ctrl+Shift+Z redoes.
 Scroll the mouse wheel to zoom. Drag with the middle mouse button to pan. **Fit** restores the canvas view.

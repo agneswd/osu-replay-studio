@@ -58,6 +58,7 @@ export interface BadgeLayerConfig extends TextLayerConfig {
     background: string;
     borderColor: string;
     borderWidth: number;
+    borderMode?: "all" | "bottom";
     radius: number | string;
     paddingX?: number;
     autoWidth?: boolean;

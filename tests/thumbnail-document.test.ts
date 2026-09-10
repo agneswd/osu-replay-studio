@@ -49,3 +49,20 @@ test("custom text glow survives document serialization and rejects invalid effec
   value.layers["custom-glow"].glow = null;
   assert.doesNotThrow(() => validateThumbnailDocument(value));
 });
+
+test("replay text glow, badge borders, overlay, and drop shadow stay in the document", async () => {
+  const value = defaultThumbnail();
+  value.layers.grade = { glow: { color: "#ffe680", blur: 22 }, fontWeight: 700, fontFamily: "fredoka", gradient: { from: "#fff4b0", to: "#e7ce56" } };
+  value.layers["badge-row"] = { borderMode: "bottom", borderWidth: 3, borderRadius: 24 };
+  value.overlayOpacity = .4;
+  value.dropShadow = { x: 0, y: 10, blur: 16, color: "#000000" };
+  assert.doesNotThrow(() => validateThumbnailDocument(JSON.parse(JSON.stringify(value))));
+  const { applyOverrides } = await import("../src/thumbnail-render/thumbnail/overrides.js");
+  const { referenceTemplate } = await import("../src/thumbnail-render/thumbnail/templates/reference/template.js");
+  const next = applyOverrides(referenceTemplate, { layers: value.layers, overlayOpacity: .4, dropShadow: value.dropShadow });
+  assert.equal(next.components.grade.glow?.blur, 22);
+  assert.equal(next.components.comboBadge.borderMode, "bottom");
+  assert.equal(next.background.overlays.find(overlay => overlay.gradient?.startsWith("180deg"))?.opacity, .4);
+  value.overlayOpacity = 2;
+  assert.throws(() => validateThumbnailDocument(value), /overlay/);
+});
