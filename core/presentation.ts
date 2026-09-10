@@ -4,7 +4,7 @@ import { exportLoudness } from "./audio.js";
 // The two built-in animations each run for 5.4 seconds.
 export const sceneDuration = 5.4;
 export const introPause = 1;
-export const introEase = 1.5;
+export const introEase = 1;
 export const introExitStart = 4.1;
 export const outroPause = 1;
 export const endFadeStart = 4.65;

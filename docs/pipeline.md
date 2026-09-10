@@ -23,9 +23,9 @@ This mapping depends on Danser 0.11.0. Recheck it before upgrading Danser.
 The overlay has no wall-clock timers or network clients. Every frame replaces its
 visible state, so seeking backward uses the same values as forward playback.
 Optional intro and outro animations each run for 5.4 seconds.
-The intro starts closing at 4.1 seconds. Gameplay holds for one second, then accelerates from zero to 1x over 1.5 seconds.
-Motion starts beneath the final 0.3 seconds of the fading intro. Audio follows the same continuous clock.
-The frozen source frame is one second before the first note. Acceleration starts from that frame and reaches 1x before the note.
+The background starts clearing at 4.1 seconds. Gameplay holds for one second, then accelerates from zero to 1x over 1 second.
+Motion starts beneath the final 0.3 seconds of the magic-lamp close. Audio follows the same continuous clock.
+Music fades to half volume during acceleration, then returns to full volume over 0.25 seconds. The frozen source frame is one second before the first note. Acceleration starts from that frame and reaches 1x before the note.
 Recorded cursor data and object animations finish, then gameplay fades into the dimmed background for one second before the outro. Map music ducks to half volume over 0.8 seconds and continues until the fade to black.
 The outro has no added sound effects.
 The audio mix ends at the video duration. Preview uses the same presentation clock.

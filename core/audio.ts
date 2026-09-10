@@ -33,7 +33,7 @@ export function outroMusicArgs(gameplay: string, song: string, output: string,
     "-map", "[audio]", "-c:a", "pcm_s16le", "-ar", "48000", output];
 }
 
-// Resample only the entrance. Position is quadratic because speed rises linearly from 0 to 1.
+// Fade and resample the entrance. Position is quadratic because speed rises linearly from 0 to 1.
 export function entranceSamples(input: Float32Array, sampleRate: number, channels: number, seconds: number) {
   const output = new Float32Array(Math.round(seconds * sampleRate) * channels);
   for (let frame = 0; frame < output.length / channels; frame++) {
@@ -42,7 +42,7 @@ export function entranceSamples(input: Float32Array, sampleRate: number, channel
     for (let channel = 0; channel < channels; channel++) {
       const a = input[index * channels + channel] ?? 0;
       const b = input[(index + 1) * channels + channel] ?? a;
-      output[frame * channels + channel] = a + (b - a) * fraction;
+      output[frame * channels + channel] = (a + (b - a) * fraction) * (0.5 * frame / (seconds * sampleRate));
     }
   }
   return output;
@@ -50,6 +50,6 @@ export function entranceSamples(input: Float32Array, sampleRate: number, channel
 
 export function entranceAudioArgs(input: string, ramp: string, output: string, ease: number) {
   return ["-y", "-f", "f32le", "-ar", "48000", "-ac", "2", "-i", ramp, "-i", input,
-    "-filter_complex", `[1:a]aresample=48000,atrim=start=${ease / 2},asetpts=PTS-STARTPTS[tail];[0:a][tail]concat=n=2:v=0:a=1[audio]`,
+    "-filter_complex", `[1:a]aresample=48000,atrim=start=${ease / 2},asetpts=PTS-STARTPTS,aeval=val(ch)*(0.5+0.5*min(1\\,t/0.25)):c=same[tail];[0:a][tail]concat=n=2:v=0:a=1[audio]`,
     "-map", "[audio]", "-c:a", "pcm_f32le", output];
 }

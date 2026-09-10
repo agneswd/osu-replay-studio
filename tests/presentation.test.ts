@@ -11,10 +11,10 @@ test("the entrance holds one second before the first note regardless of song lea
     const first = firstNoteSeconds(map), start = introGameplayStart(map);
     assert.equal(start, first - 1);
     const timing = presentationTiming(20, 60, true, first, start);
-    assert.equal(timing.introEaseFrames / 60, 1.5);
+    assert.equal(timing.introEaseFrames / 60, 1);
     assert.equal(presentationAt(map, 0, 60, true).gameplayTime, timing.startFrame / 60);
     const hitAt = presentationSeconds(timing, first, 60);
-    assert.ok(Math.abs(hitAt - timing.introFrames / 60 - 1.75) <= 1 / 60);
+    assert.ok(Math.abs(hitAt - timing.introFrames / 60 - 1.5) <= 1 / 60);
     assert.equal(gameplayClock(timing, hitAt, 60).rate, 1);
     const args = compositeArgs("in.mp4", "out.mp4", 20, 60, true, 3, first, "anull", undefined, start);
     assert.equal(Number(args[args.indexOf("-ss") + 1]), 3 + timing.startFrame / 60);
@@ -22,7 +22,7 @@ test("the entrance holds one second before the first note regardless of song lea
   }
 });
 
-test("intro holds during the closing fade, eases into 1x, and fades gameplay for one second before the outro", () => {
+test("intro holds during the closing animation, eases into 1x, and fades gameplay for one second before the outro", () => {
   for (const fps of [30, 60]) {
     const timing = presentationTiming(timeline.duration, fps, true);
     const at = (frame: number) => presentationAt(timeline, frame / fps, fps, true);
