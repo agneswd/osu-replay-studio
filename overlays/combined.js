@@ -72,31 +72,37 @@ window.setReplayFrame = async (data, enabled, theme) => {
   await window.overlayReady;
   if (theme?.accent) applyTheme(theme.accent);
   const scene = theme?.scene;
-  const strength = scene ? Math.min(1, scene.kind === "intro" ? 1 : scene.time / .25, Math.max(0, (5.4 - scene.time) / .45)) : 0;
+  const transition = theme?.outroTransition ?? (scene?.kind === "outro" ? 1 : 0);
+  const eased = transition * transition * (3 - 2 * transition);
+  const introProgress = scene?.kind === "intro" ? Math.max(0, Math.min(1, (5.4 - scene.time) / 1.3)) : 0;
+  const strength = scene?.kind === "intro" ? introProgress * introProgress * (3 - 2 * introProgress) : eased;
   if (heldBackground) heldBackground.style.opacity = String(strength);
-  const hide = scene?.kind === "outro" ? Math.min(1, scene.time / .3) : 0;
+  const hide = eased;
   const dim = theme?.backgroundDim ?? .95;
-  outroBackground.style.display = !heldBackground && scene && outroBackground.getAttribute("src") ? "block" : "none";
-  outroBackground.style.opacity = String(scene?.kind === "intro" ? 1 : Math.min(1, (scene?.time ?? 0) / .25));
-  outroBackground.style.filter = `blur(${strength * 8}px) brightness(${(1 - dim) * (1 - strength * .45)})`;
-  endFade.style.opacity = String(scene?.kind === "intro" ? Math.max(0, 1 - scene.time / .6) : scene?.kind === "outro" ? Math.max(0, Math.min(1, (scene.time - 4.65) / .6)) : 0);
-  const hideEase = 1 - (1 - hide) ** 3;
+  outroBackground.style.display = !heldBackground && transition > 0 && outroBackground.getAttribute("src") ? "block" : "none";
+  outroBackground.style.opacity = String(eased);
+  outroBackground.style.filter = `blur(8px) brightness(${(1 - dim) * .55})`;
+  endFade.style.opacity = String(scene?.kind === "outro" ? Math.max(0, Math.min(1, (scene.time - 4.65) / .6)) : 0);
+  const hideEase = hide;
   if (sceneFrame) {
     sceneFrame.style.display = theme?.scene ? "block" : "none";
     if (theme?.scene) sceneFrame.contentWindow.seekScene(theme.scene.kind, theme.scene.time);
   }
   const custom = window.studioLayout.normalizeLayout(theme?.layout);
   for (const [id, iframe] of frames) {
-    iframe.style.display = enabled.includes(id) && hide < 1 ? "block" : "none";
-    iframe.style.opacity = String(1 - hideEase);
+    const persistent = id === "leaderboard" || id === "progress-graph";
+    iframe.style.display = enabled.includes(id) && (persistent || hide < 1) ? "block" : "none";
+    iframe.style.opacity = String(persistent ? 1 : 1 - hideEase);
     const [x, y, , , baseScale] = layout[id];
     const item = custom.overlays[id], scale = baseScale * item.scale;
     iframe.style.left = `${item.x}px`;
     iframe.style.top = `${item.y}px`;
     iframe.style.zIndex = String(item.z);
-    iframe.style.transform = `translate(${x < 320 ? -hideEase * 35 : 0}px,${y > 900 ? hideEase * 25 : x >= 320 ? -hideEase * 25 : 0}px) scale(${scale})`;
-    iframe.style.filter = `blur(${strength * 2.5}px) brightness(${1 - strength * .75})`;
-    if (enabled.includes(id) && hide < 1) iframe.contentWindow.renderReplayFrame(data);
+    iframe.style.transform = `scale(${scale})`;
+    iframe.style.filter = persistent && transition > 0 ? "none" : `blur(${strength * 2.5}px) brightness(${1 - strength * .75})`;
+    if (enabled.includes(id) && (persistent || hide < 1)) iframe.contentWindow.renderReplayFrame(data);
+    if (id === "leaderboard") for (const mods of iframe.contentDocument.querySelectorAll(".mods"))
+      mods.style.opacity = String(theme?.gameplayUnderlay ? eased : 1);
   }
 };
 let scenePreparation = Promise.resolve();
@@ -118,6 +124,8 @@ addEventListener("message", async (event) => {
       layout: event.data.layout,
       accent: event.data.accent,
       scene: event.data.scene,
+      outroTransition: event.data.outroTransition,
+      gameplayUnderlay: event.data.gameplayUnderlay,
       backgroundDim: event.data.backgroundDim,
     });
 });

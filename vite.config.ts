@@ -41,6 +41,8 @@ function serveStatic(urlPrefix: string, dir: string): Plugin {
 
 export default defineConfig({
   base: "./",
+  // Load our patched renderer directly. Vite's dependency cache does not track these local patches.
+  optimizeDeps: { exclude: ["replayviewer-js"] },
   server: { watch: { ignored: ["**/danser/**", "**/runtime/**", "**/release/**", "**/renders/**", "**/calculator/**", "**/dist/**", "**/.runtime/**"] } },
   build: { outDir: "dist/ui" },
   plugins: [

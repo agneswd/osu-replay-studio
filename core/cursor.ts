@@ -1,4 +1,13 @@
 import type { Timeline } from "./types.js";
+import type { ReplayFrame } from "replayviewer-js";
+
+// Skip stable's off-screen startup markers without changing the recorded cursor clock.
+export function visibleCursorFrames(frames: ReplayFrame[]): ReplayFrame[] {
+  const start = frames.findIndex(frame => frame.x >= 0 && frame.x <= 512 && frame.y >= 0 && frame.y <= 384);
+  if (start <= 0) return frames;
+  const firstTime = frames.slice(0, start + 1).reduce((time, frame) => time + frame.timeDelta, 0);
+  return [{ ...frames[start], timeDelta: firstTime }, ...frames.slice(start + 1)];
+}
 
 // Danser expands the skin cursor for 100 ms after an input changes.
 export function cursorExpansion(frames: NonNullable<Timeline["replayFrames"]>, speed: number) {

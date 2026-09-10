@@ -1,3 +1,4 @@
+import { introExitStart, sceneDuration } from "../../../core/presentation.js";
 import type { OverlayData } from "./types";
 import type { PlaycountSpline } from "./spline";
 
@@ -60,6 +61,7 @@ export type OutroMotion = {
   leftFlyout: LayerMotion;
   rightFlyout: LayerMotion;
   rightItems: number[];
+  leftItems: number[];
   bottomTime: number;
   container: number;
 };
@@ -152,7 +154,7 @@ export function introMotion(t: number, data: OverlayData, spline?: PlaycountSpli
     motion.yearProgress = 1;
     motion.hours = data.player.hours;
     motion.playcount = data.player.playcount;
-  } else if (t < 4.70) {
+  } else if (t < introExitStart) {
     motion.topMap = layer(1);
     motion.bottomMap = layer(1);
     const detailsEase = easeMotionDecel(clampProgress((t - 3.06) / 0.28));
@@ -162,15 +164,15 @@ export function introMotion(t: number, data: OverlayData, spline?: PlaycountSpli
     motion.topMap = layer(1);
     motion.bottomMap = layer(1);
     motion.starFooter = layer(1);
-    const pClose = clampProgress((t - 4.85) / .55);
-    const pull = pClose * pClose;
+    const pClose = clampProgress((t - introExitStart) / (sceneDuration - introExitStart));
+    const pull = pClose * pClose * (3 - 2 * pClose);
     motion.widget = {
-      opacity: 1 - clampProgress((pClose - .82) / .18),
+      opacity: 1 - pull,
       x: 0,
-      y: 760 * pull,
+      y: 48 * pull,
       scale: 1,
-      rotateX: -65 * Math.sin(pClose * Math.PI / 2),
-      perspective: 1200 - 900 * pClose,
+      rotateX: 0,
+      perspective: 1200,
       originTop: true,
     };
   }
@@ -192,17 +194,6 @@ export function introMotion(t: number, data: OverlayData, spline?: PlaycountSpli
   if (motion.peakProgress < peakThreshold) motion.peakProgress = 0;
   else motion.peakProgress = easeMotionDecel(clampProgress((motion.peakProgress - peakThreshold) / 0.15));
   return motion;
-}
-
-export function widgetCloseScale(t: number) {
-  const pClose = clampProgress((t - 4.85) / .55);
-  const pull = pClose * pClose;
-  return {
-    pClose,
-    pull,
-    scaleX: 1 - .98 * pull,
-    scaleY: 1 + .8 * Math.sin(pClose * Math.PI),
-  };
 }
 
 export function outroMotion(t: number): OutroMotion {
@@ -238,6 +229,7 @@ export function outroMotion(t: number): OutroMotion {
     grade,
     leftFlyout: flyout(1.10, 2.10, 90),
     rightFlyout: flyout(1.15, 2.15, -90),
+    leftItems: [0, 1, 2, 3, 4, 5].map(index => easeMotionDecel(clampProgress((t - 1.10 - index * .12) / .55))),
     rightItems: [0, 1, 2, 3, 4].map(index => easeMotionDecel(clampProgress((t - 1.15 - index * .07) / .55))),
     bottomTime: t < 1.80 ? 0 : t < 2.50 ? clampProgress((t - 1.80) / 0.70) : 1,
     container: t >= 5.10 ? Math.max(0, 1 - (t - 5.10) / 0.30) : 1,

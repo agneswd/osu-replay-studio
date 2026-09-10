@@ -261,6 +261,13 @@ async function create(t: Timeline, o: RenderOptions) {
     c.fillStyle = "white";
     c.fillRect(0, 0, 1, 1);
   });
+  const avatarShadow = art("avatar-shadow", 106, 106, c => {
+    c.shadowColor = "rgba(0,0,0,.75)";
+    c.shadowOffsetY = 3;
+    c.shadowBlur = 12;
+    c.fillStyle = "#000";
+    c.beginPath(); c.roundRect(16, 16, 74, 74, 7); c.fill();
+  });
   const tick = art("tick", 4, 22, (c) => {
     c.fillStyle = "white";
     c.beginPath();
@@ -522,6 +529,7 @@ async function create(t: Timeline, o: RenderOptions) {
       text(countryRank, x(560), y(10), 21, white, 1, "right");
       if (flag && images.has(`${flag}:28:22`))
         sprite(images.get(`${flag}:28:22`)!, x(566), y(9), 24.5, 19.25);
+      sprite(avatarShadow, x(603 - 16), y(-16), 92.75, 92.75);
       const avatar = images.get(`${t.playerAvatar}:74:74`);
       if (avatar) sprite(avatar, x(603), y(0), 64.75, 64.75);
       else rect(x(603), y(0), 64.75, 64.75, "#292929");
@@ -790,6 +798,7 @@ async function create(t: Timeline, o: RenderOptions) {
           );
           if (image) {
             sprite(image, mx, y + 14, 18, 18, rgb("#ffffff", a), clip);
+            frame.sprites.at(-1)!.underlay = true;
             mx += 16;
           }
         }
@@ -803,22 +812,6 @@ async function create(t: Timeline, o: RenderOptions) {
         1,
         "center",
       );
-    }
-    if (o.introOutro) {
-      const end = Math.min(o.duration ?? t.duration, t.duration);
-      const last = (Math.max(1, Math.ceil(end * o.fps)) - 1) / o.fps;
-      const hide = Math.min(1, Math.max(0, (seconds - (last - 0.3)) / 0.3));
-      if (hide > 0) {
-        const e = 1 - (1 - hide) ** 3;
-        const apply = (s: HudSprite) => {
-          s.color = [s.color[0], s.color[1], s.color[2], s.color[3] * (1 - e)];
-          if (s.x < 320) s.x -= e * 35;
-          else if (s.y > 900) s.y += e * 25;
-          else s.y -= e * 25;
-        };
-        frame.sprites.forEach(apply);
-        frame.ticks.forEach(apply);
-      }
     }
     return frame;
   }

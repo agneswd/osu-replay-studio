@@ -4,7 +4,7 @@
 
 :root,
 .showcase-intro-container {
-  --font-main: "Plus Jakarta Sans", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-main: "Exo 2", sans-serif;
 }
 
 .showcase-intro-container {
@@ -200,8 +200,8 @@
 .showcase-grade-rank {
   position: relative;
   z-index: 3;
-  font-family: "Teko", "Impact", -apple-system, sans-serif;
-  font-size: 240px;
+  font-family: var(--font-main);
+  font-size: 280px;
   font-weight: 700;
   line-height: 1;
   color: #E2BC43;
@@ -402,7 +402,7 @@
   left: 5px;
   top: 50%;
   transform: translateY(-50%);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  font-family: var(--font-main);
   font-size: 15px;
   font-weight: 800;
   line-height: 1;
@@ -671,3 +671,7 @@
 
 .showcase-hit-box.h50 { background: #E8C547; }
 .showcase-hit-box.hsb { background: #8B8F98; }
+
+.showcase-grade-rank.rank-ss { font-size: 210px; }
+
+.showcase-body { position: absolute; inset: 0; transform: scale(.7); transform-origin: 480px 290px; }

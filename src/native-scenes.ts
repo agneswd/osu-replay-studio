@@ -1,7 +1,7 @@
 import { normalizeOverlayAccent, type RenderOptions, type Timeline } from "../core/types.js";
 import type { HudBatch, HudFrame, HudSprite } from "../core/native-hud.js";
 import { overlayData, sceneFlags } from "./score-scenes/data.js";
-import { introMotion, outroMotion, widgetCloseScale } from "./score-scenes/widgets/motion.js";
+import { introMotion, outroMotion } from "./score-scenes/widgets/motion.js";
 import { buildPlaycountSpline } from "./score-scenes/widgets/spline.js";
 import { scenePalette } from "./score-scenes/widgets/themes.js";
 import { modColor, modAssetPath } from "./mod-badges.js";
@@ -80,11 +80,11 @@ function formatScoreNumber(val: string | number) {
 
 export async function createNativeScenes(timeline: Timeline, options: RenderOptions) {
   await Promise.all([
-    document.fonts.load('700 16px "Plus Jakarta Sans"'),
-    document.fonts.load('800 24px "Plus Jakarta Sans"'),
-    document.fonts.load('500 22px "Plus Jakarta Sans"'),
-    document.fonts.load('700 240px Teko'),
-    document.fonts.load('500 24px "Scene Tabular"'),
+    document.fonts.load('700 16px "Exo 2"'),
+    document.fonts.load('800 24px "Exo 2"'),
+    document.fonts.load('500 22px "Exo 2"'),
+    document.fonts.load('700 280px "Exo 2"'),
+    document.fonts.load('500 24px "Exo 2 Tabular"'),
   ]);
   await document.fonts.ready;
   const data = overlayData(timeline);
@@ -114,7 +114,7 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
     return save(key, c, pad);
   };
   const measure = canvas(1, 1).getContext("2d")!;
-  const widthOf = (value: string, size: number, weight = 700, font = '"Plus Jakarta Sans"') => {
+  const widthOf = (value: string, size: number, weight = 700, font = '"Exo 2"') => {
     measure.font = `${weight} ${size}px ${font}`;
     return measure.measureText(value).width;
   };
@@ -135,7 +135,7 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
     baselines.set(key, value);
     return value;
   };
-  const label = (value: string, size: number, color: string, weight = 700, shadow = true, font = '\"Plus Jakarta Sans\"', lineHeight = 0, spacing = 0) =>
+  const label = (value: string, size: number, color: string, weight = 700, shadow = true, font = '\"Exo 2\"', lineHeight = 0, spacing = 0) =>
     art(`label:${font}:${weight}:${size}:${color}:${shadow}:${lineHeight}:${spacing}:${value}`, widthOf(value, size, weight, font) + spacing * value.length + 16, size * 1.5 + 16, c => {
       c.font = `${weight} ${size}px ${font}`;
       c.letterSpacing = `${spacing}px`;
@@ -303,17 +303,17 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
       c.lineTo(425, tick.y);
       c.stroke();
     }
-    c.font = '600 8.5px "Plus Jakarta Sans"';
+    c.font = '600 8.5px "Exo 2"';
     c.textAlign = "right";
     c.fillStyle = palette.dim;
-    for (const tick of spline.yTicks) c.fillText(tick.label, 16, tick.y - 8 + baseline(8.5, 600, '\"Plus Jakarta Sans\"', 16));
+    for (const tick of spline.yTicks) c.fillText(tick.label, 16, tick.y - 8 + baseline(8.5, 600, '\"Exo 2\"', 16));
   });
   const years = art("chart-years", 430, 140, c => {
-    c.font = '600 8.5px "Plus Jakarta Sans"';
+    c.font = '600 8.5px "Exo 2"';
     c.fillStyle = palette.dim;
     spline.yearTicks.forEach((tick, i) => {
       c.textAlign = i === spline.yearTicks.length - 1 ? "right" : "center";
-      c.fillText(String(tick.year), tick.x, 127 + baseline(8.5, 600, '\"Plus Jakarta Sans\"', 16));
+      c.fillText(String(tick.year), tick.x, 127 + baseline(8.5, 600, '\"Exo 2\"', 16));
     });
   });
   const chartPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
@@ -363,8 +363,8 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
   const mapChart = art("map-chart", 430, 100, c => {
     if (retryCount < 2) return;
     c.strokeStyle = "rgba(255,255,255,0.08)"; c.lineWidth = 1;
-    c.font = '600 8.5px "Plus Jakarta Sans"'; c.fillStyle = palette.dim;
-    const labelY = baseline(8.5, 600, '\"Plus Jakarta Sans\"', 16);
+    c.font = '600 8.5px "Exo 2"'; c.fillStyle = palette.dim;
+    const labelY = baseline(8.5, 600, '\"Exo 2\"', 16);
     const format = (n: number) => n >= 1e6 ? `${(n / 1e6).toFixed(1)}m` : n >= 1e3 ? `${+(n / 1e3).toFixed(1)}k` : String(Math.round(n));
     for (const fraction of [0, 0.5, 1]) {
       const y = 78 - fraction * 63;
@@ -383,8 +383,8 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
     c.stroke(new Path2D(retryPath));
   });
   const mapCaption = art("map-caption", 436, 11, c => {
-    c.font = 'italic 400 9px "Plus Jakarta Sans"'; c.textAlign = "right"; c.fillStyle = palette.muted;
-    c.fillText("Fails and exits by map progress", 436, baseline(9, 400, '\"Plus Jakarta Sans\"', 0));
+    c.font = 'italic 400 9px "Exo 2"'; c.textAlign = "right"; c.fillStyle = palette.muted;
+    c.fillText("Fails and exits by map progress", 436, baseline(9, 400, '\"Exo 2\"', 0));
   });
 
   const pillTrack = (code: string) => art(`pill:${code}`, 180, 14, c => {
@@ -440,19 +440,20 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
 
   const silverGrade = flags.silverGrade && ["S", "SS"].includes(data.score!.rank);
   const gradeColor = silverGrade ? "#edf3fa" : data.score!.rank === "A" ? "#baff9c" : data.score!.rank === "B" ? "#b2e3ff" : data.score!.rank === "C" ? "#dda9f0" : data.score!.rank === "D" ? "#ef9eaa" : "#ffdb79";
-  const grade = art("grade", 280, 280, c => {
-    c.font = '700 240px Teko';
+  const gradeSize = data.score!.rank === "SS" ? 210 : 280;
+  const grade = art("grade", 380, 380, c => {
+    c.font = `700 ${gradeSize}px "Exo 2"`;
     c.textAlign = "center";
     c.textBaseline = "alphabetic";
     c.fillStyle = gradeColor;
-    const y = 20 + baseline(240, 700, "Teko", 240);
+    const y = (380 - gradeSize) / 2 + baseline(gradeSize, 700, '"Exo 2"', gradeSize);
     c.shadowColor = silverGrade ? "rgba(230,237,242,0.6)" : data.score!.rank === "A" ? "rgba(81,207,102,0.6)" : data.score!.rank === "B" ? "rgba(51,154,240,0.6)" : "rgba(226,188,67,0.6)";
     c.shadowBlur = 64;
-    c.fillText(data.score!.rank, 140, y);
+    c.fillText(data.score!.rank, 190, y);
     c.shadowColor = silverGrade ? "rgba(0,0,0,0.6)" : "rgba(0,0,0,0.9)";
     c.shadowBlur = 40;
     c.shadowOffsetY = 8;
-    c.fillText(data.score!.rank, 140, y);
+    c.fillText(data.score!.rank, 190, y);
   });
 
   const starRibbon = art("star-ribbon", 40, 36, c => {
@@ -468,13 +469,13 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
     drawStar(c, 20, 10, 7, "#fff");
   });
 
-  const starValueWidth = widthOf(data.map.sr, 24, 800, '\"Scene Tabular\"') + data.map.sr.length * 0.3;
+  const starValueWidth = widthOf(data.map.sr, 24, 800, '\"Exo 2 Tabular\"') + data.map.sr.length * 0.3;
   const starValue = art("star-value", starValueWidth, 30, c => {
-    c.font = '800 24px "Scene Tabular"'; c.letterSpacing = "0.3px";
+    c.font = '800 24px "Exo 2 Tabular"'; c.letterSpacing = "0.3px";
     c.fillStyle = "#F8D153"; c.shadowColor = "rgba(248,209,83,0.7)"; c.shadowBlur = 32;
-    c.fillText(data.map.sr, 0, baseline(24, 800, '\"Scene Tabular\"', 0));
+    c.fillText(data.map.sr, 0, baseline(24, 800, '\"Exo 2 Tabular\"', 0));
     c.shadowColor = "rgba(0,0,0,0.8)"; c.shadowBlur = 8; c.shadowOffsetY = 4;
-    c.fillText(data.map.sr, 0, baseline(24, 800, '\"Scene Tabular\"', 0));
+    c.fillText(data.map.sr, 0, baseline(24, 800, '\"Exo 2 Tabular\"', 0));
   }, 24);
 
   const modIcon = (mod: string, size: number, radius: number) => {
@@ -522,7 +523,7 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
     c.fillStyle = palette.plateTop;
     roundRect(c, 0, 0, w, h, 3);
     c.fill();
-    c.font = '500 12px "Plus Jakarta Sans"';
+    c.font = '500 12px "Exo 2"';
     c.fillStyle = "#fff";
     c.textAlign = "center";
     c.textBaseline = "middle";
@@ -536,7 +537,7 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
     ...(data.score!.sliderBreaks ? [{ color: "#8B8F98", value: String(data.score!.sliderBreaks), padLeft: 12 }] : []),
     { color: "#DE6984", value: String(data.score!.countMiss), padLeft: 12 },
   ];
-  const hitWidths = hitBoxes.map(box => box.padLeft + widthOf(box.value, 19, 500, '"Scene Tabular"') + 12);
+  const hitWidths = hitBoxes.map(box => box.padLeft + widthOf(box.value, 19, 500, '"Exo 2 Tabular"') + 12);
   const hitsW = hitWidths.reduce((sum, w) => sum + w, 0);
   const hitsStrip = skewPaint("hits-strip", hitsW, 29, -18, (c, w, h) => {
     roundRect(c, 0, 0, w, h, 3);
@@ -550,12 +551,12 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
       c.save();
       c.translate(x + box.padLeft + (bw - box.padLeft - 12) / 2, h / 2);
       c.transform(1, 0, Math.tan(rad), 1, 0, 0);
-      c.font = '500 19px "Scene Tabular"';
+      c.font = '500 19px "Exo 2 Tabular"';
       c.fillStyle = "#fff";
       c.textAlign = "center";
       c.textBaseline = "middle";
       c.textBaseline = "alphabetic";
-      c.fillText(box.value, 0, baseline(19, 500, '"Plus Jakarta Sans"', 19) - 19 / 2);
+      c.fillText(box.value, 0, baseline(19, 500, '"Exo 2"', 19) - 19 / 2);
       c.restore();
       x += bw;
     });
@@ -604,7 +605,7 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
   const text = (value: string, x: number, y: number, size: number, color: string, alpha = 1, weight = 700, align: "left" | "right" | "center" = "left", shadow = true, style: { lineHeight?: number; spacing?: number; tabular?: boolean; font?: string } = {}) => {
     const { lineHeight = 0, spacing = 0, tabular = false } = style;
     if (!value || alpha <= 0) return;
-    const font = style.font ?? (tabular ? '"Scene Tabular"' : '"Plus Jakarta Sans"');
+    const font = style.font ?? (tabular ? '"Exo 2 Tabular"' : '"Exo 2"');
     const s = label(value, size, color, weight, shadow, font, lineHeight, spacing);
     const tw = widthOf(value, size, weight, font) + spacing * value.length;
     const at = align === "right" ? x - tw : align === "center" ? x - tw / 2 : x;
@@ -617,7 +618,6 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
     const ox = widgetX + m.widget.x, oy = widgetY + m.widget.y;
     const a = m.widget.opacity;
     if (a <= 0) return frame;
-    const close = t >= 4.70;
     const layers: { s: Sprite; x: number; y: number; w?: number; h?: number; color?: HudSprite["color"]; clip?: HudSprite["clip"] }[] = [];
     let cardClip: HudSprite["clip"] | undefined;
     const add: Draw = (s, x, y, w, h, color, clip) => {
@@ -722,7 +722,7 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
           text("Favs:", ox + 33, barY + 3.5, 11, "rgba(255,255,255,0.85)", barA, 600, "left", false);
           const favX = ox + 33 + widthOf("Favs:", 11, 600) + 4;
           text(comma(m.favs), favX, barY + 3.5, 11, "rgba(255,255,255,0.85)", barA, 600, "left", false, { tabular: true });
-          const playX = favX + widthOf(comma(m.favs), 11, 600, '\"Scene Tabular\"') + 14;
+          const playX = favX + widthOf(comma(m.favs), 11, 600, '\"Exo 2 Tabular\"') + 14;
           const playSmall = art("play-icon-sm", 12, 12, c => drawPlay(c, 0, 0, 12, accent));
           add(playSmall, playX, barY + 4, 12, 12, rgb("#ffffff", barA));
           text("Plays:", playX + 16, barY + 3.5, 11, "rgba(255,255,255,0.85)", barA, 600, "left", false);
@@ -773,7 +773,7 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
         drawStar(c, 7.5, 7.5, 7.5);
       }, 8);
       const values = [data.map.sr, "•", data.map.bpm];
-      const widths = values.map(value => widthOf(value, 14, 700, '\"Scene Tabular\"') - value.length * 0.2);
+      const widths = values.map(value => widthOf(value, 14, 700, '\"Exo 2 Tabular\"') - value.length * 0.2);
       let x = ox + (widgetW - 15 - 18 - widths.reduce((a, b) => a + b, 0)) / 2;
       const starSize = 15 * m.starScale;
       add(star, x + (15 - starSize) / 2, fy + (18 - starSize) / 2, starSize, starSize, rgb("#ffffff", m.starFooter.opacity * a));
@@ -797,14 +797,6 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
     });
 
     draw = sprite;
-    if (close) {
-      const edge = 24;
-      const composed = composeLayers(layers, ox - edge, oy - edge, widgetW + edge * 2, widgetH + 40 + edge * 2);
-      const warped = warpClose(composed, t);
-      const s = save(`close:${t.toFixed(4)}`, warped.canvas);
-      sprite(s, warped.x, warped.y);
-      return frame;
-    }
     for (const item of layers) sprite(item.s, item.x, item.y, item.w, item.h, item.color, item.clip);
     return frame;
   }
@@ -814,7 +806,7 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
     add(hourIcon, x, y + (size === 11 ? 0.5 : 3), 12, 12, rgb("#ffffff", alpha));
     const hoursText = comma(hours);
     text(hoursText, x + 17, y, size, "rgba(255,255,255,0.85)", alpha, 600, "left", false, { tabular: true });
-    const hoursEnd = x + 17 + widthOf(hoursText, size, 600, '\"Scene Tabular\"') + 5;
+    const hoursEnd = x + 17 + widthOf(hoursText, size, 600, '\"Exo 2 Tabular\"') + 5;
     text("hours", hoursEnd, y, size, "rgba(255,255,255,0.85)", alpha, 600, "left", false);
     const playX = hoursEnd + widthOf("hours", size, 600) + 18;
     const play = art("play-icon", 12, 12, c => drawPlay(c, 0, 0, 12, accent));
@@ -846,44 +838,6 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
     return c;
   }
 
-  function warpClose(src: HTMLCanvasElement, t: number) {
-    const { pClose, pull, scaleX, scaleY } = widgetCloseScale(t);
-    const perspective = (distance: number) => {
-      const matrix = new DOMMatrix();
-      matrix.m34 = -1 / distance;
-      return matrix;
-    };
-    // CSS applies scale before rotation, then the widget and stage perspectives.
-    // The source includes 24px of shadow padding around the widget.
-    const matrix = new DOMMatrix().translate(480, 270)
-      .multiply(perspective(1200)).translate(-480, -270)
-      .translate(widgetX + widgetW / 2, widgetY + 760 * pull)
-      .multiply(perspective(1200 - 900 * pClose))
-      .rotateAxisAngle(1, 0, 0, -65 * Math.sin(pClose * Math.PI / 2))
-      .scale(scaleX, scaleY).translate(-widgetW / 2 - 24, -24);
-    const project = (x: number, y: number) => {
-      const point = matrix.transformPoint({ x, y });
-      return { x: point.x / point.w, y: point.y / point.w };
-    };
-    const sw = src.width / 2, sh = src.height / 2;
-    const corners = [project(0, 0), project(sw, 0), project(0, sh), project(sw, sh)];
-    const x = Math.floor(Math.min(...corners.map(p => p.x)) * 2) / 2;
-    const y = Math.floor(Math.min(...corners.map(p => p.y)) * 2) / 2;
-    const right = Math.ceil(Math.max(...corners.map(p => p.x)) * 2) / 2;
-    const bottom = Math.min(540, Math.ceil(Math.max(...corners.map(p => p.y)) * 2) / 2);
-    const out = canvas((right - x) * 2, Math.max(1, (bottom - y) * 2));
-    const c = out.getContext("2d")!;
-    // Inverse-map destination rows to avoid gaps and overlapping source strips.
-    for (let row = 0; row < out.height; row++) {
-      const targetY = y + (row + 0.5) / 2;
-      const sourceY = (matrix.m42 - targetY * matrix.m44) / (targetY * matrix.m24 - matrix.m22);
-      if (sourceY < 0 || sourceY >= sh) continue;
-      const left = project(0, sourceY).x, right = project(sw, sourceY).x;
-      c.drawImage(src, 0, sourceY * 2 - 0.5, src.width, 1, (left - x) * 2, row, (right - left) * 2, 1);
-    }
-    return { canvas: out, x, y };
-  }
-
   function drawOutro(t: number): HudFrame {
     frame = { sprites: [], ticks: [] };
     draw = sprite;
@@ -905,6 +859,8 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
 
     const rows = [[190, 96], [228, 87], [266, 82], [304, 84], [342, 92], [380, 109]] as const;
     (data.topScores ?? []).forEach((play, i) => {
+      const leftA = (m.leftItems[i] ?? 1) * a;
+      const leftX = 90 * (1 - (m.leftItems[i] ?? 1));
       const [top, left] = rows[i] ?? rows[5];
       const playCover = art(`play:${i}`, 44, 27, c => {
         roundRect(c, 0, 0, 44, 27, 4); c.clip();
@@ -918,7 +874,7 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
       });
       sprite(playCover, left + 2 + leftX, top + 2.5, 44, 27, rgb("#ffffff", leftA));
       const rank = play.rank.toUpperCase().replace(/H$/, "");
-      text(rank, left + 8 + leftX, top + 8.5, 15, playRankColor(rank, play.mods), leftA, 800, "left", true, { lineHeight: 15, font: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif' });
+      text(rank, left + 8 + leftX, top + 8.5, 15, playRankColor(rank, play.mods), leftA, 800, "left", true, { lineHeight: 15, font: '"Exo 2"' });
       const chars = Array.from(play.title);
       let title = chars.length > 18 ? `${chars.slice(0, 18).join("").trimEnd()}...` : play.title;
       if (widthOf(title, 11, 600) + title.length * 0.1 > 144) {
@@ -950,7 +906,7 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
     const cx = 480, cy = 290 + m.lens.y;
     sprite(lens, cx - 190 * ls, cy - 190 * ls, 380 * ls, 380 * ls, rgb("#ffffff", lensA));
     const gs = ls * m.grade.scale;
-    sprite(grade, cx - 140 * gs, cy - 140 * gs + m.grade.y * ls, 280 * gs, 280 * gs, rgb("#ffffff", m.grade.opacity * lensA));
+    sprite(grade, cx - 190 * gs, cy - 190 * gs + m.grade.y * ls, 380 * gs, 380 * gs, rgb("#ffffff", m.grade.opacity * lensA));
     const mods = data.score?.mods ?? [];
     const modSize = 32 * ls, modGap = 2 * ls;
     let mx = cx - (mods.length * modSize + Math.max(0, mods.length - 1) * modGap) / 2;
@@ -959,9 +915,15 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
       mx += modSize + modGap;
     });
 
+    for (const item of frame.sprites) {
+      item.x = 2 * 480 + (item.x - 2 * 480) * .7;
+      item.y = 2 * 290 + (item.y - 2 * 290) * .7;
+      item.w *= .7; item.h *= .7;
+    }
+
     const barY = 28.5 + m.topBar.y;
     const barA = m.topBar.opacity * a;
-    const srW = Math.max(40, widthOf(data.map.sr, 24, 800, '"Scene Tabular"') + data.map.sr.length * 0.3);
+    const srW = Math.max(40, widthOf(data.map.sr, 24, 800, '"Exo 2 Tabular"') + data.map.sr.length * 0.3);
     const groupW = 214;
     const totalW = groupW + 28 + srW + 28 + groupW;
     let gx = (960 - totalW) / 2;

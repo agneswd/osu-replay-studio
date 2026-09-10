@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { outroSampleRate, outroSamples } from "../shared/outro-audio.js";
-import { presentationAt, presentationTiming, firstNoteSeconds, endFadeStart, endFadeDuration, outroMusicGain } from "../core/presentation.js";
+import { gameplayClock, presentationSeconds, presentationTiming, introGameplayStart, firstNoteSeconds, endFadeStart, endFadeDuration, outroMusicGain } from "../core/presentation.js";
 import type { Timeline } from "../core/types.js";
 import type { PreviewEngine } from "./preview-engine.js";
 
@@ -11,13 +10,10 @@ export function usePlayback(timeline: Timeline | undefined, time: number, setTim
   const currentVolume = useRef(volume); currentVolume.current = volume;
   const [audioError, setAudioError] = useState("");
   const [command, setCommand] = useState(0);
-  const clock = useRef({ seconds: time, started: performance.now() });
   const currentTime = useRef(time); currentTime.current = time;
-  const sceneGain = useRef<GainNode | null>(null);
   const source = useRef([timeline, engine, introOutro, fps]);
   const seek = (seconds: number) => {
     const value = Math.max(0, Math.min(duration, seconds));
-    clock.current = { seconds: value, started: performance.now() };
     setTime(value); setCommand(value => value + 1);
   };
   const toggle = () => {
@@ -30,56 +26,39 @@ export function usePlayback(timeline: Timeline | undefined, time: number, setTim
     if (next.every((value, index) => value === source.current[index])) return;
     source.current = next;
     setPlaying(false); setAudioError("");
-    clock.current = { seconds: currentTime.current, started: performance.now() };
   }, [timeline, engine, introOutro, fps]);
   useEffect(() => {
     engine?.audio.setSongVolume(volume * .5);
     engine?.audio.setEffectsVolume(volume * .5);
-    if (sceneGain.current) sceneGain.current.gain.value = volume * .5;
   }, [volume, engine]);
   useEffect(() => {
     if (!playing || !engine || !timeline) { engine?.audio.pause(); return; }
-    const timing = presentationTiming(timeline.duration, fps, introOutro, firstNoteSeconds(timeline));
-    const holdEnd = timing.introFrames / fps;
-    const easeEnd = holdEnd + timing.introEaseFrames / fps;
-    const consumed = timing.introEaseConsumedFrames / fps;
-    const startTime = timing.startFrame / fps;
-    const outroStart = introOutro ? timing.outroStartFrame / fps : duration;
-    let phase = "";
+    const timing = presentationTiming(timeline.duration, fps, introOutro, firstNoteSeconds(timeline), introGameplayStart(timeline));
+    const beginsAt = currentTime.current;
+    const outroStart = introOutro ? timing.gameplayEndFrame / fps : duration;
     let stopped = false;
     let raf = 0;
+    let started: number | undefined;
+    const position = (elapsed: number) => gameplayClock(timing, beginsAt + elapsed, fps);
+    // AudioContext owns every phase, including silence, the ramp, and the song tail.
+    void engine.audio.playFrom(position(0).time * 1000, {
+      timeAt: elapsed => position(elapsed).time,
+      elapsedAt: sourceTime => presentationSeconds(timing, sourceTime, fps) - beginsAt,
+      rateAt: elapsed => position(elapsed).rate,
+      start: Math.max(0, timing.introFrames / fps - beginsAt),
+      rampEnd: (timing.introFrames + timing.introEaseFrames) / fps - beginsAt,
+    }).then(() => {
+      if (!stopped) started = engine.context.currentTime;
+    }).catch(() => {
+      if (!stopped) { setAudioError("Could not start preview audio."); setPlaying(false); }
+    });
     const tick = () => {
-      if (stopped) return;
-      const now = performance.now();
-      const followAudio = (phase === "gameplay" || phase === "outro") && engine.audio.isPlaying;
-      const seconds = Math.min(duration, followAudio
-        ? easeEnd + engine.audio.currentTimeMs / 1000 - startTime - consumed
-        : clock.current.seconds + (now - clock.current.started) / 1000);
-      const next = seconds < holdEnd ? "hold" : seconds < easeEnd ? "ease" : seconds < outroStart ? "gameplay" : "outro";
-      if (next !== phase) {
-        clock.current = { seconds, started: now };
-        phase = next;
-        if (next === "hold" || (!introOutro && next === "outro")) engine.audio.pause();
-        else if (next === "ease" || ((next === "gameplay" || next === "outro") && !engine.audio.isPlaying)) {
-          const position = presentationAt(timeline, seconds, fps, introOutro);
-          void engine.audio.playFrom(position.gameplayTime * 1000).then(() => {
-            if (!stopped) engine.audio.setUserRate(Math.max(.1, next === "ease" ? position.gameplayRate || .1 : 1));
-          }).catch(() => {
-            if (!stopped) { setAudioError("Could not start preview audio."); setPlaying(false); }
-          });
-        } else if (next === "gameplay") {
-          engine.audio.setUserRate(1);
-          void engine.audio.seekTo((startTime + consumed + Math.max(0, seconds - easeEnd)) * 1000);
-        }
-      } else if (next === "ease") {
-        const position = presentationAt(timeline, seconds, fps, introOutro);
-        engine.audio.setUserRate(Math.max(.1, position.gameplayRate || .1));
-      }
+      if (stopped || started === undefined) return;
+      const seconds = Math.min(duration, beginsAt + engine.context.currentTime - started);
       const fade = introOutro ? Math.max(0, Math.min(1, 1 - (seconds - timing.outroStartFrame / fps - endFadeStart) / endFadeDuration)) : 1;
       const musicGain = introOutro ? outroMusicGain(seconds - timing.outroStartFrame / fps) : 1;
       engine.audio.setSongVolume(currentVolume.current * .5 * musicGain * fade);
       engine.audio.setEffectsVolume(currentVolume.current * .5 * (seconds >= outroStart ? 0 : 1) * fade);
-      if (sceneGain.current) sceneGain.current.gain.value = currentVolume.current * .5 * fade;
       currentTime.current = seconds;
       // Audio runs on its own clock. Hidden windows do not need visual updates.
       if (!document.hidden || seconds >= duration) setTime(seconds);
@@ -91,32 +70,6 @@ export function usePlayback(timeline: Timeline | undefined, time: number, setTim
     tick(); raf = requestAnimationFrame(draw);
     return () => { stopped = true; cancelAnimationFrame(raf); clearInterval(timer); engine.audio.pause(); };
   }, [playing, engine, timeline, duration, fps, introOutro, command, setTime]);
-  useEffect(() => {
-    if (!playing || !engine || !timeline || !introOutro) return;
-    const timing = presentationTiming(timeline.duration, fps, true, firstNoteSeconds(timeline));
-    const begins = timing.outroStartFrame / fps;
-    const offset = currentTime.current - begins;
-    if (offset >= 2) return;
-    const context = engine.context;
-    const gain = context.createGain();
-    gain.gain.value = volume * .5;
-    sceneGain.current = gain;
-    gain.connect(context.destination);
-    const buffer = context.createBuffer(1, outroSampleRate * 2, outroSampleRate);
-    buffer.copyToChannel(outroSamples(), 0);
-    const sound = context.createBufferSource();
-    sound.buffer = buffer; sound.connect(gain);
-    let stopped = false;
-    void context.resume().then(() => {
-      if (!stopped) sound.start(context.currentTime + Math.max(0, -offset), Math.max(0, offset));
-    }).catch(() => { if (!stopped) setAudioError("Could not start outro audio."); });
-    return () => {
-      stopped = true;
-      try { sound.stop(); } catch { /* The audio context can close during replay replacement. */ }
-      sound.disconnect(); gain.disconnect();
-      if (sceneGain.current === gain) sceneGain.current = null;
-    };
-  }, [playing, engine, timeline, fps, introOutro, command]);
   useEffect(() => {
     const keydown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement;

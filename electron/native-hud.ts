@@ -4,7 +4,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { pipeline } from "node:stream/promises";
 import { createGzip } from "node:zlib";
 import path from "node:path";
-import type { HudBatch, PrepareHud } from "../core/native-hud.js";
+import type { HudBatch, HudFrame, PrepareHud } from "../core/native-hud.js";
 import { sceneDuration } from "../core/presentation.js";
 
 export function prepareNativeHud(root: string): PrepareHud {
@@ -61,9 +61,24 @@ export function prepareNativeHud(root: string): PrepareHud {
         await win.webContents.executeJavaScript(
           `window.createNativeScenes(${JSON.stringify(timeline)},${JSON.stringify(options)}).then(scenes => { window.scenes = scenes; })`,
         );
+        const persistent = options.overlays.filter(id => id === "leaderboard" || id === "progress-graph");
+        let foreground: HudFrame | undefined;
+        const foregroundAssets: string[] = [];
+        if (persistent.length) {
+          const batch: HudBatch = await win.webContents.executeJavaScript(
+            `window.createNativeHud(${JSON.stringify(timeline)},${JSON.stringify({ ...options, overlays: persistent, introOutro: false })}).then(hud => hud.batch(${Math.max(0, frames - 1)},1))`,
+          );
+          foreground = batch.frames[0];
+          for (const asset of batch.assets) {
+            const file = path.join(directory, `outro-hud-${asset.id}.png`);
+            await writeFile(file, Buffer.from(asset.png, "base64"));
+            foregroundAssets[asset.id] = file;
+          }
+        }
         const sceneFrames = Math.round(sceneDuration * options.fps);
         for (const kind of ["intro", "outro"] as const) {
-          const sceneAssets: string[] = [];
+          const sceneAssets: string[] = kind === "outro" ? [...foregroundAssets] : [];
+          const assetOffset = sceneAssets.length;
           const sceneDir = path.join(directory, `scene-${kind}-assets`);
           await mkdir(sceneDir, { recursive: true });
           const sceneFramesFile = path.join(directory, `scene-${kind}-frames.jsonl.gz`);
@@ -76,14 +91,17 @@ export function prepareNativeHud(root: string): PrepareHud {
               for (const asset of batch.assets) {
                 const file = path.join(sceneDir, `${asset.id}.png`);
                 await writeFile(file, Buffer.from(asset.png, "base64"));
-                sceneAssets[asset.id] = file;
+                sceneAssets[assetOffset + asset.id] = file;
               }
-              for (const frame of batch.frames) yield JSON.stringify(frame) + "\n";
+              for (const frame of batch.frames) {
+                for (const sprite of frame.sprites) sprite.asset += assetOffset;
+                yield JSON.stringify(frame) + "\n";
+              }
             }
           }
           await pipeline(sceneBatches(), createGzip({ level: 1 }), createWriteStream(sceneFramesFile), { signal });
           await writeFile(path.join(directory, `scene-${kind}.json`), JSON.stringify({
-            fps: options.fps, assets: sceneAssets, frames: sceneFramesFile,
+            fps: options.fps, assets: sceneAssets, frames: sceneFramesFile, foreground: kind === "outro" ? foreground : undefined,
           }));
         }
       }

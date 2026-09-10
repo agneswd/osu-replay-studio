@@ -20,6 +20,7 @@ import (
 
 type studioSprite struct {
 	Asset      int
+	Underlay   bool
 	X, Y, W, H float64
 	Color      [4]float32
 	Clip       []float64
@@ -49,6 +50,7 @@ type studioRenderer struct {
 	ticks   *buffer.Framebuffer
 }
 
+var studioCursorLeadIn = os.Getenv("STUDIO_CURSOR_LEAD_IN") == "1"
 var studioLoaded bool
 var studioHUD *studioRenderer
 
@@ -56,6 +58,7 @@ func init() {
 	if os.Getenv("STUDIO_NATIVE_PROBE") == "1" {
 		fmt.Println("STUDIO_NATIVE_HUD 1")
 		fmt.Println("STUDIO_LAYOUT 1")
+		fmt.Println("STUDIO_CURSOR_LEAD_IN 1")
 	}
 }
 
@@ -98,7 +101,7 @@ func loadStudioHUD(file string) *studioRenderer {
 	fmt.Printf("STUDIO HUD ready: %d assets\n", len(r.regions))
 	return r
 }
-func (player *Player) drawStudioHUD() {
+func (player *Player) drawStudioHUD(underlay bool) {
 	if !studioLoaded {
 		studioLoaded = true
 		if file := os.Getenv("STUDIO_NATIVE_HUD"); file != "" {
@@ -131,6 +134,9 @@ func (player *Player) drawStudioHUD() {
 	b := player.batch
 	draw := func(items []studioSprite, sx, sy, height float64) {
 		for _, s := range items {
+			if s.Underlay != underlay {
+				continue
+			}
 			if s.Asset < 0 || s.Asset >= len(r.regions) {
 				panic("Invalid native HUD asset")
 			}
@@ -155,6 +161,12 @@ func (player *Player) drawStudioHUD() {
 	b.SetAdditive(false)
 	b.SetCamera(mgl32.Ortho(0, 1920, 1080, 0, 1, -1))
 	b.Begin()
+	if underlay {
+		draw(r.frame.Sprites, settings.Graphics.GetWidthF()/1920, settings.Graphics.GetHeightF()/1080, 1080)
+		b.End()
+		b.ResetTransform()
+		return
+	}
 	split := len(r.frame.Sprites)
 	placement := r.frame.TickPlacement
 	if placement != nil {

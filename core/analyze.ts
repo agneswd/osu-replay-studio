@@ -338,7 +338,7 @@ export async function analyze(
   );
 
   const end = Math.max(...map.hitObjects.map((o) => objectEndTime(map, o)));
-  // Danser finishes the last judgement window, the one-second fade, and its 100 ms tail.
+  // Keep Danser's fade point for audio splicing. Judgement effects run for another 1100 ms.
   const gameplayFadeStart = (end + Math.trunc(200 - 10 * parsed.modDiff.od)) / 1000 / parsed.modDiff.speed;
 
   let health = replay.lifebarGraph
@@ -449,7 +449,10 @@ export async function analyze(
     replayFormat: format.lazer ? "lazer" : "stable",
       speed: parsed.modDiff.speed,
       preempt: Math.min(1800, parsed.modDiff.preemptMs),
-      duration: gameplayFadeStart + 1.1 / parsed.modDiff.speed,
+      // Finish recorded cursor data and the final object and judgement animations before the transition.
+      duration: Math.max(1 / 60,
+        (replayFrames.at(-1)?.time ?? end) / 1000 / parsed.modDiff.speed,
+        (playStatus.completed ? gameplayFadeStart : last.time / 1000 / parsed.modDiff.speed) + 1.1 / parsed.modDiff.speed) + .001,
       gameplayFadeStart,
       stars,
       bpm,

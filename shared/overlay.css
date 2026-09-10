@@ -47,7 +47,7 @@ small { font-size: 15px; }
 .player { width: 1280px; height: 120px; position: relative; }
 .map-stats { position: absolute; left: 22px; top: 33px; width: calc(var(--left-arch, 360px) - 22px); display: flex; justify-content: space-between; font-size: 25px; line-height: 34px; }
 .identity { position: absolute; left: 640px; top: 0; width: 300px; transform: translateX(-50%); text-align: center; }
-.player-avatar-container { position: relative; display: inline-block; width: 74px; height: 74px; vertical-align: top; }
+.player-avatar-container { filter: drop-shadow(0 3px 6px rgba(0,0,0,.75)); position: relative; display: inline-block; width: 74px; height: 74px; vertical-align: top; }
 .player-avatar-circle, .avatar-fallback { width: 74px; height: 74px; border-radius: 7px; object-fit: cover; background: rgba(var(--accent-rgb), .12); display: block; }
 .avatar-fallback { position: absolute; inset: 0; background: #292929; }
 .player-avatar-container img, .avatar-container img { position: relative; }

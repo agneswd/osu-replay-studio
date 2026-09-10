@@ -67,6 +67,8 @@ app
       await (await import("./capture-worker.js")).runCaptureWorker(root);
       return;
     }
+    // Vite serves versioned dependencies with immutable cache headers, including our local renderer patches.
+    if (devUrl) await session.defaultSession.clearCache();
     const credentials = new Credentials();
     await credentials.load();
     const mediaUrl = registerMedia();

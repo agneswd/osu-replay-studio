@@ -1,4 +1,4 @@
-import { nativeFrameWindow, nativeSceneArgs, nativeSceneBackgroundArgs, nativeAudioArgs, type PrepareHud, type CompositeNativeScene } from "./native-hud.js";
+import { nativeFrameWindow, nativeSceneArgs, nativeSceneBackgroundArgs, nativeSceneMotionArgs, nativeAudioArgs, type PrepareHud, type CompositeNativeScene } from "./native-hud.js";
 import { resolutions, frameRates } from "./video-options.js";
 import { constants, createWriteStream } from "node:fs";
 import {
@@ -19,9 +19,9 @@ import { spawn } from "node:child_process";
 import { pipeline, finished } from "node:stream/promises";
 import type { OsuClient } from "./online.js";
 import { analyze } from "./analyze.js";
-import { compositeArgs, gameplayOutputArgs, gameplayPaceArgs, presentationTiming, firstNoteSeconds } from "./presentation.js";
+import { compositeArgs, gameplayOutputArgs, gameplayPaceArgs, presentationTiming, introGameplayStart, firstNoteSeconds } from "./presentation.js";
 import { runtimeTool } from "./runtime.js";
-import { exportLoudness, measuredAudioFilter, outroWave, outroMusicArgs } from "./audio.js";
+import { exportLoudness, measuredAudioFilter, outroMusicArgs, entranceSamples, entranceAudioArgs } from "./audio.js";
 import {
   overlayIds,
   type Timeline,
@@ -195,7 +195,7 @@ export async function render(
     progress({ stage: "Analyze", message: "Resolve beatmap and analyze replay" });
     const timeline = await analyze(o, signal, onlineClient);
     const duration = Math.min(o.duration ?? timeline.duration, timeline.duration);
-    const timing = presentationTiming(duration, o.fps, o.introOutro, firstNoteSeconds(timeline));
+    const timing = presentationTiming(duration, o.fps, o.introOutro, firstNoteSeconds(timeline), introGameplayStart(timeline));
     const { frames } = timing;
     work = await mkdtemp(
       path.join(path.dirname(o.output), ".replay-studio-"),
@@ -271,9 +271,9 @@ export async function render(
         },
         Playfield: {
           ...danserPlayfield(o.layout),
-          LeadInTime: 0,
+          LeadInTime: o.introOutro ? 2 : 0,
           LeadInHold: 0,
-          FadeOutTime: 1,
+          FadeOutTime: Math.max(1.1, (duration - (timeline.gameplayFadeStart ?? duration)) * timeline.speed),
           SeizureWarning: { Enabled: false },
           Logo: { Enabled: false },
           Background: {
@@ -294,6 +294,7 @@ export async function render(
     const danserEnv: NodeJS.ProcessEnv = {
       ...process.env,
       STUDIO_NATIVE_PROBE: "1",
+      STUDIO_CURSOR_LEAD_IN: o.introOutro ? "1" : "",
       STUDIO_NATIVE_HUD: "",
       STUDIO_NATIVE_FRAME_LIMIT: "",
       PATH: [path.dirname(runtimeTool("ffmpeg")), process.env.PATH].filter(Boolean).join(path.delimiter),
@@ -314,7 +315,7 @@ export async function render(
       throw new Error(
         "This render clock requires Danser 0.11.0.",
       );
-    const leadIn = 1 + timeline.preempt / 1000 / timeline.speed;
+    const leadIn = (o.introOutro && version.includes("STUDIO_CURSOR_LEAD_IN 1") ? 2 : 1) + timeline.preempt / 1000 / timeline.speed;
     native = !!prepareHud && version.includes("STUDIO_NATIVE_HUD 1") && (!o.layout || version.includes("STUDIO_LAYOUT 1"));
     if (native) {
       const window = nativeFrameWindow(leadIn, timing.startFrame, timing.gameplayFrames, o.fps);
@@ -362,17 +363,30 @@ export async function render(
     );
     progress({ stage: "Audio", message: "Normalize video audio" });
     const gameplay = path.join(work, "gameplay.mp4");
-    const musicAudio = o.introOutro && timeline.audioPath ? path.join(work, "music.wav") : undefined;
-    if (musicAudio) await run(runtimeTool("ffmpeg"), outroMusicArgs(gameplay, timeline.audioPath!, musicAudio,
-      timing.startFrame / o.fps, leadIn, Math.min(duration, timeline.gameplayFadeStart ?? duration),
-      (timing.gameplayFrames + timing.sceneFrames) / o.fps, timeline.speed, timeline.preservesPitch), signal, line => log.write(line));
+    let musicAudio: string | undefined;
+    if (o.introOutro) {
+      const sourceAudio = path.join(work, "music-source.wav");
+      const sourceSeconds = (timing.gameplayFrames + timing.outroPauseFrames + timing.sceneFrames) / o.fps;
+      if (timeline.audioPath) await run(runtimeTool("ffmpeg"), outroMusicArgs(gameplay, timeline.audioPath, sourceAudio,
+        timing.startFrame / o.fps, leadIn, Math.min(duration, timeline.gameplayFadeStart ?? duration),
+        sourceSeconds, timeline.speed, timeline.preservesPitch), signal, line => log.write(line));
+      else await run(runtimeTool("ffmpeg"), ["-y", "-ss", String(Math.max(0, leadIn + timing.startFrame / o.fps)),
+        "-i", gameplay, "-vn", "-af", `apad=whole_dur=${sourceSeconds}`, "-t", String(sourceSeconds), sourceAudio], signal, line => log.write(line));
+      const ease = timing.introEaseFrames / o.fps;
+      const pcm = path.join(work, "entrance-source.f32"), ramp = path.join(work, "entrance.f32");
+      await run(runtimeTool("ffmpeg"), ["-y", "-i", sourceAudio, "-t", String(ease / 2 + 1 / 48000),
+        "-ar", "48000", "-ac", "2", "-f", "f32le", pcm], signal, line => log.write(line));
+      const bytes = await readFile(pcm);
+      const input = new Float32Array(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
+      await writeFile(ramp, Buffer.from(entranceSamples(input, 48000, 2, ease).buffer));
+      musicAudio = path.join(work, "music.wav");
+      await run(runtimeTool("ffmpeg"), entranceAudioArgs(sourceAudio, ramp, musicAudio, ease), signal, line => log.write(line));
+    }
     let audioLog = "";
     await run(runtimeTool("ffmpeg"), [...(musicAudio ? [] : ["-ss", String(Math.max(0, leadIn + timing.startFrame / o.fps))]), "-i", musicAudio ?? gameplay,
-      "-t", String(musicAudio ? (timing.gameplayFrames + timing.sceneFrames) / o.fps : timing.gameplayFrames / o.fps), "-vn", "-af", `${exportLoudness}:print_format=json`, "-f", "null", "-"],
+      "-t", String(musicAudio ? timing.duration - timing.introFrames / o.fps : timing.gameplayFrames / o.fps), "-vn", "-af", `${exportLoudness}:print_format=json`, "-f", "null", "-"],
       signal, line => { audioLog = (audioLog + line).slice(-8000); });
     const audioFilter = measuredAudioFilter(audioLog);
-    const outroAudio = o.introOutro ? path.join(work, "outro.wav") : undefined;
-    if (outroAudio) await writeFile(outroAudio, outroWave());
     const needsComposition = !native && (o.overlays.length > 0 || o.introOutro === true);
     if (needsComposition) progress({
       stage: "Overlay",
@@ -399,27 +413,32 @@ export async function render(
     });
     if (native) {
       const audio = path.join(work, "final-audio.m4a");
-      await run(runtimeTool("ffmpeg"), nativeAudioArgs(gameplay, audio, timing, o.fps, leadIn, audioFilter, musicAudio, outroAudio), signal, line => log.write(line));
+      await run(runtimeTool("ffmpeg"), nativeAudioArgs(gameplay, audio, timing, o.fps, leadIn, audioFilter, musicAudio), signal, line => log.write(line));
       let video = gameplay;
       if (o.introOutro) {
         if (!compositeScene || !work) throw new Error("Native scene compositing is unavailable.");
         const compose: CompositeNativeScene = compositeScene;
         const workDir: string = work;
+        // The last intro frames already contain moving gameplay under the fading card.
+        await run(runtimeTool("ffmpeg"), nativeSceneMotionArgs(gameplay, workDir, timing, o.fps), signal, line => log.write(line));
+        const backdrop = timeline.bgImage ? path.join(workDir, "outro-background") : undefined;
+        if (backdrop) await writeFile(backdrop, Buffer.from(timeline.bgImage!.split(",")[1], "base64"));
         for (const kind of ["intro", "outro"] as const) {
+          const outputFrames = timing.sceneFrames + (kind === "outro" ? timing.outroPauseFrames : 0);
           progress({ stage: "Scenes", message: `Render ${kind}` });
           const clear = path.join(workDir, `${kind}-clear.png`), soft = path.join(workDir, `${kind}-soft.png`);
-          await run(runtimeTool("ffmpeg"), nativeSceneBackgroundArgs(gameplay, clear, soft, kind, timing.gameplayFrames, o.fps), signal, line => log.write(line));
+          await run(runtimeTool("ffmpeg"), nativeSceneBackgroundArgs(gameplay, clear, soft, kind, timing.gameplayFrames, o.fps, kind === "outro" && backdrop ? { file: backdrop, width: o.width, height: o.height, dim: o.backgroundDim ?? .95 } : undefined), signal, line => log.write(line));
           const sceneFile = path.join(workDir, `scene-${kind}.json`);
           async function* sceneCapture() {
-            for await (const chunk of compose(sceneFile, { clear, soft }, kind, timing.sceneFrames, o.fps, o.width, o.height, signal)) {
+            for await (const chunk of compose(sceneFile, { clear, soft, motion: kind === "intro" ? { directory: workDir, start: timing.introFrames } : undefined }, kind, outputFrames, o.fps, o.width, o.height, signal)) {
               overlayFrames++;
               if (overlayFrames % o.fps === 0) progress({ stage: "Scenes", fraction: overlayFrames / (timing.sceneFrames * 2), message: `Render ${kind}` });
               yield chunk;
             }
           }
-          await run(runtimeTool("ffmpeg"), nativeSceneArgs(path.join(workDir, `${kind}.mp4`), timing.sceneFrames, o.fps, o.width, o.height, true), signal, line => log.write(line), workDir, sceneCapture());
+          await run(runtimeTool("ffmpeg"), nativeSceneArgs(path.join(workDir, `${kind}.mp4`), outputFrames, o.fps, o.width, o.height, true), signal, line => log.write(line), workDir, sceneCapture());
         }
-        await run(runtimeTool("ffmpeg"), gameplayPaceArgs(gameplay, path.join(work, "gameplay-video.mp4"), timing, o.fps), signal, line => log.write(line));
+        await run(runtimeTool("ffmpeg"), gameplayPaceArgs(gameplay, path.join(work, "gameplay-video.mp4"), timing, o.fps, timing.sceneFrames), signal, line => log.write(line));
         // Relative fixed names keep the concat file independent of user path quoting.
         await writeFile(path.join(work, "segments.txt"), "file 'intro.mp4'\nfile 'gameplay-video.mp4'\nfile 'outro.mp4'\n");
         video = path.join(work, "video.mp4");
@@ -429,7 +448,7 @@ export async function render(
     } else await run(
       runtimeTool("ffmpeg"),
       needsComposition
-        ? compositeArgs(gameplay, o.output, duration, o.fps, o.introOutro, leadIn, firstNoteSeconds(timeline), audioFilter, outroAudio, musicAudio)
+        ? compositeArgs(gameplay, o.output, duration, o.fps, o.introOutro, leadIn, firstNoteSeconds(timeline), audioFilter, musicAudio, introGameplayStart(timeline))
         : gameplayOutputArgs(gameplay, o.output, frames / o.fps, o.fps, leadIn, audioFilter),
       signal,
       (line) => log.write(line),

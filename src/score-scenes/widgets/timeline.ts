@@ -1,8 +1,9 @@
+import { introExitStart, sceneDuration } from "../../../core/presentation.js";
 import type { OverlayData } from "./types";
 import type { OverlayNode } from "./OverlayWidget";
 import type { ShowcaseNode } from "./ShowcaseIntroWidget";
 export { easeMotionDecel, OVERLAY_TOTAL_CYCLE, SHOWCASE_INTRO_TOTAL_CYCLE } from "./motion";
-import { easeMotionDecel, clampProgress, easeOutCubic } from "./motion";
+import { easeMotionDecel, clampProgress, easeOutCubic, outroMotion } from "./motion";
 
 export interface OverlayNodeSource {
     get(name: OverlayNode): Element | null;
@@ -182,11 +183,11 @@ export function seekOverlay(t: number, nodes: OverlayNodeSource, data: OverlayDa
         card.style.clipPath = "";
     }
 
-    if (t >= 0.50 && t < 4.70 && widget) {
+    if (t >= 0.50 && t < introExitStart && widget) {
         widget.style.opacity = "1";
         widget.style.transform = "scale(1)";
     }
-    if ((t >= 0.50 && t < 2.30) || (t >= 3.06 && t < 4.70)) {
+    if ((t >= 0.50 && t < 2.30) || (t >= 3.06 && t < introExitStart)) {
         for (const card of [topCard, bottomCard]) {
             if (!card) continue;
             card.style.opacity = "1";
@@ -323,8 +324,8 @@ export function seekOverlay(t: number, nodes: OverlayNodeSource, data: OverlayDa
 
         clearMapSide(nodes);
     }
-    // Map view, 3.06-4.70s.
-    else if (t < 4.70) {
+    // Map view, 3.06s until the closing fade.
+    else if (t < introExitStart) {
 
         paintLayer(nodes, "topPlayer", 0);
         paintLayer(nodes, "bottomPlayer", 0);
@@ -342,19 +343,19 @@ export function seekOverlay(t: number, nodes: OverlayNodeSource, data: OverlayDa
 
 
     }
-    // Closing, 4.70-5.40s.
+    // Fade the card while revealing the held gameplay frame.
     else {
-        const pClose = clampProgress((t - 4.85) / .55);
+        const pClose = clampProgress((t - introExitStart) / (sceneDuration - introExitStart));
         paintLayer(nodes, "topPlayer", 0);
         paintLayer(nodes, "bottomPlayer", 0);
         paintLayer(nodes, "topMap", 1);
         paintLayer(nodes, "bottomMap", 1);
         paintLayer(nodes, "starFooter", 1);
         if (widget) {
-            const pull = pClose * pClose;
+            const pull = pClose * pClose * (3 - 2 * pClose);
             widget.style.transformOrigin = "center top";
-            widget.style.transform = `translateY(${760 * pull}px) perspective(${1200 - 900 * pClose}px) rotateX(${-65 * Math.sin(pClose * Math.PI / 2)}deg) scale(${1 - .98 * pull},${1 + .8 * Math.sin(pClose * Math.PI)})`;
-            widget.style.opacity = String(1 - clampProgress((pClose - .82) / .18));
+            widget.style.transform = `translateY(${48 * pull}px)`;
+            widget.style.opacity = String(1 - pull);
         }
 
 
@@ -379,107 +380,33 @@ export interface ShowcaseNodeSource {
 }
 
 export function seekShowcaseIntro(t: number, nodes: ShowcaseNodeSource): void {
-    const topBar = nodes.get("topBar") as HTMLElement | null;
-    const lensWrap = nodes.get("lensWrap") as HTMLElement | null;
-    const gradeRank = nodes.get("gradeRank") as HTMLElement | null;
-    const leftFlyout = nodes.get("leftFlyout") as HTMLElement | null;
-    const rightFlyout = nodes.get("rightFlyout") as HTMLElement | null;
-    const bottomTime = nodes.get("bottomTime") as HTMLElement | null;
-    const container = nodes.get("container") as HTMLElement | null;
-
-    // Phase 1: Top bar animation (0.0s -> 0.7s)
-    if (topBar) {
-        if (t <= 0) {
-            topBar.style.transform = "translateY(-24px)";
-            topBar.style.opacity = "0";
-        } else if (t < 0.7) {
-            const p = easeMotionDecel(t / 0.7);
-            topBar.style.transform = `translateY(${-24 * (1 - p)}px)`;
-            topBar.style.opacity = String(p);
-        } else {
-            topBar.style.transform = "translateY(0)";
-            topBar.style.opacity = "1";
-        }
+    const motion = outroMotion(t);
+    const set = (name: ShowcaseNode, opacity: number, transform?: string) => {
+        const element = nodes.get(name) as HTMLElement | null;
+        if (!element) return;
+        element.style.opacity = String(opacity);
+        if (transform) element.style.transform = transform;
+    };
+    set("topBar", motion.topBar.opacity, `translateY(${motion.topBar.y}px)`);
+    set("lensWrap", motion.lens.opacity, `translate(-50%, calc(-50% + ${motion.lens.y}px)) scale(${motion.lens.scale})`);
+    set("gradeRank", motion.grade.opacity, `translateY(${motion.grade.y}px) scale(${motion.grade.scale})`);
+    set("leftFlyout", 1, "none");
+    const player = nodes.get("leftFlyout")?.querySelector<HTMLElement>(".showcase-player-card");
+    if (player) {
+        player.style.opacity = String(motion.leftFlyout.opacity);
+        player.style.transform = `translateX(${motion.leftFlyout.x}px)`;
     }
-
-    // Phase 2: Center Circular Lens rises from bottom (0.15s -> 1.15s)
-    if (lensWrap) {
-        if (t < 0.15) {
-            lensWrap.style.transform = "translate(-50%, calc(-50% + 240px)) scale(0.4)";
-            lensWrap.style.opacity = "0";
-        } else if (t < 1.15) {
-            const p = easeMotionDecel((t - 0.15) / 1.0);
-            const dy = 240 * (1 - p);
-            const scale = 0.4 + 0.6 * p;
-            lensWrap.style.transform = `translate(-50%, calc(-50% + ${dy.toFixed(1)}px)) scale(${scale.toFixed(3)})`;
-            lensWrap.style.opacity = String(Math.min(1, p * 3));
-        } else {
-            lensWrap.style.transform = "translate(-50%, -50%) scale(1)";
-            lensWrap.style.opacity = "1";
-        }
-    }
-
-    // Phase 3: Big Grade Rank letter pops inside lens (0.75s -> 1.55s)
-    if (gradeRank) {
-        if (t < 0.75) {
-            gradeRank.style.transform = "translateY(-4px) scale(0.65)";
-            gradeRank.style.opacity = "0";
-        } else if (t < 1.55) {
-            const p = easeMotionDecel((t - 0.75) / 0.8);
-            const scale = 0.65 + 0.35 * p;
-            gradeRank.style.transform = `translateY(-4px) scale(${scale.toFixed(3)})`;
-            gradeRank.style.opacity = String(p);
-        } else {
-            gradeRank.style.transform = "translateY(-4px) scale(1)";
-            gradeRank.style.opacity = "1";
-        }
-    }
-
-    // Flyouts enter from opposite sides with a 50ms stagger.
-    for (const [element, begin, end, offset] of [
-        [leftFlyout, 1.10, 2.10, 90],
-        [rightFlyout, 1.15, 2.15, -90],
-    ] as const) {
-        if (!element) continue;
-        if (t < begin) {
-            element.style.transform = `translateX(${offset}px)`;
-            element.style.opacity = "0";
-        } else if (t < end) {
-            const p = easeMotionDecel(t - begin);
-            element.style.transform = `translateX(${(offset * (1 - p)).toFixed(1)}px)`;
-            element.style.opacity = String(p);
-        } else {
-            element.style.transform = "translateX(0)";
-            element.style.opacity = "1";
-        }
-    }
-
-    // Each statistic emerges from under the lens after the flyout starts.
-    rightFlyout?.querySelectorAll<HTMLElement>(".showcase-right-item").forEach((element, index) => {
-        const p = easeMotionDecel(clampProgress((t - 1.15 - index * .07) / .55));
-        element.style.translate = `${-38 * (1 - p)}px 0`;
-        element.style.opacity = String(p);
+    nodes.get("leftFlyout")?.querySelectorAll<HTMLElement>(".showcase-play-item").forEach((element, index) => {
+        const progress = motion.leftItems[index] ?? 1;
+        element.style.transform = `translateX(${90 * (1 - progress)}px)`;
+        element.style.opacity = String(progress);
     });
-
-    // Phase 6: Bottom relative time fades in (1.80s -> 2.50s)
-    if (bottomTime) {
-        if (t < 1.80) {
-            bottomTime.style.opacity = "0";
-        } else if (t < 2.50) {
-            const p = (t - 1.80) / 0.70;
-            bottomTime.style.opacity = String(clampProgress(p));
-        } else {
-            bottomTime.style.opacity = "1";
-        }
-    }
-
-    // Outro fade / loop reset (5.10s -> 5.40s)
-    if (container) {
-        if (t >= 5.10) {
-            const pOut = (t - 5.10) / 0.30;
-            container.style.opacity = String(Math.max(0, 1 - pOut));
-        } else {
-            container.style.opacity = "1";
-        }
-    }
+    set("rightFlyout", motion.rightFlyout.opacity, `translateX(${motion.rightFlyout.x}px)`);
+    nodes.get("rightFlyout")?.querySelectorAll<HTMLElement>(".showcase-right-item").forEach((element, index) => {
+        const progress = motion.rightItems[index] ?? 1;
+        element.style.translate = `${-38 * (1 - progress)}px 0`;
+        element.style.opacity = String(progress);
+    });
+    set("bottomTime", motion.bottomTime);
+    set("container", motion.container);
 }

@@ -173,6 +173,16 @@ app.whenReady().then(async () => {
     for await (const frame of nativeSceneWithWorker(root)(...sceneArgs, new AbortController().signal))
       assert.deepEqual(Buffer.from(frame), reference[nativeCount++]);
     assert.equal(nativeCount, 3);
+    ffmpeg(nativeSceneBackgroundArgs(source, clear, soft, "outro", 30, 30));
+    assert.deepEqual([...nativeImage.createFromPath(soft).toBitmap().subarray(0, 4)], [0, 0, 0, 255],
+      "A map without background art must not leave the old HUD behind the outro.");
+    let outroCount = 0;
+    for await (const frame of nativeSceneWithWorker(root)(scene, { clear, soft }, "outro", 33, 30, 16, 16, new AbortController().signal)) {
+      if (outroCount === 0) assert.ok(frame[0] > 0);
+      if (outroCount >= 30) assert.equal(frame[0], 0);
+      outroCount++;
+    }
+    assert.equal(outroCount, 33, "The transition prefix must not consume any scene frames.");
     const cancelled = new AbortController();
     const iterator = nativeSceneWithWorker(root)(...sceneArgs, cancelled.signal)[Symbol.asyncIterator]();
     await iterator.next();

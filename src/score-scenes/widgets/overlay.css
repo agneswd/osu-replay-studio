@@ -13,7 +13,7 @@
       --card-shadow-glow: rgba(0, 210, 255, 0.16);
       --text-muted: #7aa5bd;
       --text-dim: #4f7387;
-      --font-main: "Plus Jakarta Sans", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-main: "Exo 2", sans-serif;
     }
 
     .animation-stage {

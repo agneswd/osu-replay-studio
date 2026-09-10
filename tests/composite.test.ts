@@ -24,8 +24,7 @@ test("opaque scenes and transparent gameplay preserve export frames and colors",
     const fixture = (name: string) => readFileSync(new URL(`./fixtures/${name}.png`, import.meta.url));
     const frames = Buffer.concat([
       ...Array<Buffer>(timing.sceneFrames).fill(fixture("opaque-red")),
-      ...Array<Buffer>(timing.introFrames - timing.sceneFrames).fill(fixture("transparent")),
-      ...Array<Buffer>(timing.outroStartFrame - timing.introFrames).fill(fixture("transparent")),
+      ...Array<Buffer>(timing.outroStartFrame - timing.sceneFrames).fill(fixture("transparent")),
       ...Array<Buffer>(timing.sceneFrames).fill(fixture("opaque-blue")),
     ]);
     ffmpeg(compositeArgs(gameplay, output, 0.2, 30, true), frames);
@@ -35,7 +34,11 @@ test("opaque scenes and transparent gameplay preserve export frames and colors",
     const red = pixel(30), white = pixel(timing.sceneFrames + 2), blue = pixel(timing.frames - 30);
     assert.ok(red[0] > 240 && red[1] < 10 && red[2] < 10);
     assert.ok(white.every(value => value > 240));
-    assert.ok(pixel(timing.outroStartFrame - 1).every(value => value > 240), "The final gameplay frame stays clear before the outro.");
+    assert.ok(pixel(timing.gameplayEndFrame - 1).every(value => value > 240), "Gameplay stays clear until its final frame.");
+    const middle = pixel(timing.gameplayEndFrame + 15);
+    const settled = pixel(timing.outroStartFrame - 1);
+    assert.ok(middle.every(value => value < 240 && value > 150), "Gameplay dims during the one-second gap.");
+    assert.ok(settled.every(value => value < 160), "The background is dim before the outro begins.");
     assert.ok(blue[0] < 10 && blue[1] < 10 && blue[2] > 240);
   } finally {
     rmSync(work, { recursive: true, force: true });

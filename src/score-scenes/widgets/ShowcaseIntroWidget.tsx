@@ -101,6 +101,7 @@ export function ShowcaseIntroWidget({
             </header>
 
             {/* Center Circular Lens */}
+            <div className="showcase-body">
             <div className="showcase-lens-wrap" ref={setRef("lensWrap")}>
                 <div
                     className="showcase-lens-artwork"
@@ -231,6 +232,8 @@ export function ShowcaseIntroWidget({
                     </div>
                 </div>
             </aside>
+
+            </div>
 
             {/* Bottom Timestamp */}
             <footer className="showcase-bottom-time" ref={setRef("bottomTime")}>

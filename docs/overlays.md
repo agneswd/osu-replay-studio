@@ -34,11 +34,11 @@ The intro shows monthly player playcounts and a peak marker. The map graph shows
 The outro shows the player's six best plays. These sections use the configured osu! API connection.
 Missing data stays hidden. No sample playcounts or invented ranks are shown.
 
-Gameplay and the HUD stay frozen, blurred, and dim during the intro.
-After the intro overlay ends, gameplay holds for one second, then eases from a stop to 1x.
-A dim beatmap image stays visible even with 100% gameplay dim.
-The outro starts when replay data ends. Map music ducks to half volume and keeps playing until the fade to black.
-The HUD hides when the outro starts. The outro ends with a fade to black.
+Gameplay and the HUD stay frozen, blurred, and dim while the intro opens.
+The closing animation starts a one-second hold. Gameplay then accelerates over 1.5 seconds, beneath the last 0.3 seconds of the intro fade.
+The background uses the selected gameplay dim.
+Recorded cursor data and object animations finish before a one-second fade into the dimmed outro background. Map music ducks to half volume and keeps playing until the fade to black.
+The leaderboard and strain graph stay visible through the outro. Other gameplay overlays fade out during the transition. The outro ends with a fade to black.
 
 The line below the map graph marks 100s, 50s, and misses at their map positions.
 It appears after the first such judgement. It does not show elapsed progress.

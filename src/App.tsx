@@ -28,7 +28,7 @@ import {
   Spinner,
   Tooltip,
 } from "@heroui/react";
-import { presentationAt, presentationTiming, firstNoteSeconds, sceneDuration } from "../core/presentation.js";
+import { presentationAt, presentationTiming, introGameplayStart, firstNoteSeconds, sceneDuration, sceneBlur as sceneBlurAt } from "../core/presentation.js";
 import {
   defaultOverlayAccent,
   overlayIds,
@@ -259,8 +259,8 @@ export function App() {
   }, [engine, options?.cursorSize]);
 
   const position = timeline && options ? presentationAt(timeline, time, options.fps, options.introOutro) : null;
-  const sceneBlur = position?.scene ? Math.min(1, position.scene.kind === "intro" ? 1 : position.scene.time / .25, Math.max(0, (5.4 - position.scene.time) / .45)) : 0;
-  const previewDuration = timeline && options ? presentationTiming(timeline.duration, options.fps, options.introOutro, firstNoteSeconds(timeline)).duration : 0;
+  const sceneBlur = position?.scene ? sceneBlurAt(position.scene.kind, position.scene.time) : 0;
+  const previewDuration = timeline && options ? presentationTiming(timeline.duration, options.fps, options.introOutro, firstNoteSeconds(timeline), introGameplayStart(timeline)).duration : 0;
   const playback = usePlayback(timeline, time, setTime, previewDuration, options?.fps ?? 60, options?.introOutro ?? false, engine);
   async function connectOsu() {
     setConnecting(true); setConnectionMessage("");
@@ -295,6 +295,8 @@ export function App() {
           backgroundDim: options.backgroundDim,
           layout: liveLayout,
           scene: position?.scene,
+          outroTransition: position?.outroTransition,
+          gameplayUnderlay: !!engine,
           enabled: options.overlays,
           accent: options.overlayAccent || defaultOverlayAccent,
         },
@@ -305,9 +307,10 @@ export function App() {
   useEffect(() => {
     if (engine && timeline) {
       engine.layout(liveLayout);
+      if (options) engine.leaderboard(timeline, options, liveLayout);
       engine.draw(position?.gameplayTime ?? time, timeline.speed, options?.backgroundDim ?? .95);
     }
-  }, [time, timeline, engine, options?.introOutro, options?.fps, options?.backgroundDim, liveLayout]);
+  }, [time, timeline, engine, options?.overlays, options?.leaderboardSize, options?.leaderboardSort, options?.introOutro, options?.fps, options?.backgroundDim, liveLayout]);
 
   function patch(next: Partial<StudioDefaults>) {
     setOptions((old) => old && { ...old, ...next });
