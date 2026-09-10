@@ -37,7 +37,7 @@ For stable plays, a completely missed slider counts as a miss rather than an add
 Failed heads, ticks, and repeats on partially hit sliders count as slider breaks.
 
 Automatic FC requires a complete play, no misses, and no slider breaks.
-Stable and Classic plays also require matching reconstructed hit counts.
+For stable and Classic replays, simulated and recorded object totals and misses must agree. Differences between successful 300/100/50 judgements do not block FC.
 Non-Classic lazer plays use recorded judgement and slider statistics, even when simulation differs.
 The exact online score can supply missing status evidence. Conflicting recorded and online status remains unverified.
 Dropped tails can reduce maximum combo without preventing this community definition of FC.

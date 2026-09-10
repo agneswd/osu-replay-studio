@@ -24,7 +24,9 @@ export function sliderBreakEvents(objects: readonly { type: string }[], results:
 
 export function classifyPlay(objectCount: number, judged: readonly number[], recorded: readonly number[], combo: number, maxCombo: number, sliderBreaks: number): PlayStatus {
   const completed = recorded.reduce((a, b) => a + b, 0) === objectCount && objectCount > 0;
-  const verified = judged.length === recorded.length && judged.every((n, i) => n === recorded[i]);
+  // FC depends on completion and combo breaks, not the accuracy of successful hits.
+  const verified = judged.length === 4 && recorded.length === 4 &&
+    judged.reduce((a, b) => a + b, 0) === recorded.reduce((a, b) => a + b, 0) && judged[3] === recorded[3];
   const fullCombo = completed && verified && recorded[3] === 0 && sliderBreaks === 0;
   return { completed, verified, fullCombo, perfectCombo: fullCombo && combo >= maxCombo, sliderBreaks };
 }

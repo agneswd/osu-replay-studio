@@ -35,8 +35,8 @@ The outro shows the player's six best plays. These sections use the configured o
 Missing data stays hidden. No sample playcounts or invented ranks are shown.
 
 Gameplay and the HUD stay frozen, blurred, and dim while the intro opens.
-The closing animation starts a one-second hold. Gameplay then accelerates over 1.5 seconds, beneath the last 0.3 seconds of the intro fade.
-The background uses the selected gameplay dim.
+The background starts clearing with a one-second hold. Gameplay then accelerates over 1 second, beneath the last 0.3 seconds of the magic-lamp close.
+Music fades to half volume during acceleration, then returns to full volume over 0.25 seconds. The background uses the selected gameplay dim.
 Recorded cursor data and object animations finish before a one-second fade into the dimmed outro background. Map music ducks to half volume and keeps playing until the fade to black.
 The leaderboard and strain graph stay visible through the outro. Other gameplay overlays fade out during the transition. The outro ends with a fade to black.
 

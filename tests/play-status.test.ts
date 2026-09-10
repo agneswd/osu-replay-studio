@@ -9,12 +9,17 @@ test("slider breaks exclude circle misses, spinner misses, whole sliders, and dr
   assert.deepEqual(sliderBreakEvents(objects, events), [3, 4, 5]);
 });
 
-test("FC accepts dropped tails but requires completed and matching replay judgements", () => {
+test("FC accepts dropped tails and accuracy differences but requires matching completion and misses", () => {
   assert.deepEqual(classifyPlay(3, [2, 1, 0, 0], [2, 1, 0, 0], 8, 9, 0), { completed: true, verified: true, fullCombo: true, perfectCombo: false, sliderBreaks: 0 });
+  assert.deepEqual(classifyPlay(479, [458, 19, 2, 0], [457, 20, 2, 0], 587, 589, 0),
+    { completed: true, verified: true, fullCombo: true, perfectCombo: false, sliderBreaks: 0 });
+  assert.equal(classifyPlay(3, [2, 0, 0, 1], [3, 0, 0, 0], 8, 9, 0).verified, false);
+  assert.equal(classifyPlay(3, [3, 0, 0, 0], [2, 0, 0, 1], 8, 9, 0).fullCombo, false);
+  assert.equal(classifyPlay(3, [2, 0, 0, 0], [3, 0, 0, 0], 8, 9, 0).verified, false);
   assert.equal(classifyPlay(3, [3, 0, 0, 0], [3, 0, 0, 0], 9, 9, 0).perfectCombo, true);
   assert.equal(classifyPlay(3, [2, 1, 0, 0], [2, 1, 0, 0], 8, 9, 1).fullCombo, false);
   assert.equal(classifyPlay(4, [3, 0, 0, 0], [3, 0, 0, 0], 9, 9, 0).fullCombo, false);
-  assert.equal(classifyPlay(3, [2, 1, 0, 0], [3, 0, 0, 0], 9, 9, 0).fullCombo, false);
+  assert.equal(classifyPlay(3, [2, 1, 0, 0], [3, 0, 0, 0], 9, 9, 0).fullCombo, true);
 });
 
 test("recorded lazer results verify FC despite different simulated judgements and dropped tails", async () => {

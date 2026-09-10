@@ -21,7 +21,16 @@ const changes = [
       source.start(when, offset);
       this.activeSong = source;
       return;
-    }`],
+    }`, "      const clock = this._studioClock;"],
+  ["      source.start(when, offset);", `      const entranceGain = this.ctx.createGain();
+      entranceGain.gain.setValueAtTime(.5 * clock.rateAt(begins) + .5 * Math.min(1, Math.max(0, (begins - clock.rampEnd) / .25)), when);
+      if (clock.rampEnd > begins) entranceGain.gain.linearRampToValueAtTime(.5, this._ctxTimeAtStart + clock.rampEnd);
+      if (clock.rampEnd + .25 > begins) entranceGain.gain.linearRampToValueAtTime(1, this._ctxTimeAtStart + clock.rampEnd + .25);
+      source.disconnect();
+      source.connect(entranceGain);
+      entranceGain.connect(this.songGain);
+      source.onended = () => entranceGain.disconnect();
+      source.start(when, offset);`],
   ["const when = anchorCtxS + (ev.beatmapMs - anchorBeatmapMs) / toRealSec;", `const when = anchorCtxS + (this._studioClock
         ? this._studioClock.elapsedAt((ev.beatmapMs - this.introOffsetMs) / (1000 * this.speed))
         : (ev.beatmapMs - anchorBeatmapMs) / toRealSec);`],
@@ -62,8 +71,8 @@ function drawJudgements(
   ['octx.fillStyle = "#1a1a2e";', 'octx.fillStyle = "#000000";'],
   ['ctx.fillStyle = "#1a1a2e";', 'ctx.fillStyle = "#000000";'],
 ];
-for (const [before, after] of changes) {
-  if (source.includes(after)) continue;
+for (const [before, after, marker = after] of changes) {
+  if (source.includes(marker)) continue;
   if (source.includes(before)) source = source.replace(before, after);
   else throw new Error("The replay renderer changed. Review its preview patch.");
 }

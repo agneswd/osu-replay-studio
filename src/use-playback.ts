@@ -46,7 +46,7 @@ export function usePlayback(timeline: Timeline | undefined, time: number, setTim
       elapsedAt: sourceTime => presentationSeconds(timing, sourceTime, fps) - beginsAt,
       rateAt: elapsed => position(elapsed).rate,
       start: Math.max(0, timing.introFrames / fps - beginsAt),
-      rampEnd: (timing.introFrames + timing.introEaseFrames) / fps - beginsAt,
+      rampEnd: timing.introEaseFrames ? (timing.introFrames + timing.introEaseFrames) / fps - beginsAt : -1,
     }).then(() => {
       if (!stopped) started = engine.context.currentTime;
     }).catch(() => {

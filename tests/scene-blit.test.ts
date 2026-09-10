@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { blitSprite, fadeToBlack, fillBgra, mixBuffers } from "../core/scene-blit.js";
-import { introMotion, outroMotion } from "../src/score-scenes/widgets/motion.js";
+import { introMotion, outroMotion, widgetCloseScale } from "../src/score-scenes/widgets/motion.js";
 import { sceneBlur, sceneFade } from "../core/presentation.js";
 import { overlayData, sceneFlags } from "../src/score-scenes/data.js";
 import type { Timeline } from "../core/types.js";
@@ -51,7 +51,11 @@ test("intro and outro motion keep the same clock as the browser scenes", () => {
   assert.equal(introMotion(1.2, data).topPlayer.opacity, 1);
   assert.equal(introMotion(3.5, data).showMap, true);
   assert.ok(introMotion(5.1, data).widget.originTop);
-  assert.ok(introMotion(5.2, data).widget.opacity < introMotion(4.2, data).widget.opacity);
+  assert.ok(introMotion(5.1, data).widget.rotateX < -30);
+  assert.ok(introMotion(5.2, data).widget.y > introMotion(5.1, data).widget.y);
+  assert.ok(widgetCloseScale(5.2).scaleX < widgetCloseScale(5.1).scaleX);
+  assert.ok(widgetCloseScale(5.1).scaleY > 1);
+  assert.ok(introMotion(5.35, data).widget.opacity < introMotion(4.2, data).widget.opacity);
   assert.ok(outroMotion(.25).topBar.opacity > .5);
   assert.ok(outroMotion(.25).lens.opacity > 0);
   assert.equal(outroMotion(.6).lens.opacity, 1);

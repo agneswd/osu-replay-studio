@@ -4,7 +4,7 @@ import { exportLoudness } from "./audio.js";
 // The two built-in animations each run for 5.4 seconds.
 export const sceneDuration = 5.4;
 export const introPause = 1;
-export const introEase = 1.5;
+export const introEase = 1;
 export const introExitStart = 4.1;
 export const outroPause = 1;
 export const endFadeStart = 4.65;
@@ -125,7 +125,7 @@ export function compositeArgs(gameplay: string, output: string, duration: number
   const duckAt = (timing.outroStartFrame - timing.introFrames) / fps;
   const duck = musicAudio ? `,volume='1-${1 - outroMusicVolume}*min(1,max(0,(t-${duckAt})/${outroMusicTransition}))':eval=frame` : "";
   const sourceSeconds = musicAudio ? end - hold : timing.gameplayFrames / fps;
-  const audio = `atrim=duration=${sourceSeconds},asetpts=PTS-STARTPTS,aresample=48000,${audioFilter}${duck}${enabled ? `,adelay=${Math.round(hold * 1000)}:all=1,apad=whole_dur=${timing.duration}` : ""}`;
+  const audio = `atrim=duration=${sourceSeconds},asetpts=PTS-STARTPTS,aresample=48000,${audioFilter}${duck}${enabled ? `,adelay=${Math.round(hold * 1000)}:all=1,asetpts=N/SR/TB,apad=whole_dur=${timing.duration}` : ""}`;
   const musicInput = musicAudio ? 2 : 0;
   const fade = `afade=t=out:st=${end - outroHold + endFadeStart}:d=${endFadeDuration}`;
   const audioGraph = musicAudio ? `;[${musicInput}:a]${audio},${fade}[outa]` : "";
