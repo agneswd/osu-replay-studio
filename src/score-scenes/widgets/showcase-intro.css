@@ -630,13 +630,9 @@
   line-height: 1;
 }
 
-.showcase-hit-box.h300 {
+.showcase-hit-box.h100 {
   padding-left: 48px;
   background: #61C97D;
-}
-
-.showcase-hit-box.h100 {
-  background: #BAD750;
 }
 
 .showcase-hit-box.h0 {
