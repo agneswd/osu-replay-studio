@@ -219,9 +219,6 @@ export function ShowcaseIntroWidget({
                 </div>
 
                 <div className="showcase-right-item showcase-hits-strip">
-                    <div className="showcase-hit-box h300">
-                        <span>{score.count300}</span>
-                    </div>
                     <div className="showcase-hit-box h100">
                         <span>{score.count100}</span>
                     </div>

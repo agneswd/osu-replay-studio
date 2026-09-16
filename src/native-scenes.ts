@@ -531,8 +531,7 @@ export async function createNativeScenes(timeline: Timeline, options: RenderOpti
   });
 
   const hitBoxes = [
-    { color: "#61C97D", value: String(data.score!.count300), padLeft: 48 },
-    { color: "#BAD750", value: String(data.score!.count100), padLeft: 12 },
+    { color: "#61C97D", value: String(data.score!.count100), padLeft: 48 },
     ...(data.score!.count50 > 0 ? [{ color: "#E8C547", value: String(data.score!.count50), padLeft: 12 }] : []),
     ...(data.score!.sliderBreaks ? [{ color: "#8B8F98", value: String(data.score!.sliderBreaks), padLeft: 12 }] : []),
     { color: "#DE6984", value: String(data.score!.countMiss), padLeft: 12 },
